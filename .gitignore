@@ -1,0 +1,18 @@
+# Composer vendor directory
+/vendor/
+
+# Composer lock file (если не хочешь фиксировать версии)
+composer.lock
+
+# OS junk
+.DS_Store
+
+# IDE configs
+.idea/
+.vscode/
+
+# Logs
+*.log
+
+# PHPStorm meta
+.phpstorm.meta.php/

@@ -3,6 +3,7 @@
 namespace Shm\Types;
 
 use GraphQL\Type\Definition\Type;
+use Shm\ShmGQL\ShmGQLCodeGen\TSType;
 use Shm\Types\Utils\JsonLogicBuilder;
 
 abstract class BaseType
@@ -105,6 +106,10 @@ abstract class BaseType
     public function key(string $key): static
     {
         $this->key = $key;
+
+
+
+
         return $this;
     }
 
@@ -226,12 +231,27 @@ abstract class BaseType
         return $this;
     }
 
+    public bool $defaultIsSet = false;
+
     /**
      * Set a default value.
      */
     public function default(mixed $value): static
     {
+        $this->defaultIsSet = true;
         $this->default = $value;
+        return $this;
+    }
+
+
+    /**
+     * Clear the default value.
+     * This will remove any previously set default.
+     */
+    public function cleanDefault(): static
+    {
+        $this->defaultIsSet = false;
+        $this->default = null;
         return $this;
     }
 
@@ -244,12 +264,15 @@ abstract class BaseType
         return $this;
     }
 
+
+
     /**
      * Normalize the input value to the expected type.
      */
-    public function normalize(mixed $value): mixed
+    public function normalize(mixed $value, $addDefaultValues = false): mixed
     {
-        if ($value === null) {
+
+        if ($addDefaultValues && $value === null && $this->defaultIsSet) {
             return $this->default;
         }
 
@@ -286,47 +309,92 @@ abstract class BaseType
     }
 
 
-    public function GQLFilterTypeInput(): ?Type
-    {
-        return null;
-    }
+
 
 
     public function filterType(): ?BaseType
     {
         return null;
     }
-
-
-    public function isComplexTsType(): bool
+    public function filterToPipeline($filter, array | null $absolutePath = null): ?array
     {
-
-        if (isset($this->items) || isset($this->itemType) || isset($this->values)) {
-            return true;
-        }
-        return false;
+        return null;
     }
 
-    public function tsTypeName(): string
+
+    public function fullEditable(bool $editable = true): static
     {
-        return '';
+        $this->editable = $editable;
+        return $this;
     }
 
-    public string | null $tsType = null;
 
-    public function tsComplexType(): string
+    public function fullCleanDefault(): static
     {
-        return '';
+        $this->defaultIsSet = false;
+        $this->default = null;
+        return $this;
+    }
+
+
+
+
+    public function tsType(): TSType
+    {
+        $TSType = new TSType('Any', 'any');
+
+
+
+        return $TSType;
+    }
+
+    public function tsInputType(): TSType
+    {
+        return $this->tsType();
     }
 
     public function tsGQLFullRequest(): string
     {
-        return '';
-    }
 
-    public function fullEditable(): static
-    {
-        $this->editable = true;
-        return $this;
+
+        if (isset($this->items)) {
+            $result = [];
+
+            foreach ($this->items as $key => $item) {
+
+
+
+
+                if ($item instanceof StructureType) {
+
+
+                    $result[] = $key . $item->tsGQLFullRequest();
+                    continue;
+                }
+
+                if ($item instanceof IDsType && isset($item->document)) {
+                    $result[] = $key .  $item->document->tsGQLFullRequest();
+
+                    continue;
+                }
+
+                if ($item instanceof ArrayOfType && $item->itemType instanceof StructureType) {
+
+
+
+                    $result[] = $key . $item->itemType->tsGQLFullRequest();
+                    continue;
+                }
+
+                $result[] = $key;
+            }
+
+            return '{\n' . implode('\n', $result) . '\n}';
+        }
+
+        if (isset($this->itemType)) {
+            return $this->itemType->tsGQLFullRequest();
+        }
+        return '';
     }
 }

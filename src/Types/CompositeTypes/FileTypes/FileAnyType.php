@@ -10,7 +10,7 @@ use Shm\Shm;
 use Shm\Types\BaseType;
 use Shm\Types\StructureType;
 
-class FileAnyType extends BaseType
+class FileAnyType extends StructureType
 {
     public string $type = 'file';
 
@@ -27,39 +27,8 @@ class FileAnyType extends BaseType
         ];
     }
 
-    public function normalize(mixed $value): mixed
-    {
-        if ($value === null) {
-            return $this->default;
-        }
-        if (!is_array($value)) {
-            return null;
-        }
-        foreach ($this->items as $name => $type) {
-            $value[$name] = $type->normalize($value[$name] ?? null);
-        }
-        return $value;
-    }
 
-    public function validate(mixed $value): void
-    {
-        parent::validate($value);
-        if ($value === null) {
-            return;
-        }
-        if (!is_array($value)) {
-            $field = $this->title ?? 'Value';
-            throw new \InvalidArgumentException("{$field} must be an object/structure (associative array).");
-        }
-        foreach ($this->items as $name => $type) {
-            try {
-                $type->validate($value[$name] ?? null);
-            } catch (\InvalidArgumentException $e) {
-                $field = $this->title ?? $name;
-                throw new \InvalidArgumentException("{$field}.{$name}: " . $e->getMessage());
-            }
-        }
-    }
+
 
     public function GQLType(): Type | array | null
     {

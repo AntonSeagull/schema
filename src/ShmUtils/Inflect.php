@@ -1,6 +1,6 @@
 <?php
 
-namespace Shm\GQLUtils;
+namespace Shm\ShmUtils;
 
 class Inflect
 {

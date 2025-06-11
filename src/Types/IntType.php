@@ -4,6 +4,8 @@ namespace Shm\Types;
 
 use GraphQL\Type\Definition\Type;
 use Shm\CachedType\CachedInputObjectType;
+use Shm\Shm;
+use Shm\ShmGQL\ShmGQLCodeGen\TSType;
 
 class IntType extends BaseType
 {
@@ -15,12 +17,18 @@ class IntType extends BaseType
     }
 
 
-    public function normalize(mixed $value): mixed
+    public function normalize(mixed $value, $addDefaultValues = false): mixed
     {
-        if ($value === null) {
+
+        if ($addDefaultValues &&  $value === null && $this->defaultIsSet) {
             return $this->default;
         }
-        return (int) $value;
+
+        if (is_numeric($value)) {
+            return (int) $value;
+        }
+
+        return  null;
     }
 
     public function validate(mixed $value): void
@@ -44,23 +52,56 @@ class IntType extends BaseType
     {
         return Type::int();
     }
-
-    public function GQLFilterTypeInput(): ?Type
+    public function filterType(): ?BaseType
     {
-        return  CachedInputObjectType::create([
-            'name' => 'IntInputFilterInput',
-            'fields' => [
-                'gte' => [
-                    'type' => Type::int(),
-                ],
-                'eq' => [
-                    'type' => Type::int(),
-                ],
-                'lte' => [
-                    'type' => Type::int(),
-                ],
 
-            ],
-        ]);
+        return  Shm::structure([
+            'gte' => Shm::int()->title('Больше или равно'),
+            'eq' => Shm::int()->title('Равно'),
+            'lte' => Shm::int()->title('Меньше или равно'),
+        ])->fullEditable();
+    }
+
+    public function filterToPipeline($filter, array | null $absolutePath = null): ?array
+    {
+
+
+        $path = $absolutePath ? implode('.', $absolutePath) . '.' . $this->key : $this->key;
+
+
+        $match = [];
+
+        if (isset($filter['gte'])) {
+            $match['$gte'] = (int) $filter['gte'];
+        }
+        if (isset($filter['eq'])) {
+            $match['$eq'] = (int) $filter['eq'];
+        }
+        if (isset($filter['lte'])) {
+            $match['$lte'] = (int) $filter['lte'];
+        }
+        if (empty($match)) {
+            return null;
+        }
+        return [
+            [
+                '$match' => [
+                    $path => $match
+                ]
+            ]
+        ];
+
+
+
+        return null;
+    }
+
+
+    public function tsType(): TSType
+    {
+        $TSType = new TSType("Int", "number");
+
+
+        return $TSType;
     }
 }

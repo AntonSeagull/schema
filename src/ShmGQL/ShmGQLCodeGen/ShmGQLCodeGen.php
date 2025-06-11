@@ -18,7 +18,8 @@ class ShmGQLCodeGen
         foreach ($schema['query'] ?? [] as $key => $field) {
 
 
-            $requests[] = (new ShmGQLRequestCode($field['type'], $field['args'] ?? null, $key, 'query'))->initialize();
+
+            $requests[$key . 'q'] = (new ShmGQLRequestCode($field['type'], $field['args'] ?? null, $key, 'query'))->initialize();
             // $types[] = $field['type']->tsType();
 
             // if (isset($field['args']))
@@ -30,7 +31,14 @@ class ShmGQLCodeGen
 
         foreach ($schema['mutation'] ?? [] as $key => $field) {
 
-            $requests[] = (new ShmGQLRequestCode($field['type'], $field['args'] ?? null, $key, 'mutation'))->initialize();
+
+            // $types[] = $field['type']->tsType()->getType();
+            // if (isset($field['args'])) {
+            //     $types[] = $field['args']->tsInputType()->getType();
+            // }
+
+
+            $requests[$key . 'm'] = (new ShmGQLRequestCode($field['type'], $field['args'] ?? null, $key, 'mutation'))->initialize();
             //      $types[] = $field['type']->tsType();
 
             //     if (isset($field['args']))
@@ -39,10 +47,28 @@ class ShmGQLCodeGen
 
 
 
+        //Сортируем  ksort(TSType::$tsTypes);
+        ksort(TSType::$tsTypes);
+        ksort($requests);
+
+        $allTypesKeys = array_keys(TSType::$tsTypes);
+
+        $types = implode("\n", array_values(TSType::$tsTypes));
+        $requests =   array_values($requests);
 
 
-        $types = implode("\n", $types);
-        $requests =  implode("\n", $requests);
+
+        $requests = [
+            "import { gql } from '@apollo/client';",
+            "import { apolloClient } from './apolloClient';",
+            "import { " . implode(',', $allTypesKeys) . " } from './types';",
+            ...$requests
+        ];
+
+        $requests = implode("\n", $requests);
+
+
+
 
 
 

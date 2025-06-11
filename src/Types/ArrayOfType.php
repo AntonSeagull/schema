@@ -3,6 +3,7 @@
 namespace Shm\Types;
 
 use GraphQL\Type\Definition\Type;
+use Shm\ShmGQL\ShmGQLCodeGen\TSType;
 
 class ArrayOfType extends BaseType
 {
@@ -13,20 +14,30 @@ class ArrayOfType extends BaseType
     {
 
 
+
         $this->itemType = $itemType;
     }
 
-    public function normalize(mixed $value): mixed
+    public function normalize(mixed $value, $addDefaultValues = false): mixed
     {
-        if ($value === null) {
+
+
+        if ($addDefaultValues && !$value && $this->defaultIsSet) {
             return $this->default;
         }
 
-        if (!is_array($value)) {
+        if (!$value) {
             return [];
         }
 
-        return array_map(fn($v) => $this->itemType->normalize($v), $value);
+
+        $value = array_filter($value, fn($v) => $v !== null);
+        if (count($value) === 0) {
+            return [];
+        }
+
+
+        return array_filter(array_map(fn($v) => $this->itemType->normalize($v), $value), fn($v) => $v !== null);
     }
 
     public function validate(mixed $value): void
@@ -64,12 +75,22 @@ class ArrayOfType extends BaseType
     }
 
 
-    public function fullEditable(): static
+    public function fullCleanDefault(): static
+    {
+        $this->defaultIsSet = false;
+        $this->default = null;
+        $this->itemType->fullCleanDefault();
+
+        return $this;
+    }
+
+
+    public function fullEditable(bool $editable = true): static
     {
 
-        $this->editable = true;
+        $this->editable = $editable;
 
-        $this->itemType->fullEditable();
+        $this->itemType->fullEditable($editable);
 
         return $this;
     }
@@ -84,16 +105,35 @@ class ArrayOfType extends BaseType
         return $inner ? Type::listOf($inner) : null;
     }
 
-    public function GQLFilterTypeInput(): ?Type
+    public function filterType(): ?BaseType
     {
 
         $this->itemType->key = $this->key;
 
-        return $this->itemType->GQLFilterTypeInput();
+        $itemTypeFilter = $this->itemType->filterType();
+        if (!$itemTypeFilter) {
+            return null;
+        }
+        $itemTypeFilter->editable();
+
+        return $itemTypeFilter;
     }
 
-    public function tsGQLFullRequest(): string
+    public function tsType(): TSType
     {
-        return  $this->itemType->tsGQLFullRequest();
+
+
+
+        $TSType = new TSType($this->itemType->tsType()->getTsTypeName() . 'Array',  $this->itemType->tsType()->getTsTypeName() . '[]');
+
+
+
+        return $TSType;
+    }
+
+    public function tsInputType(): TSType
+    {
+        $TSType = new TSType($this->itemType->tsType()->getTsTypeName() . 'Array',  $this->itemType->tsInputType()->getTsTypeName() . '[]');
+        return $TSType;
     }
 }

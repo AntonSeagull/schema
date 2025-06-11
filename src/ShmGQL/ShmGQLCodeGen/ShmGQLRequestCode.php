@@ -4,6 +4,7 @@ namespace Shm\ShmGQL\ShmGQLCodeGen;
 
 use Shm\GQLUtils\Utils;
 use Shm\Types\BaseType;
+use Shm\Types\StructureType;
 
 class ShmGQLRequestCode
 {
@@ -45,7 +46,8 @@ class ShmGQLRequestCode
     private function paramsForFunction(): string
     {
         if (isset($this->args)) {
-            return 'params: ' . $this->args->keyIfNot($this->key . 'Args')->tsTypeName();
+
+            return 'params: ' . $this->args->keyIfNot($this->key)->tsInputType()->getTsTypeName();
         }
         return "";
     }
@@ -57,7 +59,7 @@ class ShmGQLRequestCode
 
             $parameters = [];
             foreach ($this->args->items as $key => $item) {
-                $parameters[] = '$' . $key . ': ' .  $item->tsTypeName();
+                $parameters[] = '$' . $key . ': ' .  $item->tsInputType()->getTsTypeName();
             }
 
             return '(' . implode(', ', $parameters) . ')';
@@ -81,21 +83,39 @@ class ShmGQLRequestCode
 
 
 
+    private function variablesParamsInGQL(): string
+    {
+        if (isset($this->args)) {
+
+            return ',variables: params';
+        };
+        return "";
+    }
+
 
 
     public function initialize(): string
     {
 
+        $appoloMethod = $this->requestType === 'query' ? 'query' : 'mutate';
+
+
+
+
+
+        $fullRequest =  $this->type->tsGQLFullRequest();
+
+
+
         return  "
         export const  {$this->functionName()} = ({$this->paramsForFunction()}) => {
-            return new Promise<{$this->type->tsTypeName()} | null>((resolve, reject) => {
-            apolloClient.{$this->requestType}({
-            query: gql`
-            query {$this->key}{$this->gqlParameters()} {
-            {$this->key}{$this->gqlParametersValues()}{$this->type->tsGQLFullRequest()}
+            return new Promise<{$this->type->tsType()->getTsTypeName()} | null>((resolve, reject) => {
+            apolloClient.{$appoloMethod}({
+             {$this->requestType}: gql`
+            {$this->requestType} {$this->key}{$this->gqlParameters()} {
+            {$this->key}{$this->gqlParametersValues()}{$fullRequest}
             }
-            `,
-              variables: params
+            `{$this->variablesParamsInGQL()}
             }).then((json) => {
                 resolve(json.data.{$this->key});
               })

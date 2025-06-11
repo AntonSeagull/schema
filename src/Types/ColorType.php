@@ -3,6 +3,8 @@
 namespace Shm\Types;
 
 use GraphQL\Type\Definition\Type;
+use Shm\Shm;
+use Shm\ShmGQL\ShmGQLCodeGen\TSType;
 
 class ColorType extends BaseType
 {
@@ -12,10 +14,10 @@ class ColorType extends BaseType
     {
         // Nothing extra for now
     }
-
-    public function normalize(mixed $value): mixed
+    public function normalize(mixed $value, $addDefaultValues = false): mixed
     {
-        if ($value === null) {
+
+        if ($addDefaultValues &&  $value === null && $this->defaultIsSet) {
             return $this->default;
         }
 
@@ -41,9 +43,11 @@ class ColorType extends BaseType
         return Type::string();
     }
 
-    public function GQLFilterTypeInput(): ?Type
+
+    public function filterType(): ?BaseType
     {
-        return  Type::string();
+
+        return  Shm::string()->editable();
     }
 
 
@@ -51,5 +55,13 @@ class ColorType extends BaseType
     public function GQLTypeInput(): ?Type
     {
         return Type::string();
+    }
+
+    public function tsType(): TSType
+    {
+        $TSType = new TSType('String', 'string');
+
+
+        return $TSType;
     }
 }

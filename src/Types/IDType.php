@@ -8,6 +8,8 @@ use GraphQL\Type\Definition\ResolveInfo;
 use GraphQL\Type\Definition\Type;
 use Shm\CachedType\CachedInputObjectType;
 use Shm\GQLUtils\GQLBuffer;
+use Shm\Shm;
+use Shm\ShmGQL\ShmGQLCodeGen\TSType;
 
 class IDType extends BaseType
 {
@@ -34,9 +36,10 @@ class IDType extends BaseType
     }
 
 
-    public function normalize(mixed $value): mixed
+    public function normalize(mixed $value, $addDefaultValues = false): mixed
     {
-        if ($value === null) {
+
+        if ($addDefaultValues &&  $value === null && $this->defaultIsSet) {
             return $this->default;
         }
 
@@ -107,37 +110,46 @@ class IDType extends BaseType
     }
 
 
-    public function GQLFilterTypeInput(): ?Type
+
+    public function filterType(): ?BaseType
     {
-        return  CachedInputObjectType::create([
-            'name' => 'IdInputFilterInput',
-            'fields' => [
 
-                'in' => [
-                    'type' => Type::listOf(Type::string()),
-                ],
-                'nin' => [
-                    'type' => Type::listOf(Type::string()),
-
-                ],
-                'all' => [
-                    'type' => Type::listOf(Type::string()),
-
-                ],
-                'notEmpty' => [
-                    'type' => Type::boolean(),
-                ],
-                'isEmpty' => [
-                    'type' => Type::boolean(),
-                ],
-
-
-            ],
-        ]);
+        return  Shm::structure([
+            'in' => Shm::arrayOf(Shm::string()->title('In')),
+            'nin' => Shm::arrayOf(Shm::string()->title('Not In')),
+            'all' => Shm::arrayOf(Shm::string()->title('All')),
+            'isEmpty' => Shm::boolean()->title('Is Empty'),
+        ])->fullEditable();
     }
+
+
+
 
     public function GQLTypeInput(): ?Type
     {
         return Type::string();
+    }
+
+    public function tsType(): TSType
+    {
+
+
+        if ($this->document) {
+            return $this->document->tsType();
+        } else {
+
+            $TSType = new TSType('String', 'string');
+            return $TSType;
+        }
+    }
+
+
+    public function tsInputType(): TSType
+    {
+
+
+
+        $TSType = new TSType('String', 'string');
+        return $TSType;
     }
 }

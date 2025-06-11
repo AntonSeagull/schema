@@ -3,6 +3,7 @@
 namespace Shm\Types;
 
 use GraphQL\Type\Definition\Type;
+use Shm\ShmGQL\ShmGQLCodeGen\TSType;
 
 class PhoneType extends BaseType
 {
@@ -13,12 +14,12 @@ class PhoneType extends BaseType
         // Nothing extra for now
     }
 
-    public function normalize(mixed $value): mixed
+    public function normalize(mixed $value, $addDefaultValues = false): mixed
     {
-        if ($value === null) {
+
+        if ($addDefaultValues &&  $value === null && $this->defaultIsSet) {
             return $this->default;
         }
-
         if (is_string($value)) {
             $value = preg_replace('/\D/', '', $value);
         }
@@ -46,5 +47,14 @@ class PhoneType extends BaseType
     public function GQLTypeInput(): ?Type
     {
         return Type::int();
+    }
+
+    public function tsType(): TSType
+    {
+        $TSType = new TSType("Phone", "number");
+
+
+
+        return $TSType;
     }
 }

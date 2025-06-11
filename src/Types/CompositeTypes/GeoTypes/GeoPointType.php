@@ -10,7 +10,7 @@ use Shm\Shm;
 use Shm\Types\BaseType;
 use Shm\Types\StructureType;
 
-class GeoPointType extends BaseType
+class GeoPointType extends StructureType
 {
     public string $type = 'geopoint';
 
@@ -21,17 +21,20 @@ class GeoPointType extends BaseType
     {
 
 
-        $this->items = [
-            'address' => Shm::string(),
-            'lat' => Shm::float(),
-            'lng' => Shm::float(),
-            'location' => Shm::monogoPoint(),
-        ];
+        parent::__construct(
+            [
+                'address' => Shm::string(),
+                'lat' => Shm::float(),
+                'lng' => Shm::float(),
+                'location' => Shm::monogoPoint(),
+            ]
+        );
     }
 
-    public function normalize(mixed $value): mixed
+    public function normalize(mixed $value, $addDefaultValues = false): mixed
     {
-        if ($value === null) {
+
+        if ($addDefaultValues &&  $value === null && $this->defaultIsSet) {
             return $this->default;
         }
         if (!is_array($value)) {
@@ -95,33 +98,12 @@ class GeoPointType extends BaseType
         ]);
     }
 
-    public function GQLFilterTypeInput(): ?Type
+    public function filterType(): ?BaseType
     {
-        return CachedInputObjectType::create([
-            'name' => 'GeoNearFilterInput',
-            'fields' => [
-                'geoNear' => CachedInputObjectType::create([
-                    'name' => 'GeoNearInput',
-                    'fields' => [
-                        'latitude' => [
-                            'type' => Type::float(),
-                            'description' => 'Широта точки, от которой будет вычисляться расстояние',
-                        ],
-                        'longitude' => [
-                            'type' => Type::float(),
-                            'description' => 'Долгота точки, от которой будет вычисляться расстояние',
-                        ],
-                        'maxDistance' => [
-                            'type' => Type::int(),
-                            'description' => 'Максимальное расстояние в метрах от точки до объекта',
-                        ]
-                    ]
-                ]),
-
-
-
-
-            ],
-        ]);
+        return Shm::structure([
+            'latitude' => Shm::float(),
+            'longitude' => Shm::float(),
+            'maxDistance' => Shm::int(),
+        ])->fullEditable();
     }
 }

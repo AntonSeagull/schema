@@ -4,13 +4,15 @@ namespace Shm\Types;
 
 use GraphQL\Type\Definition\Type;
 
-use Shm\CachedType\CachedEnumType;
 use Shm\CachedType\CachedInputObjectType;
 
 use Shm\GQLUtils\AutoPostfix;
 use Shm\CachedType\CachedObjectType;
-use Shm\GQLUtils\Inflect;
+
 use Shm\GQLUtils\Utils;
+use Shm\Shm;
+use Shm\ShmGQL\ShmGQLCodeGen\TSType;
+use Shm\ShmUtils\Inflect;
 
 class StructureType extends BaseType
 {
@@ -45,50 +47,61 @@ class StructureType extends BaseType
     public function __construct(array $items)
     {
 
+        $_items = [];
         foreach ($items as $key => $field) {
 
+            if (!$field) {
+                continue;
+            }
 
             if (!$field instanceof BaseType) {
                 throw new \InvalidArgumentException("Field '{$key}' must be an instance of BaseType.");
             }
 
 
+
             $field->key = $key;
+
+            $_items[$key] = $field;
         }
 
 
-        $this->items = $items;
+        $this->items =  $_items;
     }
 
 
 
     public function normalize(mixed $value, $addDefaultValues = false): mixed
     {
-        if ($value === null) {
-            return $this->default;
-        }
-        if (!is_array($value) && !is_object($value) || empty($value)) {
-            return [
-                '_' => 'structure'
-            ];
-        }
+
+
+
+
 
         if ($addDefaultValues) {
+
+            /**
+             * If the value is null and default values are set, return the default value.
+             */
+            if (!is_array($value) && !is_object($value)) {
+                return null;
+            }
+
+
             foreach ($this->items as $name => $type) {
-                $value[$name] = $type->normalize($value[$name] ?? null);
+
+                $value[$name] =  $type->normalize($value[$name] ?? null, $addDefaultValues);
             }
         } else {
+
 
             foreach ($value as $key => $val) {
                 if (isset($this->items[$key])) {
                     $value[$key] = $this->items[$key]->normalize($val);
-                } else {
-                    // If the key is not defined in items, we can either ignore it or throw an error
-                    // For now, we will just ignore it
-                    //   unset($value[$key]);
                 }
             }
         }
+
 
 
         return $value;
@@ -114,17 +127,63 @@ class StructureType extends BaseType
         }
     }
 
-    private function GQLTypeName()
+
+    public function GQLBaseTypeName()
     {
         if (!$this->key) {
-            throw new \InvalidArgumentException("Key is not set for StructureType." . print_r($this->items, true));
+            throw new \InvalidArgumentException("Key is not set for StructureType." . print_r($this, true));
         }
 
+        $typeName = '';
+
         if ($this->collection) {
-            return Inflect::singularize(Utils::onlyLetters($this->collection));
+            $typeName = Inflect::singularize(Utils::onlyLetters($this->collection));
+        } else {
+            $typeName = Inflect::singularize(Utils::onlyLetters($this->key)) .  AutoPostfix::get(array_keys($this->items));
         }
-        return Inflect::singularize(Utils::onlyLetters($this->key)) .  AutoPostfix::get(array_keys($this->items));
+
+        return $typeName;
     }
+
+
+
+    public function GQLTypeName()
+    {
+        return $this->GQLBaseTypeName() . 'Type';
+    }
+
+    public function GQLInputTypeName()
+    {
+        return $this->GQLBaseTypeName() . 'Input';
+    }
+
+    public function GQLFilterTypeName()
+    {
+        return $this->GQLBaseTypeName() . 'FilterInput';
+    }
+
+    public function findItemByKey(string $key): ?BaseType
+    {
+
+        if (isset($this->items[$key])) {
+            return $this->items[$key];
+        }
+
+        return null;
+    }
+
+    public function findItemByType(string $type): ?BaseType
+    {
+
+        foreach ($this->items as $item) {
+            if ($item->type === $type) {
+                return $item;
+            }
+        }
+
+        return null;
+    }
+
 
     public function GQLType(): Type | array | null
     {
@@ -143,7 +202,7 @@ class StructureType extends BaseType
 
 
         return CachedObjectType::create([
-            'name' => $this->GQLTypeName() . 'Type',
+            'name' => $this->GQLTypeName(),
             'fields' => function () use ($fields) {
                 return $fields;
             },
@@ -171,7 +230,7 @@ class StructureType extends BaseType
 
 
         return CachedInputObjectType::create([
-            'name' => $this->GQLTypeName() . 'Input',
+            'name' => $this->GQLInputTypeName(),
             'fields' => function () use ($fields) {
                 return $fields;
             },
@@ -180,182 +239,147 @@ class StructureType extends BaseType
     }
 
 
-    public function GQLFieldsEnum(): ?Type
+
+    public function fullCleanDefault(): static
     {
-
-        if (!$this->key) {
-            throw new \InvalidArgumentException("Key is not set for StructureType." . print_r($this->items, true));
-        }
-
-
-        $values = [];
-        foreach ($this->items as $key => $value) {
-
-            if ($value instanceof StructureType) {
-
-                foreach ($value->items as $key2 => $value2) {
-
-                    $values[$key . ucfirst($key2)] = ['value' => $key . '.' . $key2, 'description' => $value->title ?? $key2];
-                }
-            } else {
-                $values[$key] = ['value' => $key, 'description' => $value->title ?? $key];
-            }
-        }
-
-        if (count($values) == 0) {
-            return null;
-        }
-
-        return CachedEnumType::create([
-            'name' => $this->GQLTypeName() . 'FieldsEnum',
-            'description' => "Поля " . $this->title,
-            'values' => $values,
-        ]);
-    }
-
-
-    public function GQLSortTypeInput(): ?Type
-    {
-
-        if (!$this->key) {
-            throw new \InvalidArgumentException("Key is not set for StructureType." . print_r($this->items, true));
-        }
-
-
-
-        $fieldsEnum = $this->GQLFieldsEnum();
-
-
-
-
-        $itemName = 'SortDirectionEnum';
-
-
-        $fieldDirection = CachedEnumType::create([
-            'name' => $itemName,
-            'description' => "Направление сортировки",
-            'values' => [
-                "ASC" => ["value" => "ASC", "description" => "По возрастанию (ascending)"],
-                "DESC" => ["value" => "DESC", "description" => "По убыванию (descending)"],
-            ],
-        ]);
-
-        $itemName = $this->GQLTypeName() . 'SortInput';
-
-
-
-        return CachedInputObjectType::create([
-            'name' => $itemName,
-            'fields' => [
-                'field' => [
-                    "type" => Type::nonNull($fieldsEnum),
-                ],
-                'direction' => [
-                    "type" => Type::nonNull($fieldDirection),
-                ],
-            ],
-
-        ]);
-    }
-
-    public function fullEditable(): static
-    {
-
-        $this->editable = true;
+        $this->defaultIsSet = false;
+        $this->default = null;
 
         foreach ($this->items as $key => $field) {
 
-            $field->fullEditable();
+            $field->fullCleanDefault();
         }
 
         return $this;
     }
 
+    public function fullEditable(bool $editable = true): static
+    {
+
+        $this->editable = $editable;
+
+        foreach ($this->items as $key => $field) {
+
+            $field->fullEditable($editable);
+        }
+
+        return $this;
+    }
+
+    public function filterToPipeline($filter, array | null $absolutePath = null): ?array
+    {
 
 
-    public function GQLFilterTypeInput(): ?Type
+
+        if (!is_array($filter) && !is_object($filter)) {
+            return null;
+        }
+
+
+        if ($absolutePath !== null) {
+            $absolutePath = [...$absolutePath, $this->key];
+        } else {
+            $absolutePath = [];
+        }
+        $pipeline = [];
+
+        foreach ($filter as $key => $value) {
+
+            if ($value === null) {
+                continue;
+            }
+            if (!isset($this->items[$key])) {
+                continue;
+            }
+
+
+
+
+            $type = $this->items[$key];
+
+
+            $pipelineItem = $type->filterToPipeline($value,  $absolutePath);
+
+            $pipeline = [...$pipeline, ...($pipelineItem ?? [])];
+        }
+
+
+        return  $pipeline;
+    }
+
+
+    public function filterType(): ?BaseType
     {
 
         if (!$this->key) {
             throw new \InvalidArgumentException("Key is not set for StructureType." . print_r($this->items, true));
         }
-
-
-        $itemName = $this->GQLTypeName() . 'FilterInput';
 
 
         $fields = [];
 
         foreach ($this->items as $key => $field) {
 
-
-            $input = $field->GQLFilterTypeInput();
-
+            $input = $field->filterType();
             if ($input) {
                 $fields[$key] = $input;
             }
         }
-
         if (count($fields) == 0) {
             return null;
         }
-
-        return CachedInputObjectType::create([
-            'name' => $itemName,
-            'fields' => function () use ($fields) {
-                return $fields;
-            },
-        ]);
+        return  Shm::structure($fields);
     }
 
 
 
-    public function tsTypeName(): string
+
+
+    public function tsType(): TSType
     {
-        return  $this->GQLTypeName() . 'Type';
-    }
+        $TSType = new TSType();
 
 
-    public function tsGQLFullRequest(): string
-    {
-        $result = [];
 
-        $result[] = '{';
+        $value = [];
 
-        foreach ($this->items as $key => $value) {
-
-            $result[] = $key . $value->tsGQLFullRequest();
+        foreach ($this->items as $key => $item) {
+            $separate = $item->nullable ? '?: ' : ': ';
+            $value[] = $key .  $separate . $item->tsType()->getTsTypeName();
         }
 
-        $result[] = '}';
+        $TSType = new TSType($this->GQLTypeName(), '{\n' . implode(',\n', $value) . '\n}');
 
-        return implode("\n", $result);
+
+
+
+        return $TSType;
     }
 
 
-    public function tsComplexType(): string
+    public function tsInputType(): TSType
     {
+        $TSType = new TSType();
 
 
-        $tsType = 'export interface ' . $this->tsTypeName() . ' {\n';
 
-        foreach ($this->items as $key => $value) {
+        $value = [];
 
-            if ($value->isComplexTsType()) {
-                $result = $value->tsTypeName();
-            } else {
-                $result = $value->tsType();
+        foreach ($this->items as $key => $item) {
+            if (!$item->editable) {
+                continue;
             }
 
-            $nullable = $value->nullable ? '?' : '';
+            $separate = $item->nullable ? '?: ' : ': ';
 
-            $tsType .= '  ' . $key . $nullable . ': ' . $result . ";\n";
+            $value[] = $key .  $separate . $item->tsInputType()->getTsTypeName();
         }
 
-        $tsType .= "}\n";
+        $TSType = new TSType($this->GQLInputTypeName(), '{\n' . implode(',\n', $value) . '\n}');
 
 
 
-        return $tsType;
+
+        return $TSType;
     }
 }

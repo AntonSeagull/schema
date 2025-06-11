@@ -10,7 +10,7 @@ use Shm\Shm;
 use Shm\Types\BaseType;
 use Shm\Types\StructureType;
 
-class MongoPointType extends BaseType
+class MongoPointType extends StructureType
 {
     public string $type = 'mongoPoint';
 
@@ -21,25 +21,12 @@ class MongoPointType extends BaseType
     {
 
 
-        $this->items = [
+        parent::__construct([
             'type' => Shm::string()->default("Point"),
             'coordinates' => Shm::arrayOf(Shm::float()),
-        ];
+        ]);
     }
 
-    public function normalize(mixed $value): mixed
-    {
-        if ($value === null) {
-            return $this->default;
-        }
-        if (!is_array($value)) {
-            return null;
-        }
-        foreach ($this->items as $name => $type) {
-            $value[$name] = $type->normalize($value[$name] ?? null);
-        }
-        return $value;
-    }
 
     public function validate(mixed $value): void
     {
@@ -80,9 +67,9 @@ class MongoPointType extends BaseType
     public function GQLTypeInput(): ?Type
     {
         $fields = [];
-        foreach ($this->items as $name => $type) {
-            $fields[$name] = [
-                'type' => $type->GQLTypeInput(),
+        foreach ($this->items as $key => $type) {
+            $fields[$key] = [
+                'type' => $type->keyIfNot($key)->GQLTypeInput(),
             ];
         }
         return CachedInputObjectType::create([

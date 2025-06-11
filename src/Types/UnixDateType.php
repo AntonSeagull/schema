@@ -4,6 +4,8 @@ namespace Shm\Types;
 
 use GraphQL\Type\Definition\Type;
 use Shm\CachedType\CachedInputObjectType;
+use Shm\Shm;
+use Shm\ShmGQL\ShmGQLCodeGen\TSType;
 
 class UnixDateType extends BaseType
 {
@@ -14,18 +16,12 @@ class UnixDateType extends BaseType
         // Nothing extra for now
     }
 
-    /**
-     * Normalize the value to Unix timestamp (int).
-     */
-    public function normalize(mixed $value): mixed
+    public function normalize(mixed $value, $addDefaultValues = false): mixed
     {
-        if ($value === null) {
+
+        if ($addDefaultValues &&  $value === null && $this->defaultIsSet) {
             return $this->default;
         }
-
-        //Set 12:00:00 as default time if only date is provided for unix int date
-
-
         return (int) $value;
     }
 
@@ -60,24 +56,23 @@ class UnixDateType extends BaseType
         return Type::int();
     }
 
-    public function GQLFilterTypeInput(): ?Type
+    public function filterType(): ?BaseType
     {
-        return  CachedInputObjectType::create([
-            'name' => 'IntInputFilterInput',
-            'fields' => [
-                'gte' => [
-                    'type' => Type::int(),
-                ],
-                'eq' => [
-                    'type' => Type::int(),
-                ],
-                'lte' => [
-                    'type' => Type::int(),
-                ],
 
-            ],
-        ]);
+        return  Shm::structure([
+            'gte' => Shm::int()->title('Больше или равно'),
+            'eq' => Shm::int()->title('Равно'),
+            'lte' => Shm::int()->title('Меньше или равно'),
+        ])->fullEditable();
     }
 
-    public $tsType = 'number'; // TypeScript type for this field
+
+
+    public function tsType(): TSType
+    {
+        $TSType = new TSType("Int", "number");
+
+
+        return $TSType;
+    }
 }

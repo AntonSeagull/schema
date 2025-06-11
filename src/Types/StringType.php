@@ -3,6 +3,7 @@
 namespace Shm\Types;
 
 use GraphQL\Type\Definition\Type;
+use Shm\ShmGQL\ShmGQLCodeGen\TSType;
 
 class StringType extends BaseType
 {
@@ -13,12 +14,12 @@ class StringType extends BaseType
         // Nothing extra for now
     }
 
-    public function normalize(mixed $value): mixed
+    public function normalize(mixed $value, $addDefaultValues = false): mixed
     {
-        if ($value === null) {
+
+        if ($addDefaultValues &&  $value === null && $this->defaultIsSet) {
             return $this->default;
         }
-
         return (string) $value;
     }
 
@@ -47,8 +48,11 @@ class StringType extends BaseType
         return Type::string();
     }
 
-    public function tsType(): string
+    public function tsType(): TSType
     {
-        return 'string';
+        $TSType = new TSType("String", "string");
+
+
+        return $TSType;
     }
 }

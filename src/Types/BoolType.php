@@ -4,6 +4,7 @@ namespace Shm\Types;
 
 use GraphQL\Type\Definition\Type;
 use Shm\Shm;
+use Shm\ShmGQL\ShmGQLCodeGen\TSType;
 
 class BoolType extends BaseType
 {
@@ -14,12 +15,18 @@ class BoolType extends BaseType
         // Nothing extra for now
     }
 
-    public function normalize(mixed $value): mixed
+    public function normalize(mixed $value, $addDefaultValues = false): mixed
     {
-        if ($value === null) {
+
+        if ($addDefaultValues && $value === null && $this->defaultIsSet) {
             return $this->default;
         }
-        return (bool) $value;
+
+        if (is_bool($value)) {
+            return $value;
+        } else {
+            return null;
+        }
     }
 
     public function validate(mixed $value): void
@@ -34,11 +41,6 @@ class BoolType extends BaseType
         }
     }
 
-    public function GQLFilterTypeInput(): ?Type
-    {
-        return  Type::boolean();
-    }
-
 
     public function GQLType(): Type | array | null
     {
@@ -51,15 +53,50 @@ class BoolType extends BaseType
         return Type::boolean();
     }
 
+    public function filterToPipeline($filter, array | null $absolutePath = null): ?array
+    {
+
+
+
+        if (is_bool($filter)) {
+
+
+            $path = $absolutePath ? implode('.', $absolutePath) . '.' . $this->key : $this->key;
+
+            if ($filter) {
+                return [
+                    [
+                        '$match' => [
+                            $path => true
+                        ]
+                    ]
+                ];
+            } else {
+
+
+                return [
+                    [
+                        '$match' => [
+                            $path => ['$ne' => true]
+                        ]
+                    ]
+                ];
+            }
+        }
+
+        return null;
+    }
 
     public function filterType(): ?BaseType
     {
-        return Shm::enum([
-            'true' => 'Да',
-            'false' => 'Нет',
-        ])->title($this->title)->editable()->inAdmin();
+        return Shm::bool()->editable();
     }
 
+    public function tsType(): TSType
+    {
+        $TSType = new TSType('Boolean', 'boolean');
 
-    public $tsType = 'boolean';
+
+        return $TSType;
+    }
 }

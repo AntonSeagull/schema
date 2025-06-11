@@ -9,6 +9,8 @@ use GraphQL\Type\Definition\ResolveInfo;
 use GraphQL\Type\Definition\Type;
 use Shm\CachedType\CachedInputObjectType;
 use Shm\GQLUtils\GQLBuffer;
+use Shm\Shm;
+use Shm\ShmGQL\ShmGQLCodeGen\TSType;
 
 class IDsType extends BaseType
 {
@@ -35,12 +37,12 @@ class IDsType extends BaseType
     }
 
 
-    public function normalize(mixed $values): mixed
+    public function normalize(mixed $values, $addDefaultValues = false): mixed
     {
-        if ($values === null) {
+
+        if ($addDefaultValues &&  $values === null && $this->defaultIsSet) {
             return $this->default;
         }
-
 
         $_ids = [];
 
@@ -117,38 +119,53 @@ class IDsType extends BaseType
         return   Type::listOf(Type::string());
     }
 
-    public function GQLFilterTypeInput(): ?Type
+    public function filterType(): ?BaseType
     {
-        return  CachedInputObjectType::create([
-            'name' => 'IdInputFilterInput',
-            'fields' => [
 
-                'in' => [
-                    'type' => Type::listOf(Type::string()),
-                ],
-                'nin' => [
-                    'type' => Type::listOf(Type::string()),
-
-                ],
-                'all' => [
-                    'type' => Type::listOf(Type::string()),
-
-                ],
-                'notEmpty' => [
-                    'type' => Type::boolean(),
-                ],
-                'isEmpty' => [
-                    'type' => Type::boolean(),
-                ],
-
-
-            ],
-        ]);
+        return  Shm::structure([
+            'in' => Shm::arrayOf(Shm::string()->title('In')),
+            'nin' => Shm::arrayOf(Shm::string()->title('Not In')),
+            'all' => Shm::arrayOf(Shm::string()->title('All')),
+            'isEmpty' => Shm::arrayOf(Shm::boolean()->title('Is Empty')),
+        ])->fullEditable();
     }
+
+
+
 
 
     public function GQLTypeInput(): ?Type
     {
         return Type::listOf(Type::string());
+    }
+
+    public function tsType(): TSType
+    {
+
+
+        if ($this->document) {
+
+            $documentTsType = $this->document->tsType();
+
+            $TSType = new TSType($documentTsType->getTsTypeName() . 'Array', $documentTsType->getTsTypeName() . '[]');
+
+
+            return $TSType;
+        } else {
+
+            $TSType = new TSType("IDs", 'string[]');
+
+            return $TSType;
+        }
+    }
+
+
+    public function tsInputType(): TSType
+    {
+
+
+        $TSType = new TSType("IDs", 'string[]');
+
+        return $TSType;
     }
 }

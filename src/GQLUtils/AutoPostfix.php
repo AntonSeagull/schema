@@ -13,6 +13,7 @@ class AutoPostfix
     {
 
 
+
         $firstLetters = array_map(function ($key) {
             if ($key[0] === '_') {
                 return isset($key[1]) ? strtoupper($key[1]) : '';

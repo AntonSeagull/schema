@@ -12,12 +12,17 @@ use GraphQL\Type\Schema;
 use GraphQL\Validator\DocumentValidator;
 use GraphQL\Validator\Rules\DisableIntrospection;
 use Sentry\State\Scope;
+use Shm\Shm;
+use Shm\ShmGQL\ShmGQLBlueprints\Auth\ShmGQLAuth;
+use Shm\ShmGQL\ShmGQLBlueprints\ShmGQLBlueprintMutation;
+use Shm\ShmGQL\ShmGQLBlueprints\ShmGQLBlueprintQuery;
 use Shm\ShmGQL\ShmGQLCodeGen\ShmGQLCodeGen;
+use Shm\Types\StructureType;
 
 class ShmGQL
 {
 
-    public static $inited = false;
+    public static $init = false;
 
     /**
      * Инициализация GraphQL-сервера с переданной схемой.
@@ -68,10 +73,21 @@ class ShmGQL
     private static function transformSchemaParams(array $field, string $key): array
     {
 
+        $args = [];
+
+        if (isset($field['args'])) {
+
+            $field['args']->editable()->keyIfNot($key . 'Args');
+
+            foreach ($field['args']->items as $argKey => $argType) {
+                $args[$argKey] = $argType->editable()->GQLTypeInput();
+            }
+        }
+
 
         return  [
             'type' => $field['type']->keyIfNot($key)->GQLType(),
-            'args' => isset($field['args']) ? $field['args']->fullEditable()->keyIfNot($key . 'Args')->GQLTypeInput() : null,
+            'args' => $args == [] ? null : $args,
             'resolve' => function ($root, $args, $context, $info) use ($field) {
                 if (isset($field['resolve']) && is_callable($field['resolve'])) {
                     return $field['resolve']($root, $args, $context, $info);
@@ -82,10 +98,63 @@ class ShmGQL
         ];
     }
 
+
+    public static function makeMutation(StructureType $strucutre): ShmGQLBlueprintMutation
+    {
+        return new ShmGQLBlueprintMutation($strucutre);
+    }
+
+
+    public static function makeQuery(StructureType $strucutre): ShmGQLBlueprintQuery
+    {
+        return new ShmGQLBlueprintQuery($strucutre);
+    }
+
+    private  static function validateSchemaParams(array $schemaParams): void
+    {
+        if (isset($schemaParams['query'])) {
+
+            if (!is_array($schemaParams['query'])) {
+                throw new \InvalidArgumentException("Schema 'query' must be an array.");
+            }
+
+            //Проверка что type это BaseType и args это StructureType
+            foreach ($schemaParams['query'] as $key => $field) {
+                if (!isset($field['type']) || !($field['type'] instanceof \Shm\Types\BaseType)) {
+                    throw new \InvalidArgumentException("Schema 'query' field '{$key}' must have a 'type' of BaseType.");
+                }
+                if (isset($field['args']) && !($field['args'] instanceof StructureType)) {
+                    throw new \InvalidArgumentException("Schema 'query' field '{$key}' must have 'args' of StructureType.");
+                }
+            }
+        }
+
+        if (isset($schemaParams['mutation'])) {
+
+            if (!is_array($schemaParams['mutation'])) {
+                throw new \InvalidArgumentException("Schema 'mutation' must be an array.");
+            }
+
+            //Проверка что type это BaseType и args это StructureType
+            foreach ($schemaParams['mutation'] as $key => $field) {
+                if (!isset($field['type']) || !($field['type'] instanceof \Shm\Types\BaseType)) {
+                    throw new \InvalidArgumentException("Schema 'mutation' field '{$key}' must have a 'type' of BaseType.");
+                }
+                if (isset($field['args']) && !($field['args'] instanceof StructureType)) {
+                    throw new \InvalidArgumentException("Schema 'mutation' field '{$key}' must have 'args' of StructureType.");
+                }
+            }
+        }
+    }
+
+
     public static function init(array $schemaParams)
     {
 
-        self::$inited = true;
+
+        self::validateSchemaParams($schemaParams);
+
+        self::$init = true;
 
         $start = microtime(true);
 
@@ -236,5 +305,10 @@ class ShmGQL
 
         echo json_encode($result, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
         exit(0);
+    }
+
+    public static function auth(StructureType ...$authCollections): ShmGQLAuth
+    {
+        return (new ShmGQLAuth(...$authCollections));
     }
 }

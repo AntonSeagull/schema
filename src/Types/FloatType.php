@@ -4,6 +4,8 @@ namespace Shm\Types;
 
 use GraphQL\Type\Definition\Type;
 use Shm\CachedType\CachedInputObjectType;
+use Shm\Shm;
+use Shm\ShmGQL\ShmGQLCodeGen\TSType;
 
 class FloatType extends BaseType
 {
@@ -14,12 +16,17 @@ class FloatType extends BaseType
         // Nothing extra for now
     }
 
-    public function normalize(mixed $value): mixed
+    public function normalize(mixed $value, $addDefaultValues = false): mixed
     {
-        if ($value === null) {
+
+        if ($addDefaultValues &&  $value === null && $this->defaultIsSet) {
             return $this->default;
         }
-        return (float) $value;
+
+        if (is_numeric($value)) {
+            return  $value;
+        }
+        return null;
     }
 
     public function validate(mixed $value): void
@@ -44,22 +51,62 @@ class FloatType extends BaseType
         return Type::float();
     }
 
-    public function GQLFilterTypeInput(): ?Type
+    public function filterType(): ?BaseType
     {
-        return  CachedInputObjectType::create([
-            'name' => 'NumberInputFilterInput',
-            'fields' => [
-                'gte' => [
-                    'type' => Type::float(),
-                ],
-                'eq' => [
-                    'type' => Type::float(),
-                ],
-                'lte' => [
-                    'type' => Type::float(),
-                ],
 
-            ],
-        ]);
+        return  Shm::structure([
+            'gte' => Shm::float()->title('Больше или равно'),
+            'eq' => Shm::float()->title('Равно'),
+            'lte' => Shm::float()->title('Меньше или равно'),
+        ])->fullEditable();
+    }
+
+
+
+    public function filterToPipeline($filter, array | null  $absolutePath = null): ?array
+    {
+
+
+
+        $path  = $absolutePath ? implode('.', $absolutePath) . '.' . $this->key : $this->key;
+
+
+        $match = [];
+
+        if (isset($filter['gte'])) {
+            $match['$gte'] = (float) $filter['gte'];
+        }
+        if (isset($filter['eq'])) {
+            $match['$eq'] = (float) $filter['eq'];
+        }
+        if (isset($filter['lte'])) {
+            $match['$lte'] = (float) $filter['lte'];
+        }
+        if (empty($match)) {
+            return null;
+        }
+        return [
+            [
+                '$match' => [
+                    $path => $match
+                ]
+            ]
+        ];
+
+
+
+        return null;
+    }
+
+
+
+
+
+    public function tsType(): TSType
+    {
+        $TSType = new TSType('Float', 'number');
+
+
+        return $TSType;
     }
 }

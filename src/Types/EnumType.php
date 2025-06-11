@@ -8,6 +8,8 @@ use Shm\CachedType\CachedEnumType;
 use Shm\CachedType\CachedInputObjectType;
 use Shm\GQLUtils\AutoPostfix;
 use Shm\GQLUtils\Utils;
+use Shm\Shm;
+use Shm\ShmGQL\ShmGQLCodeGen\TSType;
 
 class EnumType extends BaseType
 {
@@ -16,14 +18,29 @@ class EnumType extends BaseType
 
     public function __construct(array $values)
     {
+
+        if (is_numeric(array_keys($values)[0])) {
+
+
+            $values = array_combine($values, $values);
+            if ($values === false) {
+                throw new \InvalidArgumentException("Values must be an associative array or a simple array.");
+            }
+        }
+
+
+
+
         $this->values = $values;
     }
 
-    public function normalize(mixed $value): mixed
+    public function normalize(mixed $value, $addDefaultValues = false): mixed
     {
-        if ($value === null) {
+
+        if ($addDefaultValues &&  $value === null && $this->defaultIsSet) {
             return $this->default;
         }
+
         if (isset($this->values[$value])) {
             return $value;
         }
@@ -44,28 +61,19 @@ class EnumType extends BaseType
     }
 
 
-
-    public function GQLFilterTypeInput(): ?Type
+    public function filterType(): ?BaseType
     {
 
-
-        return CachedInputObjectType::create([
-            'name' => Utils::onlyLetters($this->key) . AutoPostfix::get(array_keys($this->values)) . "InputFilterInput",
-            'fields' => [
-                'in' => [
-                    'type' => Type::listOf($this->GQLType()),
-
-                ],
-                'nin' => [
-                    'type' => Type::listOf($this->GQLType()),
-                ],
-                'all' => [
-                    'type' => Type::listOf($this->GQLType()),
-                ],
-
-            ],
-        ]);
+        return  Shm::structure([
+            'in' => Shm::arrayOf(Shm::enum($this->values)->title('Включает значения')),
+            'nin' => Shm::arrayOf(Shm::enum($this->values)->title('Исключает значения')),
+            'all' => Shm::arrayOf(Shm::enum($this->values)->title('Все значения')),
+        ])->fullEditable();
     }
+
+
+
+
 
 
     private function getEnumTypeName(): string
@@ -94,23 +102,21 @@ class EnumType extends BaseType
         return $this->GQLType();
     }
 
-    public function tsTypeName(): string
+    public function tsType(): TSType
     {
-        return $this->getEnumTypeName();
-    }
 
-    public function tsType(): string
-    {
-        $tsType =  `export enum ` . $this->tsTypeName() . ` {\n`;
+
+
+
+        $tsTypeValue = [];
 
         foreach ($this->values as $key => $value) {
-            $tsType .= `    ` . Utils::upperCase(Utils::onlyLetters($key)) . ` = "` . Utils::onlyLetters($key) . `",\n`;
+            $tsTypeValue[] = Utils::upperCase($key) . ' = "' . $key . '"';
         }
+        $TSType = new TSType($this->getEnumTypeName(), '{\n' . implode(',\n', $tsTypeValue) . '\n}', true);
 
 
-        $tsType .=  `}\n`;
 
-
-        return $tsType;
+        return $TSType;
     }
 }

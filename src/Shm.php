@@ -2,29 +2,40 @@
 
 namespace Shm;
 
-use Shm\Types\StringType;
-use Shm\Types\ArrayOfType;
-use Shm\Types\IntType;
-use Shm\Types\FloatType;
-use Shm\Types\BoolType;
-use Shm\Types\BaseType;
-use Shm\Types\ColorType;
-use Shm\Types\CompositeTypes\FileTypes\FileAnyType;
-use Shm\Types\CompositeTypes\FileTypes\FileImageType;
-use Shm\Types\CompositeTypes\GeoTypes\GeoPointType;
-use Shm\Types\CompositeTypes\GeoTypes\MongoPointType;
-use Shm\Types\CompositeTypes\GeoTypes\MonogPointType;
-use Shm\Types\StructureType;
-use Shm\Types\UnixdateType;
-use Shm\Types\EnumType;
-use Shm\Types\IDsType;
-use Shm\Types\IDType;
-use Shm\Types\PhoneType;
-use Shm\Types\UnixDateTimeType;
-use Shm\Types\Utils\JsonLogicBuilder;
+use Shm\ShmTypes\StringType;
+use Shm\ShmTypes\ArrayOfType;
+use Shm\ShmTypes\IntType;
+use Shm\ShmTypes\FloatType;
+use Shm\ShmTypes\BoolType;
+use Shm\ShmTypes\BaseType;
+use Shm\ShmTypes\ColorType;
+use Shm\ShmTypes\CompositeTypes\FileTypes\FileAnyType;
+use Shm\ShmTypes\CompositeTypes\FileTypes\FileImageLinkType;
+use Shm\ShmTypes\CompositeTypes\FileTypes\FileImageType;
+use Shm\ShmTypes\CompositeTypes\GeoTypes\GeoPointType;
+use Shm\ShmTypes\CompositeTypes\GeoTypes\MongoPointType;
+use Shm\ShmTypes\CompositeTypes\GeoTypes\MongoPolygonType;
+use Shm\ShmTypes\CompositeTypes\GeoTypes\MonogPointType;
+use Shm\ShmTypes\CompositeTypes\RangeUnixDateType;
+use Shm\ShmTypes\CompositeTypes\SocialType;
+use Shm\ShmTypes\CompositeTypes\TimeType;
+use Shm\ShmTypes\StructureType;
+use Shm\ShmTypes\UnixdateType;
+use Shm\ShmTypes\EnumType;
+use Shm\ShmTypes\IDsType;
+use Shm\ShmTypes\IDType;
+use Shm\ShmTypes\MixedType;
+use Shm\ShmTypes\PhoneType;
+use Shm\ShmTypes\SelfRefType;
+use Shm\ShmTypes\SelfType;
+use Shm\ShmTypes\UnixDateTimeType;
+use Shm\ShmTypes\Utils\JsonLogicBuilder;
+use Shm\ShmTypes\UUIDType;
 
 class Shm
 {
+
+
 
     public static function structure(array $fields): StructureType
     {
@@ -50,6 +61,12 @@ class Shm
     {
         return (new StringType())->type('email');
     }
+
+    public static function login(): StringType
+    {
+        return (new StringType())->type('login');
+    }
+
     public static function password(): StringType
     {
         return (new StringType())->type('password');
@@ -58,6 +75,11 @@ class Shm
     public static function arrayOf(BaseType $itemType): ArrayOfType
     {
         return new ArrayOfType($itemType);
+    }
+
+    public static function listOf(BaseType $itemType): ArrayOfType
+    {
+        return self::arrayOf($itemType);
     }
 
     public static function int(): IntType
@@ -75,6 +97,10 @@ class Shm
         return self::float();
     }
 
+    public static function rangeunixdate(): RangeUnixDateType
+    {
+        return new RangeUnixDateType();
+    }
 
     public static function ID(StructureType | null $document = null): IDType
     {
@@ -127,6 +153,10 @@ class Shm
         return new ColorType();
     }
 
+    public static function fileImageLink(): FileImageLinkType
+    {
+        return new FileImageLinkType();
+    }
 
     public static function fileImage(): FileImageType
     {
@@ -135,6 +165,11 @@ class Shm
     public static function file(): FileAnyType
     {
         return new FileAnyType();
+    }
+
+    public static function time(): TimeType
+    {
+        return (new TimeType());
     }
 
     public static function geoPoint(): GeoPointType
@@ -146,13 +181,44 @@ class Shm
         return new MongoPointType();
     }
 
+
+    public static function monogoPolygon(): MongoPolygonType
+    {
+        return new MongoPolygonType();
+    }
+
+    public static function social(): SocialType
+    {
+        return new SocialType();
+    }
     public static function cond(): JsonLogicBuilder
     {
         return new JsonLogicBuilder();
     }
 
+    public static function uuid(): UUIDType
+    {
+        return new UUIDType();
+    }
+
+    public static function selfRef(callable $type): SelfRefType
+    {
+        return new SelfRefType($type);
+    }
+
+
+    public static function mixed(): MixedType
+    {
+        return new MixedType();
+    }
+
     public static function nonNull(BaseType $type): BaseType
     {
         return $type->nullable(false);
+    }
+
+    public static function fragment(StructureType $type,  string $key): ?BaseType
+    {
+        return $type->findItemByKey($key);
     }
 }

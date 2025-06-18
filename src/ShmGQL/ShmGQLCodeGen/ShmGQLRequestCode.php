@@ -2,9 +2,9 @@
 
 namespace Shm\ShmGQL\ShmGQLCodeGen;
 
-use Shm\GQLUtils\Utils;
-use Shm\Types\BaseType;
-use Shm\Types\StructureType;
+use Shm\ShmUtils\ShmUtils;
+use Shm\ShmTypes\BaseType;
+use Shm\ShmTypes\StructureType;
 
 class ShmGQLRequestCode
 {
@@ -33,11 +33,11 @@ class ShmGQLRequestCode
     {
 
         if ($this->requestType === 'mutation') {
-            return 'm' . Utils::onlyLetters($this->key);
+            return 'm' . ShmUtils::onlyLetters($this->key);
         }
 
         if ($this->requestType === 'query') {
-            return 'q' . Utils::onlyLetters($this->key);
+            return 'q' . ShmUtils::onlyLetters($this->key);
         }
 
         return 'errorFunctionName';

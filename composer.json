@@ -14,8 +14,8 @@
     "license": "MIT",
     "authors": [
         {
-            "name": "Anton Chaikin",
-            "email": "mrseagull@ya.ru"
+            "name": "Anton Seagull",
+            "email": "hi@antonseagull.com"
         }
     ],
     "autoload": {
@@ -25,9 +25,17 @@
     },
     "require": {
         "php": ">=8.1",
+        "aws/aws-sdk-php": "3.269.8",
         "webonyx/graphql-php": "*",
-        "antonchaikin/f3-mongo": "^1.0",
-        "sentry/sdk": "*"
+        "sentry/sdk": "*",
+        "nette/php-generator": "^4.1",
+        "mongodb/mongodb": "*",
+        "filp/whoops": "*",
+        "poliander/cron": "*",
+        "gumlet/php-image-resize": "^2.0",
+        "php-ffmpeg/php-ffmpeg": "*",
+        "maximal/audio-waveform": "*",
+        "kornrunner/blurhash": "*"
     },
     "minimum-stability": "dev",
     "prefer-stable": true

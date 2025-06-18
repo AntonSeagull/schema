@@ -2,7 +2,7 @@
 
 namespace Shm\ShmGQL\ShmGQLCodeGen;
 
-use Shm\GQLUtils\Utils;
+
 
 class ShmGQLCodeGen
 {

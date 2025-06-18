@@ -13,11 +13,11 @@ use GraphQL\Validator\DocumentValidator;
 use GraphQL\Validator\Rules\DisableIntrospection;
 use Sentry\State\Scope;
 use Shm\Shm;
-use Shm\ShmGQL\ShmGQLBlueprints\Auth\ShmGQLAuth;
-use Shm\ShmGQL\ShmGQLBlueprints\ShmGQLBlueprintMutation;
-use Shm\ShmGQL\ShmGQLBlueprints\ShmGQLBlueprintQuery;
+use Shm\ShmBlueprints\Auth\ShmAuth;
+use Shm\ShmBlueprints\ShmBlueprintMutation;
+use Shm\ShmBlueprints\ShmBlueprintQuery;
 use Shm\ShmGQL\ShmGQLCodeGen\ShmGQLCodeGen;
-use Shm\Types\StructureType;
+use Shm\ShmTypes\StructureType;
 
 class ShmGQL
 {
@@ -99,15 +99,15 @@ class ShmGQL
     }
 
 
-    public static function makeMutation(StructureType $strucutre): ShmGQLBlueprintMutation
+    public static function makeMutation(StructureType $strucutre): ShmBlueprintMutation
     {
-        return new ShmGQLBlueprintMutation($strucutre);
+        return new ShmBlueprintMutation($strucutre);
     }
 
 
-    public static function makeQuery(StructureType $strucutre): ShmGQLBlueprintQuery
+    public static function makeQuery(StructureType $strucutre): ShmBlueprintQuery
     {
-        return new ShmGQLBlueprintQuery($strucutre);
+        return new ShmBlueprintQuery($strucutre);
     }
 
     private  static function validateSchemaParams(array $schemaParams): void
@@ -120,7 +120,7 @@ class ShmGQL
 
             //Проверка что type это BaseType и args это StructureType
             foreach ($schemaParams['query'] as $key => $field) {
-                if (!isset($field['type']) || !($field['type'] instanceof \Shm\Types\BaseType)) {
+                if (!isset($field['type']) || !($field['type'] instanceof \Shm\ShmTypes\BaseType)) {
                     throw new \InvalidArgumentException("Schema 'query' field '{$key}' must have a 'type' of BaseType.");
                 }
                 if (isset($field['args']) && !($field['args'] instanceof StructureType)) {
@@ -137,7 +137,7 @@ class ShmGQL
 
             //Проверка что type это BaseType и args это StructureType
             foreach ($schemaParams['mutation'] as $key => $field) {
-                if (!isset($field['type']) || !($field['type'] instanceof \Shm\Types\BaseType)) {
+                if (!isset($field['type']) || !($field['type'] instanceof \Shm\ShmTypes\BaseType)) {
                     throw new \InvalidArgumentException("Schema 'mutation' field '{$key}' must have a 'type' of BaseType.");
                 }
                 if (isset($field['args']) && !($field['args'] instanceof StructureType)) {
@@ -307,8 +307,8 @@ class ShmGQL
         exit(0);
     }
 
-    public static function auth(StructureType ...$authCollections): ShmGQLAuth
+    public static function auth(StructureType ...$authStructures): ShmAuth
     {
-        return (new ShmGQLAuth(...$authCollections));
+        return (new ShmAuth(...$authStructures));
     }
 }

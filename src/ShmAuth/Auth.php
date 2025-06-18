@@ -2,8 +2,9 @@
 
 namespace Shm\ShmAuth;
 
-use F3Mongo\mDB;
-use Shm\Types\StructureType;
+use Shm\ShmDB\mDB;
+use Shm\ShmTypes\StructureType;
+use Shm\ShmUtils\Response;
 
 class Auth
 {
@@ -22,31 +23,37 @@ class Auth
     public static $apiStructure  = [];
 
 
-    public static function addApiKeyStructure(StructureType $structure): void
+    public static function addApiKeyStructure(StructureType ...$structures): void
     {
-        if (!$structure instanceof StructureType) {
-            throw new \InvalidArgumentException("Structure must be an instance of StructureType.");
-        }
+        foreach ($structures as $structure) {
+            if (!$structure instanceof StructureType) {
+                throw new \InvalidArgumentException("Structure must be an instance of StructureType.");
+            }
 
-        if (!isset($structure->document)) {
-            throw new \InvalidArgumentException("Structure must have a document defined.");
-        }
+            if (!isset($structure->collection)) {
+                throw new \InvalidArgumentException("Structure must have a collection defined.");
+            }
 
-        self::$apiStructure = $structure;
+            self::$apiStructure[] = $structure;
+        }
     }
 
-    public  static function addStructure(StructureType $structure): void
+    public  static function addStructure(StructureType ...$structures): void
     {
 
-        if (!$structure instanceof StructureType) {
-            throw new \InvalidArgumentException("Structure must be an instance of StructureType.");
-        }
+        foreach ($structures as $structure) {
 
-        if (!isset($structure->document)) {
-            throw new \InvalidArgumentException("Structure must have a document defined.");
-        }
 
-        self::$authStructures[] = $structure;
+            if (!$structure instanceof StructureType) {
+                throw new \InvalidArgumentException("Structure must be an instance of StructureType.");
+            }
+
+            if (!isset($structure->collection)) {
+                throw new \InvalidArgumentException("Structure must have a collection defined.");
+            }
+
+            self::$authStructures[] = $structure;
+        }
     }
 
     private static function  getRequestKey(array $keys): ?string
@@ -78,37 +85,47 @@ class Auth
 
 
     private static $auth = null;
-    private static StructureType $authStructure;
+    private static StructureType | null $authStructure = null;
 
-    private static $apikey;
-    private static StructureType $apikeyStructure;
+    private static $apikey = null;
+    private static StructureType | null $apikeyStructure = null;
 
     private static $token_collection = "_tokens";
 
 
     private static $initialized = false;
 
+
+
     private static function init()
     {
 
         $token = self::getRequestKey(['token', 'authorization', 'x-auth-token']);
+
+
+
         $apikey = self::getRequestKey(['apikey', 'x-api-key', 'api-key']);
 
         if ($token) {
-            foreach (self::$authStructures as $structure) {
 
-                $findToken = mDB::collection(self::$token_collection)->findOne([
-                    "token" => $token,
-                ]);
+            $findToken = mDB::collection(self::$token_collection)->findOne([
+                "token" => $token,
+            ]);
+            if ($findToken) {
+                foreach (self::$authStructures as $structure) {
 
-                if ($findToken) {
 
-                    self::$authStructure = $structure;
-                    self::$auth = mDB::collection(self::$authStructure->collection)->findOne([
+                    $auth = mDB::collection($structure->collection)->findOne([
                         "_id" => $findToken['user_id'],
                     ]);
 
-                    break;
+                    if ($auth) {
+
+                        self::$authStructure = $structure;
+                        self::$auth = $auth;
+
+                        break;
+                    }
                 }
             }
         }
@@ -134,8 +151,63 @@ class Auth
         self::$initialized = true;
     }
 
+    public static function getApiKeyId(): ?string
+    {
 
-    public static function getAuth(): ?array
+        if (!self::$initialized) {
+            self::init();
+        }
+
+        if (self::$apikey !== null && isset(self::$apikey->_id)) {
+            return self::$apikey->_id;
+        }
+
+        return null;
+    }
+
+    public static function authenticateOrThrow(StructureType ...$authStructures)
+    {
+
+        if ($authStructures) {
+
+            $authStructure = Auth::getAuthStructure();
+            if (!$authStructure) {
+                Response::unauthorized();
+            }
+
+
+            foreach ($authStructures as $structure) {
+
+                if ($structure->collection == $authStructure->collection) {
+                    return false;
+                }
+            }
+
+            Response::unauthorized();
+        }
+
+        if (!self::getAuthId()) {
+            Response::unauthorized();
+        }
+    }
+
+
+
+    public static function getAuthId(): mixed
+    {
+        if (!self::$initialized) {
+            self::init();
+        }
+
+        if (self::$auth !== null && isset(self::$auth['_id'])) {
+            return self::$auth['_id'];
+        }
+
+        return null;
+    }
+
+
+    public static function getAuth(): mixed
     {
 
         if (!self::$initialized) {
@@ -158,6 +230,20 @@ class Auth
 
         if (self::$apikey !== null) {
             return self::$apikey;
+        }
+
+        return null;
+    }
+
+    public static function getAuthCollection(): ?string
+    {
+
+        if (!self::$initialized) {
+            self::init();
+        }
+
+        if (self::$authStructure !== null && isset(self::$authStructure->collection)) {
+            return self::$authStructure->collection;
         }
 
         return null;
@@ -206,5 +292,12 @@ class Auth
 
 
         return $token;
+    }
+
+    public static function getPassword($password)
+    {
+        $hash = hash("sha512", $password);
+
+        return $hash;
     }
 }

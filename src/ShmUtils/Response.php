@@ -1,0 +1,161 @@
+<?php
+
+namespace Shm\ShmUtils;
+
+use Shm\Shm;
+use Shm\ShmGQL\ShmGQL;
+
+class Response
+{
+
+
+    private static $startTime = 0;
+
+    public static function startTime(): void
+    {
+        self::$startTime = microtime(true);
+    }
+
+
+    /**
+     * Базовая структура ответа.
+     *
+     * @var array<string, mixed>
+     */
+    private static array $baseResponse = [
+        'success' => false,
+        'result' => null,
+        'error' => null,
+        'executionTime' => 0,
+    ];
+
+    /**
+     * Возвращает успешный ответ.
+     *
+     * @param mixed $result Результат выполнения запроса
+     * @return never
+     */
+    public static function success(mixed $result): never
+    {
+
+        header('Content-Type: application/json; charset=utf-8');
+
+        echo json_encode([
+            ...self::$baseResponse,
+            'success' => true,
+            'result' => $result,
+            'executionTime' => self::$startTime ? round((microtime(true) - self::$startTime) * 1000) : null,
+        ]);
+        exit(0);
+    }
+
+    /**
+     * Ошибка валидации.
+     *
+     * @param string $message Сообщение об ошибке
+     * @return never
+     */
+    public static function validation(string $message): never
+    {
+
+
+        self::error('VALIDATION_ERROR', $message, 400);
+    }
+
+    /**
+     * Ошибка авторизации.
+     *
+     * @param string $message Сообщение об ошибке
+     * @return never
+     */
+    public static function unauthorized(string $message = 'Unauthorized'): never
+    {
+        self::error('UNAUTHORIZED', $message, 401);
+    }
+
+    /**
+     * Доступ запрещён.
+     *
+     * @param string $message Сообщение об ошибке
+     * @return never
+     */
+    public static function forbidden(string $message = 'Forbidden'): never
+    {
+        self::error('FORBIDDEN', $message, 403);
+    }
+
+    /**
+     * Ресурс не найден.
+     *
+     * @param string $message Сообщение об ошибке
+     * @return never
+     */
+    public static function notFound(string $message = 'Not Found'): never
+    {
+        self::error('NOT_FOUND', $message, 404);
+    }
+
+    /**
+     * Превышен лимит запросов.
+     *
+     * @param string $message Сообщение об ошибке
+     * @return never
+     */
+    public static function rateLimited(string $message = 'Too Many Requests'): never
+    {
+        self::error('RATE_LIMITED', $message, 429);
+    }
+
+    /**
+     * Внутренняя ошибка сервера.
+     *
+     * @param string $message Сообщение об ошибке
+     * @return never
+     */
+    public static function internal(string $message = 'Internal Server Error'): never
+    {
+        self::error('INTERNAL_ERROR', $message, 500);
+    }
+
+
+
+    /**
+     * Общий метод возврата ошибки.
+     *
+     * @param string $type Тип ошибки (например, UNAUTHORIZED, VALIDATION_ERROR)
+     * @param string $message Сообщение об ошибке
+     * @param int|null $code Числовой код ошибки (опционально)
+     * @return never
+     */
+    public static function error(string $type, string $message, ?int $code = null): never
+    {
+
+        if (ShmGQL::$init) {
+
+            throw new \GraphQL\Error\Error(extensions: [
+                "type" => $type,
+                "message" => $message,
+            ]);
+        }
+
+
+
+        $error = [
+            'type' => $type,
+            'message' => $message,
+        ];
+
+        if ($code !== null) {
+            $error['code'] = $code;
+        }
+
+        header('Content-Type: application/json; charset=utf-8');
+
+        echo json_encode([
+            ...self::$baseResponse,
+            'error' => $error,
+            'executionTime' => self::$startTime ? round((microtime(true) - self::$startTime) * 1000) : null,
+        ]);
+        exit(0);
+    }
+}

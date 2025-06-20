@@ -3,7 +3,7 @@
 namespace Shm\ShmUtils;
 
 use Shm\Shm;
-use Shm\ShmGQL\ShmGQL;
+
 
 class Response
 {
@@ -130,13 +130,7 @@ class Response
     public static function error(string $type, string $message, ?int $code = null): never
     {
 
-        if (ShmGQL::$init) {
 
-            throw new \GraphQL\Error\Error(extensions: [
-                "type" => $type,
-                "message" => $message,
-            ]);
-        }
 
 
 

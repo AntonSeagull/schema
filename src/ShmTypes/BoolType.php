@@ -2,9 +2,9 @@
 
 namespace Shm\ShmTypes;
 
-use GraphQL\Type\Definition\Type;
+
 use Shm\Shm;
-use Shm\ShmGQL\ShmGQLCodeGen\TSType;
+use Shm\ShmRPC\ShmRPCCodeGen\TSType;
 
 class BoolType extends BaseType
 {
@@ -42,16 +42,7 @@ class BoolType extends BaseType
     }
 
 
-    public function GQLType(): Type | array | null
-    {
-        return Type::boolean();
-    }
 
-
-    public function GQLTypeInput(): ?Type
-    {
-        return Type::boolean();
-    }
 
     public function filterToPipeline($filter, array | null $absolutePath = null): ?array
     {

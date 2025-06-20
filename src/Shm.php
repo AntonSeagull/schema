@@ -2,6 +2,7 @@
 
 namespace Shm;
 
+use Shm\ShmAdmin\Types\VisualGroupType;
 use Shm\ShmTypes\StringType;
 use Shm\ShmTypes\ArrayOfType;
 use Shm\ShmTypes\IntType;
@@ -220,5 +221,10 @@ class Shm
     public static function fragment(StructureType $type,  string $key): ?BaseType
     {
         return $type->findItemByKey($key);
+    }
+
+    public static function visualGroup(array $fields): VisualGroupType
+    {
+        return new VisualGroupType($fields);
     }
 }

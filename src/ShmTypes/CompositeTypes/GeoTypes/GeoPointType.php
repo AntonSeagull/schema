@@ -3,12 +3,13 @@
 namespace Shm\ShmTypes\CompositeTypes\GeoTypes;
 
 use GraphQL\Type\Definition\ObjectType;
-use GraphQL\Type\Definition\Type;
+
 use Shm\CachedType\CachedInputObjectType;
 use Shm\CachedType\CachedObjectType;
 use Shm\Shm;
 use Shm\ShmTypes\BaseType;
 use Shm\ShmTypes\StructureType;
+use Shm\ShmUtils\ShmUtils;
 
 class GeoPointType extends StructureType
 {
@@ -75,36 +76,12 @@ class GeoPointType extends StructureType
         }
     }
 
-    public function GQLType(): Type | array | null
-    {
-        $fields = [];
-        foreach ($this->items as $name => $type) {
-            $fields[$name] = [
-                'type' => $type->GQLType(),
-            ];
-        }
-        return CachedObjectType::create([
-            'name' => 'GeoPointType',
-            'fields' => function () use ($fields) {
-                return $fields;
-            },
-        ]);
-    }
 
-    public function GQLTypeInput(): ?Type
+
+
+    public function baseTypeName()
     {
-        $fields = [];
-        foreach ($this->items as $name => $type) {
-            $fields[$name] = [
-                'type' => $type->GQLTypeInput(),
-            ];
-        }
-        return  CachedInputObjectType::create([
-            'name' => 'GeoPointInputType',
-            'fields' => function () use ($fields) {
-                return $fields;
-            },
-        ]);
+        return  ShmUtils::onlyLetters($this->type);
     }
 
 

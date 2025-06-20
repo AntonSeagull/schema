@@ -1,6 +1,6 @@
 <?php
 
-namespace Shm\ShmGQL\ShmGQLCodeGen;
+namespace Shm\ShmRPC\ShmRPCCodeGen;
 
 
 class TSType

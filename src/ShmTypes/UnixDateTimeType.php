@@ -2,10 +2,10 @@
 
 namespace Shm\ShmTypes;
 
-use GraphQL\Type\Definition\Type;
+
 use Shm\CachedType\CachedInputObjectType;
 use Shm\Shm;
-use Shm\ShmGQL\ShmGQLCodeGen\TSType;
+use Shm\ShmRPC\ShmRPCCodeGen\TSType;
 
 class UnixDateTimeType extends BaseType
 {
@@ -40,21 +40,7 @@ class UnixDateTimeType extends BaseType
         }
     }
 
-    /**
-     * Return GraphQL scalar type for output.
-     */
-    public function GQLType(): Type | array | null
-    {
-        return Type::int();
-    }
 
-    /**
-     * Return GraphQL scalar type for input.
-     */
-    public function GQLTypeInput(): ?Type
-    {
-        return Type::int();
-    }
 
 
 

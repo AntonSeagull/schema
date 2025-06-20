@@ -6,6 +6,36 @@ namespace Shm\ShmUtils;
 class DeepAccess
 {
 
+    public  static function get($data, string | array $path, $defaultValue = null): mixed
+    {
+
+
+
+        if (!$data) {
+            return $defaultValue;
+        }
+
+        if (is_string($path)) {
+            $path = explode('.', $path);
+        }
+
+        $value = $data;
+        foreach ($path as $itemPath) {
+
+
+            if (isset($value[$itemPath])) {
+                $value = $value[$itemPath];
+            } else {
+
+
+                $value = null;
+                break;
+            }
+        }
+
+        return $value ?? $defaultValue;
+    }
+
 
     public static function safeGet(string | int $key, $data): mixed
     {

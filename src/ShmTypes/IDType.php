@@ -3,14 +3,10 @@
 namespace Shm\ShmTypes;
 
 use Shm\ShmDB\mDB;
-use GraphQL\Deferred;
-use GraphQL\Type\Definition\ResolveInfo;
-use GraphQL\Type\Definition\Type;
-use Shm\CachedType\CachedInputObjectType;
-use Shm\GQLUtils\GQLBuffer;
+
 
 use Shm\Shm;
-use Shm\ShmGQL\ShmGQLCodeGen\TSType;
+use Shm\ShmRPC\ShmRPCCodeGen\TSType;
 use Shm\ShmRPC\RPCBuffer;
 
 class IDType extends BaseType
@@ -54,52 +50,6 @@ class IDType extends BaseType
         }
     }
 
-    public function GQLType(): Type | array | null
-    {
-
-        if ($this->document && !$this->document->hide) {
-            $this->document->key = $this->key;
-            $collection = $this->document->collection;
-            $pipeline = $this->document->getPipeline();
-            return [
-                'type' => $this->document->GQLType(),
-
-                'resolve' => function ($root, $args, $context, ResolveInfo $info) use ($collection, $pipeline) {
-                    $fieldName = $info->fieldName;
-
-                    if (!isset($root[$fieldName]) || empty($root[$fieldName])) {
-                        return null;
-                    }
-                    if (
-                        is_string($root[$fieldName]) || $root[$fieldName] instanceof \MongoDB\BSON\ObjectID || (is_array($root[$fieldName]) && isset($root[$fieldName]['oid']))
-                    ) {
-
-                        if (is_array($root[$fieldName]) && isset($root[$fieldName]['oid'])) {
-                            $id = mDB::id($root[$fieldName]['oid']);
-                        } else {
-                            $id = mDB::id($root[$fieldName]);
-                        }
-
-                        GQLBuffer::add([$id], $collection, $pipeline);
-                        return new Deferred(function () use ($id, $collection) {
-                            GQLBuffer::load($collection);
-                            return GQLBuffer::get($id, $collection);
-                        });
-                    }
-
-                    if (is_array($root[$fieldName]) || is_object($root[$fieldName])) {
-                        return $root[$fieldName];
-                    }
-                    return null;
-                }
-
-            ];
-        }
-
-
-        return Type::string();
-    }
-
 
     public function filterType(): ?BaseType
     {
@@ -122,10 +72,7 @@ class IDType extends BaseType
 
 
 
-    public function GQLTypeInput(): ?Type
-    {
-        return Type::string();
-    }
+
 
     public function tsType(): TSType
     {

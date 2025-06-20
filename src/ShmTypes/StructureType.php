@@ -3,7 +3,7 @@
 namespace Shm\ShmTypes;
 
 use Shm\ShmDB\mDB;
-use GraphQL\Type\Definition\Type;
+
 
 use Shm\CachedType\CachedInputObjectType;
 
@@ -11,7 +11,8 @@ use Shm\CachedType\CachedInputObjectType;
 use Shm\CachedType\CachedObjectType;
 
 use Shm\Shm;
-use Shm\ShmGQL\ShmGQLCodeGen\TSType;
+use Shm\ShmAdmin\Types\VisualGroupType;
+use Shm\ShmRPC\ShmRPCCodeGen\TSType;
 use Shm\ShmUtils\AutoPostfix;
 use Shm\ShmUtils\DeepAccess;
 use Shm\ShmUtils\Inflect;
@@ -65,9 +66,20 @@ class StructureType extends BaseType
                 throw new \InvalidArgumentException("Field '{$key}' must be an instance of BaseType.");
             }
 
+            if ($field->type == 'visualGroup') {
+
+                foreach ($field->items as $subKey => $subField) {
 
 
-            $field->key = $key;
+                    $subField->key($subKey)->group($field->title ?? "Default", $field->svgIcon);
+                    $_items[$subKey] = $subField;
+                }
+
+                continue;
+            }
+
+
+
 
             $field->key($key);
 
@@ -113,24 +125,10 @@ class StructureType extends BaseType
                 return null;
             }
 
+            foreach ($this->items as $key => $type) {
+                if (isset($value[$key]) || $type instanceof UUIDType) {
 
-
-            foreach ($value as $key => $val) {
-
-
-                if (isset($this->items[$key])) {
-
-                    if ($processId) {
-                        ProcessLogs::addLog($processId, "Normalizing field '{$key}' in StructureType '{$this->key}'", 1);
-
-                        ProcessLogs::addLog($processId, "Field value: " . print_r($val, true), 2);
-                    }
-
-                    $value[$key] = $this->items[$key]->normalize($val, $addDefaultValues, $processId);
-
-                    if ($processId) {
-                        ProcessLogs::addLog($processId, "Normalized value: " . print_r($value[$key], true), 2);
-                    }
+                    $value[$key] = $this->items[$key]->normalize($value[$key] ?? null, $addDefaultValues, $processId);
                 }
             }
         }
@@ -185,10 +183,10 @@ class StructureType extends BaseType
     }
 
 
-    public function GQLBaseTypeName()
+    public function baseTypeName()
     {
         if (!$this->key) {
-            throw new \InvalidArgumentException("Key is not set for StructureType." . print_r($this, true));
+            throw new \InvalidArgumentException("baseTypeName -> Key is not set for StructureType." . print_r($this, true));
         }
 
         $typeName = '';
@@ -207,19 +205,19 @@ class StructureType extends BaseType
 
 
 
-    public function GQLTypeName()
+    public function typeName()
     {
-        return $this->GQLBaseTypeName() . 'Type';
+        return $this->baseTypeName() . 'Type';
     }
 
-    public function GQLInputTypeName()
+    public function inputTypeName()
     {
-        return $this->GQLBaseTypeName() . 'Input';
+        return $this->baseTypeName() . 'Input';
     }
 
-    public function GQLFilterTypeName()
+    public function filterTypeName()
     {
-        return $this->GQLBaseTypeName() . 'FilterInput';
+        return $this->baseTypeName() . 'FilterInput';
     }
 
     public function findItemByCollection(string $collection): ?StructureType
@@ -272,58 +270,6 @@ class StructureType extends BaseType
     }
 
 
-    public function GQLType(): Type | array | null
-    {
-
-        if (!$this->key) {
-            throw new \InvalidArgumentException("Key is not set for StructureType." . print_r($this->items, true));
-        }
-
-
-        $fields = [];
-        foreach ($this->items as $name => $type) {
-            $fields[$name] = $type->GQLType();
-        }
-        $_this = $this;
-
-
-
-        return CachedObjectType::create([
-            'name' => $this->GQLTypeName(),
-            'fields' => function () use ($fields) {
-                return $fields;
-            },
-
-
-        ]);
-    }
-
-    public function GQLTypeInput(): ?Type
-    {
-
-
-        if (!$this->key) {
-            throw new \InvalidArgumentException("Key is not set for StructureType." . print_r($this->items, true));
-        }
-
-        $fields = [];
-        foreach ($this->items as $name => $type) {
-
-            if ($type->editable)
-                $fields[$name] = $type->GQLTypeInput();
-        }
-
-
-
-
-        return CachedInputObjectType::create([
-            'name' => $this->GQLInputTypeName(),
-            'fields' => function () use ($fields) {
-                return $fields;
-            },
-
-        ]);
-    }
 
 
 
@@ -362,6 +308,9 @@ class StructureType extends BaseType
         $paths = $this->getIDsPaths();
 
 
+        echo json_encode($paths);
+        exit;
+
 
 
         foreach ($paths as $pathItem) {
@@ -370,6 +319,9 @@ class StructureType extends BaseType
             $val =  DeepAccess::getByPath($data, $pathItem['path']);
 
 
+            if (!$val || !is_array($val) || count($val) == 0) {
+                continue;
+            }
 
             $many = $pathItem['many'] ?? false;
 
@@ -527,14 +479,14 @@ class StructureType extends BaseType
 
             if ($item instanceof SelfRefType) {
 
-                $value[] = $key .  $separate . $item->resolveType()->GQLTypeName();
+                $value[] = $key .  $separate . $item->resolveType()->typeName();
                 continue;
             }
 
             $value[] = $key .  $separate . $item->tsType()->getTsTypeName();
         }
 
-        $TSType = new TSType($this->GQLTypeName(), '{\n' . implode(',\n', $value) . '\n}');
+        $TSType = new TSType($this->typeName(), '{\n' . implode(',\n', $value) . '\n}');
 
 
 
@@ -561,7 +513,7 @@ class StructureType extends BaseType
             $value[] = $key .  $separate . $item->tsInputType()->getTsTypeName();
         }
 
-        $TSType = new TSType($this->GQLInputTypeName(), '{\n' . implode(',\n', $value) . '\n}');
+        $TSType = new TSType($this->inputTypeName(), '{\n' . implode(',\n', $value) . '\n}');
 
 
 

@@ -2,9 +2,11 @@
 
 namespace Shm\ShmTypes;
 
-use GraphQL\Type\Definition\Type;
+use Sentry\Util\Str;
 use Shm\Shm;
-use Shm\ShmGQL\ShmGQLCodeGen\TSType;
+use Shm\ShmDB\mDB;
+use Shm\ShmRPC\ShmRPCCodeGen\TSType;
+use Shm\ShmUtils\DeepAccess;
 use Traversable;
 
 class ArrayOfType extends BaseType
@@ -16,10 +18,7 @@ class ArrayOfType extends BaseType
     {
 
 
-        if ($itemType instanceof StructureType) {
 
-            $itemType->items['uuid'] = Shm::uuid();
-        }
 
         $this->itemType = $itemType;
     }
@@ -102,16 +101,7 @@ class ArrayOfType extends BaseType
         }
     }
 
-    public function GQLType(): Type | array | null
-    {
 
-
-
-        $this->itemType->key = $this->key;
-
-        $inner = $this->itemType->GQLType();
-        return $inner ? Type::listOf($inner) : null;
-    }
 
 
     public function fullCleanDefault(): static
@@ -143,14 +133,7 @@ class ArrayOfType extends BaseType
     }
 
 
-    public function GQLTypeInput(): ?Type
-    {
 
-
-        $inner = $this->itemType->keyIfNot($this->key)->GQLTypeInput();
-
-        return $inner ? Type::listOf($inner) : null;
-    }
 
     public function filterType(): ?BaseType
     {
@@ -197,5 +180,105 @@ class ArrayOfType extends BaseType
         $this->columns = $this->itemType->columns($path ? [...$path, $this->key] : [$this->key]);
 
         return parent::columns($path);
+    }
+
+
+
+    public function externalData($data)
+    {
+
+
+        if (!($this->itemType instanceof StructureType)) {
+            return $data;
+        }
+
+        $structureType = $this->itemType;
+
+        $structureType->updateKeys();
+        $structureType->updatePath();
+        $paths =  $structureType->getIDsPaths();
+
+
+
+        foreach ($paths as $pathItem) {
+
+            $val = [];
+
+
+            foreach ($data as $item) {
+                $val = [...$val,  ...DeepAccess::getByPath($item, $pathItem['path'])];
+            }
+
+
+            if (!$val || !is_array($val) || count($val) == 0) {
+                continue;
+            }
+
+
+            $many = $pathItem['many'] ?? false;
+
+
+            $mongoDocs =  mDB::collection($pathItem['document']->collection)->aggregate([
+
+                ...$pathItem['document']->getPipeline(),
+                [
+                    '$match' => [
+                        '_id' => ['$in' => $val]
+                    ]
+                ],
+
+            ])->toArray();
+
+
+
+
+            $mongoDocs = Shm::arrayOf($pathItem['document'])->removeOtherItems($mongoDocs);
+
+
+
+
+
+            $documentsById = [];
+            foreach ($mongoDocs as $doc) {
+
+
+                $documentsById[(string) $doc['_id']] = $doc;
+            }
+
+
+
+
+
+            foreach ($data as &$item) {
+
+                DeepAccess::applyRecursive($item, $pathItem['path'], function ($node) use ($many, $documentsById) {
+
+                    if ($many) {
+
+                        $result = [];
+
+                        if (is_object($node) || is_array($node) || $node instanceof \Traversable) {
+
+                            foreach ($node as $id) {
+                                if (isset($documentsById[(string) $id])) {
+                                    $result[] = $documentsById[(string) $id];
+                                }
+                            }
+                        }
+
+                        return $result;
+                    } else {
+
+                        if (isset($documentsById[(string) $node])) {
+                            return $documentsById[(string) $node];
+                        }
+                    }
+
+                    return null;
+                });
+            }
+        }
+
+        return $data;
     }
 }

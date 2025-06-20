@@ -2,14 +2,14 @@
 
 namespace Shm\ShmTypes;
 
-use GraphQL\Type\Definition\Type;
+
 use GraphQL\Type\Definition\EnumType as GraphQLEnumType;
 use Shm\CachedType\CachedEnumType;
 use Shm\CachedType\CachedInputObjectType;
 
 
 use Shm\Shm;
-use Shm\ShmGQL\ShmGQLCodeGen\TSType;
+use Shm\ShmRPC\ShmRPCCodeGen\TSType;
 use Shm\ShmUtils\AutoPostfix;
 use Shm\ShmUtils\ShmUtils;
 
@@ -93,28 +93,14 @@ class EnumType extends BaseType
     private function getEnumTypeName(): string
     {
         if (!$this->key) {
-            throw new \InvalidArgumentException("Key is not set for EnumType." . print_r($this->values, true));
+            throw new \InvalidArgumentException("getEnumTypeName -> Key is not set for EnumType" . ' ' . print_r($this->path) . ' ' .  print_r($this->values, true));
         }
 
         return ShmUtils::onlyLetters($this->key) . AutoPostfix::get(array_keys($this->values)) . 'Enum';
     }
 
 
-    public function GQLType(): Type | array | null
-    {
 
-
-        return  CachedEnumType::create([
-            'name' => $this->getEnumTypeName(),
-            'values' => $this->values,
-        ]);
-    }
-
-
-    public function GQLTypeInput(): ?Type
-    {
-        return $this->GQLType();
-    }
 
     public function tsType(): TSType
     {

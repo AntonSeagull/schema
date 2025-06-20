@@ -2,9 +2,13 @@
 
 namespace Shm\ShmCodeGen;
 
+use Error;
+use Nette\PhpGenerator\ClassType;
 use Nette\PhpGenerator\Method;
 use Shm\Shm;
 use Shm\ShmCmd\Cmd;
+use Shm\ShmTypes\ArrayOfType;
+use Shm\ShmTypes\EnumType;
 use Shm\ShmTypes\StructureType;
 use Shm\ShmUtils\ShmInit;
 
@@ -28,6 +32,7 @@ class ClassGenerator
 
 
 
+
                 $files = scandir(ShmInit::$rootDir . '/app/Collections');
                 foreach ($files as $file) {
                     if (!in_array($file, ['.', '..']) && pathinfo($file, PATHINFO_EXTENSION) === 'php') {
@@ -42,6 +47,7 @@ class ClassGenerator
                 }
 
 
+                //TODO: Mare remove all classes from /app/DataClasses/ before generate new classes
                 foreach ($classes as $class) {
 
                     //   if ($class instanceof StructureType) {
@@ -59,6 +65,10 @@ class ClassGenerator
     {
         return ucfirst(str_replace([' ', '-', '_'], '', $className));
     }
+
+
+
+
 
     private static function getClassByStructure(string $className, StructureType $structure, $rootClass = false)
     {
@@ -151,15 +161,82 @@ class ClassGenerator
         return $result;
     }
 
+    private static function toSnakeCase(string $input): string
+    {
+        return strtoupper(preg_replace('/(?<!^)[A-Z]/', '_$0', $input));
+    }
 
-    public static function generate(StructureType $strucutre)
+    public static function addConstantByStructure(ClassType $class, StructureType $structure, $prefix = '')
+    {
+
+
+        foreach ($structure->items as $key => $item) {
+
+            $constName = strtoupper(str_replace('.', '__', self::toSnakeCase($prefix) . self::toSnakeCase($key)));
+
+            try {
+                $class->addConstant($constName,  $prefix . $item->key)
+                    ->setVisibility('public');
+            } catch (\Throwable $error) {
+            }
+
+            $method = $class->addMethod($constName . '_GET');
+            $method->setStatic();
+            $method->setVisibility('public');
+            $method->addParameter('data');
+            $method->addParameter('defaultValue')->setDefaultValue(null);
+            $method->setBody('return DeepAccess::get($data, self::' . $constName . ', $defaultValue);');
+
+            if ($prefix) {
+                $constNameOneKey = strtoupper(str_replace('.', '__', self::toSnakeCase($prefix) . self::toSnakeCase($key) . '_KEY'));
+
+
+                try {
+                    $class->addConstant($constNameOneKey,  $item->key)
+                        ->setVisibility('public');
+                } catch (\Throwable $error) {
+                }
+            }
+
+
+            // Обработка EnumType: создание констант для каждого значения
+            if ($item instanceof EnumType) {
+                $values = $item->values ?? [];
+
+                foreach ($values as $enumKey => $enumValue) {
+                    $enumConstName = strtoupper(str_replace('.', '__', $prefix . $key . '_ENUM_' . self::toSnakeCase($enumKey)));
+                    $enumConstValue = $enumKey;
+
+                    try {
+                        $class->addConstant($enumConstName, $enumConstValue)
+                            ->setVisibility('public')
+                            ->setComment("Enum {$key}: {$enumValue}");
+                    } catch (\Throwable $error) {
+                        // логировать по желанию
+                    }
+                }
+            }
+
+
+            if ($item instanceof StructureType) {
+                self::addConstantByStructure($class, $item, $prefix . $key . '.');
+            }
+
+            if ($item instanceof ArrayOfType && $item->itemType instanceof StructureType) {
+                self::addConstantByStructure($class, $item->itemType,  $prefix . $key . '.');
+            }
+        }
+    }
+
+
+    public static function generate(StructureType $structure)
     {
 
 
 
-        $strucutre->updateKeys("");
-
-        $className = ucfirst(str_replace([' ', '-', '_'], '', $strucutre->collection));
+        $structure->updateKeys();
+        $className = ucfirst(str_replace([' ', '-', '_'], '', $structure->collection));
+        /*   $className = ucfirst(str_replace([' ', '-', '_'], '', $structure->collection));
 
 
         $dir =  ShmInit::$rootDir . '/app/DataClasses/' . $className . 'Data/';
@@ -174,7 +251,7 @@ class ClassGenerator
 
 
 
-        $data = self::getClassByStructure($className, $strucutre, true);
+        $data = self::getClassByStructure($className, $structure, true);
 
 
 
@@ -196,38 +273,34 @@ class ClassGenerator
             echo "Файл создан: $filePath\n";
         }
 
-        /*
-            foreach ($collections as $collection) {
 
-            $className = ucfirst(str_replace([' ', '-', '_'], '', $collection->collection));
-
-            $dir = Core::$ROOT_PATH . 'app/FieldPathClasses/' . $className . 'FieldPath/';
+*/
+        $dir =  ShmInit::$rootDir . '/app/FieldClasses/';
 
 
-            if (!is_dir($dir)) {
-                mkdir($dir, 0777, true); // создать все вложенные папки
-            }
-
-            $data = self::getFieldPathClassByStructure('', $className, $collection->expect());
-
-            foreach ($data as $classFullName => $classText) {
-
-                $filePath = $dir . $classFullName . '.php';
+        if (!is_dir($dir)) {
+            mkdir($dir, 0777, true); // создать все вложенные папки
+        }
 
 
-                $output = "<?php\n\nnamespace App\\FieldPathClasses\\" . $className . "FieldPath;\n\n"; // заголовок файла
+        $classFullName = $className . 'Field';
+
+        $class = new \Nette\PhpGenerator\ClassType($classFullName);
 
 
-                $output .= $classText . "\n\n"; // собираем все классы
-                // Теперь просто сохраняем всё в файл
-                file_put_contents($filePath, $output);
-
-                echo "Файл создан: $filePath\n";
-            }
-        }*/
+        self::addConstantByStructure($class, $structure);
 
 
-        //FieldPath
 
+        $filePath = $dir . $classFullName . '.php';
+
+
+        $output = "<?php\n\nnamespace App\\FieldClasses;\n\n"; // заголовок файла
+        $output .= "use Shm\ShmUtils\DeepAccess;\n\n"; // импортируем класс StructureType
+        $output .= $class . "\n\n"; // собираем все классы
+        // Теперь просто сохраняем всё в файл
+        file_put_contents($filePath, $output);
+
+        echo "Файл создан: $filePath\n";
     }
 }

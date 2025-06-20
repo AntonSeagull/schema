@@ -4,7 +4,7 @@ namespace Shm\ShmBlueprints\Auth;
 
 use Sentry\Util\Str;
 use Shm\ShmAuth\Auth;
-use Shm\ShmBlueprints\ShmGQLUtils;
+
 use Shm\ShmUtils\Inflect;
 use Shm\ShmUtils\Response;
 use Shm\ShmTypes\StructureType;

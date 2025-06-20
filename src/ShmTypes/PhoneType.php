@@ -2,8 +2,8 @@
 
 namespace Shm\ShmTypes;
 
-use GraphQL\Type\Definition\Type;
-use Shm\ShmGQL\ShmGQLCodeGen\TSType;
+
+use Shm\ShmRPC\ShmRPCCodeGen\TSType;
 
 class PhoneType extends BaseType
 {
@@ -39,15 +39,7 @@ class PhoneType extends BaseType
         }
     }
 
-    public function GQLType(): Type | array | null
-    {
-        return Type::float();
-    }
 
-    public function GQLTypeInput(): ?Type
-    {
-        return Type::float();
-    }
 
     public function tsType(): TSType
     {

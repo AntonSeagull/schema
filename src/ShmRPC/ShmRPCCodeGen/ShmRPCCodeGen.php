@@ -2,7 +2,7 @@
 
 namespace Shm\ShmRPC\ShmRPCCodeGen;
 
-use Shm\ShmGQL\ShmGQLCodeGen\TSType;
+
 
 class ShmRPCCodeGen
 {
@@ -15,12 +15,21 @@ class ShmRPCCodeGen
 
         $requests = [];
 
+        $keysGraph = [];
         foreach ($schema  as $key => $field) {
 
+            //     $keysGraph[$key . 'type'] = $field['type']->getKeysGraph();
+
+            //   if (isset($field['args'])) {
+            //       $keysGraph[$key . 'args'] = $field['args']->getKeysGraph();
+            //  }
+            //         exit;
 
             $requests[$key] = (new ShmRPCRequestCode($field['type'], $field['args'] ?? null, $key, 'query'))->initialize();
         }
 
+        //echo json_encode($keysGraph);
+        // exit;
 
 
 

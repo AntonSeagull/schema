@@ -3,12 +3,13 @@
 namespace Shm\ShmTypes\CompositeTypes\FileTypes;
 
 use GraphQL\Type\Definition\ObjectType;
-use GraphQL\Type\Definition\Type;
+
 use Shm\CachedType\CachedInputObjectType;
 use Shm\CachedType\CachedObjectType;
 use Shm\Shm;
 use Shm\ShmTypes\BaseType;
 use Shm\ShmTypes\StructureType;
+use Shm\ShmUtils\ShmUtils;
 
 class FileAnyType extends StructureType
 {
@@ -28,39 +29,12 @@ class FileAnyType extends StructureType
     }
 
 
-
-
-    public function GQLType(): Type | array | null
+    public function baseTypeName()
     {
-        $fields = [];
-        foreach ($this->items as $name => $type) {
-            $fields[$name] = [
-                'type' => $type->GQLType(),
-            ];
-        }
-        return CachedObjectType::create([
-            'name' => 'FileDefaultType',
-            'fields' => function () use ($fields) {
-                return $fields;
-            },
-        ]);
+        return  ShmUtils::onlyLetters($this->type);
     }
 
-    public function GQLTypeInput(): ?Type
-    {
-        $fields = [];
-        foreach ($this->items as $name => $type) {
-            $fields[$name] = [
-                'type' => $type->GQLTypeInput(),
-            ];
-        }
-        return CachedInputObjectType::create([
-            'name' => 'FileDefaultTypeInput',
-            'fields' => function () use ($fields) {
-                return $fields;
-            },
-        ]);
-    }
+
 
 
     public function getSearchPaths(): array

@@ -2,10 +2,10 @@
 
 namespace Shm\ShmTypes;
 
-use GraphQL\Type\Definition\Type;
+
 use Shm\CachedType\CachedInputObjectType;
 use Shm\Shm;
-use Shm\ShmGQL\ShmGQLCodeGen\TSType;
+use Shm\ShmRPC\ShmRPCCodeGen\TSType;
 
 class IntType extends BaseType
 {
@@ -43,15 +43,6 @@ class IntType extends BaseType
         }
     }
 
-    public function GQLType(): Type | array | null
-    {
-        return Type::int();
-    }
-
-    public function GQLTypeInput(): ?Type
-    {
-        return Type::int();
-    }
 
 
     public function filterType(): ?BaseType

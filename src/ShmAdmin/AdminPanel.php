@@ -171,6 +171,12 @@ class AdminPanel
                 'color' => Shm::string(),
                 'subtitle' => Shm::string(),
             ]),
+            'group' => Shm::structure([
+                'key' => Shm::string(),
+                'svgIcon' => Shm::string(),
+                'title' => Shm::string(),
+            ]),
+
 
 
         ]);
@@ -334,6 +340,7 @@ class AdminPanel
                         Response::validation("Данные не доступны для просмотра");
                     }
 
+
                     $root['type']->items['data'] = Shm::arrayOf($structure);
 
                     $root['type']->items['data']->updateKeys("data");
@@ -355,7 +362,7 @@ class AdminPanel
                             ],
                         ];
 
-                        $result = mDB::collection($structure->collection)->aggregate($pipeline)->toArray()[0] ?? null;
+                        $result = $structure->aggregate($pipeline)->toArray() ?? null;
 
 
                         if (!$result) {
@@ -364,9 +371,8 @@ class AdminPanel
                             ];
                         } else {
 
-                            $result = $structure->normalize($result);
                             return  [
-                                'data' => [$result],
+                                'data' => $result
                             ];
                         }
                     }
@@ -435,32 +441,12 @@ class AdminPanel
                     } else {
 
 
-                        /*   $basePipeline = [...$collection->basePipeline(), ...$collection->getPipeline()];
-    
-    
-                        if (count($_this->pipeline) > 0) {
-                            $basePipeline = [...$basePipeline, ...$_this->pipeline];
-                        }
-    
-    
-                        // Объединение всех массивов в один
-                        $mergedArray = call_user_func_array('array_merge',  $basePipeline);
-    
-    
-    
-                        if (!isset($mergedArray['$sort'])) {
-    
-                            if ($collection->sortWeight) {
-                                $collection->sort([
-                                    "_sortWeight" => -1,
-                                    "_id" => -1,
-                                ]);
-                            } else {
-                                $collection->sort([
-                                    "_id" => -1,
-                                ]);
-                            }
-                        }*/
+                        $pipeline[] = [
+                            '$sort' => [
+                                "_sortWeight" => -1,
+                                "_id" => -1,
+                            ],
+                        ];
                     }
 
                     if (isset($args['offset']) && $args['offset'] > 0) {
@@ -469,8 +455,6 @@ class AdminPanel
                             '$skip' => $args['offset'],
                         ];
                     }
-
-
 
 
 

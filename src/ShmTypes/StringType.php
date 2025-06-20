@@ -2,8 +2,8 @@
 
 namespace Shm\ShmTypes;
 
-use GraphQL\Type\Definition\Type;
-use Shm\ShmGQL\ShmGQLCodeGen\TSType;
+
+use Shm\ShmRPC\ShmRPCCodeGen\TSType;
 
 class StringType extends BaseType
 {
@@ -37,16 +37,7 @@ class StringType extends BaseType
         }
     }
 
-    public function GQLType(): Type | array | null
-    {
-        return Type::string();
-    }
 
-
-    public function GQLTypeInput(): ?Type
-    {
-        return Type::string();
-    }
 
     public function tsType(): TSType
     {

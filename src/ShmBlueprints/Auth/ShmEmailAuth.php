@@ -5,7 +5,7 @@ namespace Shm\ShmBlueprints\Auth;
 use Shm\ShmDB\mDB;
 use Shm\Shm;
 use Shm\ShmAuth\Auth;
-use Shm\ShmBlueprints\ShmGQLUtils;
+
 use Shm\ShmUtils\Response;
 
 class ShmEmailAuth extends ShmAuthBase

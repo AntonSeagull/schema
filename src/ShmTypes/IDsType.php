@@ -3,15 +3,9 @@
 namespace Shm\ShmTypes;
 
 use Shm\ShmDB\mDB;
-use F3Mongo\MongoPlugin;
-use GraphQL\Deferred;
-use GraphQL\Type\Definition\ResolveInfo;
-use GraphQL\Type\Definition\Type;
-use Shm\CachedType\CachedInputObjectType;
-use Shm\GQLUtils\GQLBuffer;
 
 use Shm\Shm;
-use Shm\ShmGQL\ShmGQLCodeGen\TSType;
+use Shm\ShmRPC\ShmRPCCodeGen\TSType;
 use Shm\ShmRPC\RPCBuffer;
 use Traversable;
 
@@ -66,55 +60,7 @@ class IDsType extends BaseType
         }
     }
 
-    public function GQLType(): Type | array | null
-    {
 
-
-        if ($this->document && !$this->document->hide) {
-
-
-
-            $this->document->key = $this->key;
-            $collection = $this->document->collection;
-            $pipeline = $this->document->getPipeline();
-            return [
-                'type' => Type::listOf($this->document->GQLType()),
-                'resolve' => function ($root, $args, $context, ResolveInfo $info) use ($collection, $pipeline) {
-
-                    $fieldName = $info->fieldName;
-
-
-
-                    if (!isset($root[$fieldName]) || empty($root[$fieldName])) {
-                        return null;
-                    }
-
-                    if (isset($root[$fieldName][0]) && (is_string($root[$fieldName][0]) || $root[$fieldName][0] instanceof \MongoDB\BSON\ObjectID)) {
-                        $ids = [];
-                        foreach ($root[$fieldName] as $field) {
-                            $ids[] = mDB::id($field);
-                        }
-                        GQLBuffer::add($ids, $collection, $pipeline);
-                        return new Deferred(function () use ($ids, $collection) {
-                            GQLBuffer::load($collection);
-                            return GQLBuffer::get($ids, $collection);
-                        });
-                    }
-
-                    if (isset($root[$fieldName][0]) && (is_array($root[$fieldName][0]) || is_object($root[$fieldName][0]))) {
-                        return $root[$fieldName];
-                    }
-
-                    return null;
-                },
-
-
-            ];
-        }
-
-
-        return   Type::listOf(Type::string());
-    }
 
     public function filterType(): ?BaseType
     {
@@ -141,10 +87,6 @@ class IDsType extends BaseType
 
 
 
-    public function GQLTypeInput(): ?Type
-    {
-        return Type::listOf(Type::string());
-    }
 
     public function tsType(): TSType
     {

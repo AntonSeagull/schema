@@ -2,9 +2,9 @@
 
 namespace Shm\ShmTypes;
 
-use GraphQL\Type\Definition\Type;
+
 use Shm\Shm;
-use Shm\ShmGQL\ShmGQLCodeGen\TSType;
+use Shm\ShmRPC\ShmRPCCodeGen\TSType;
 
 class ColorType extends BaseType
 {
@@ -38,10 +38,7 @@ class ColorType extends BaseType
         }
     }
 
-    public function GQLType(): Type | array | null
-    {
-        return Type::string();
-    }
+
 
 
 
@@ -58,11 +55,6 @@ class ColorType extends BaseType
         return  $this->filterType;
     }
 
-
-    public function GQLTypeInput(): ?Type
-    {
-        return Type::string();
-    }
 
     public function tsType(): TSType
     {

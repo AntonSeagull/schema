@@ -107,6 +107,7 @@ class ShmRPC
         }
 
 
+
         //If GET request, we can return the schema
         if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             ShmRPCCodeGen::html($schemaParams);
@@ -139,12 +140,15 @@ class ShmRPC
 
 
         $result = $schemaMethod['type']->normalize($result, false);
+
         $result = $schemaMethod['type']->removeOtherItems($result);
 
 
 
         if ($result) {
-            if ($schemaMethod['type'] instanceof StructureType) {
+
+
+            if ($schemaMethod['type'] instanceof StructureType || $schemaMethod['type'] instanceof \Shm\ShmTypes\ArrayOfType) {
 
                 $result = $schemaMethod['type']->externalData($result);
             }

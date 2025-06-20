@@ -2,8 +2,8 @@
 
 namespace Shm\ShmTypes;
 
-use GraphQL\Type\Definition\Type;
-use Shm\ShmGQL\ShmGQLCodeGen\TSType;
+
+use Shm\ShmRPC\ShmRPCCodeGen\TSType;
 
 class MixedType extends BaseType
 {

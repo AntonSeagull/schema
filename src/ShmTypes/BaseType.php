@@ -2,10 +2,11 @@
 
 namespace Shm\ShmTypes;
 
-use GraphQL\Type\Definition\Type;
+
 use Nette\PhpGenerator\Method;
-use Shm\ShmGQL\ShmGQLCodeGen\TSType;
+use Shm\ShmRPC\ShmRPCCodeGen\TSType;
 use Shm\ShmTypes\Utils\JsonLogicBuilder;
+use Shm\ShmUtils\MaterialIcons;
 
 abstract class BaseType
 {
@@ -36,6 +37,20 @@ abstract class BaseType
 
     public array $values;
 
+
+    public $group = [
+        'key' => 'default'
+    ];
+
+    public function group(string $groupTitle, string | null $svgIcon): static
+    {
+        $this->group = [
+            'key' => md5($groupTitle),
+            'svgIcon' => $svgIcon,
+            'title' => $groupTitle,
+        ];
+        return $this;
+    }
 
     public BaseType $itemType;
 
@@ -127,6 +142,10 @@ abstract class BaseType
         $this->key = $key;
 
 
+        if (isset($this->itemType)) {
+            $this->itemType->keyIfNot($key);
+        }
+
 
 
         return $this;
@@ -137,7 +156,7 @@ abstract class BaseType
     public function keyIfNot(string $key): static
     {
         if ($this->key === null) {
-            $this->key = $key;
+            $this->key($key);
         }
         return $this;
     }
@@ -323,21 +342,6 @@ abstract class BaseType
         }
     }
 
-    /**
-     * Get the GraphQL output type.
-     */
-    public function GQLType(): Type | array | null
-    {
-        return null;
-    }
-
-    /**
-     * Get the GraphQL input type.
-     */
-    public function GQLTypeInput(): ?Type
-    {
-        return null;
-    }
 
 
 
@@ -384,50 +388,7 @@ abstract class BaseType
         return $this->tsType();
     }
 
-    public function tsGQLFullRequest(): string
-    {
 
-
-        if (isset($this->items)) {
-            $result = [];
-
-            foreach ($this->items as $key => $item) {
-
-
-
-
-                if ($item instanceof StructureType) {
-
-
-                    $result[] = $key . $item->tsGQLFullRequest();
-                    continue;
-                }
-
-                if ($item instanceof IDsType && isset($item->document) && !$item->document->hide) {
-                    $result[] = $key .  $item->document->tsGQLFullRequest();
-
-                    continue;
-                }
-
-                if ($item instanceof ArrayOfType && $item->itemType instanceof StructureType) {
-
-
-
-                    $result[] = $key . $item->itemType->tsGQLFullRequest();
-                    continue;
-                }
-
-                $result[] = $key;
-            }
-
-            return '{\n' . implode('\n', $result) . '\n}';
-        }
-
-        if (isset($this->itemType)) {
-            return $this->itemType->tsGQLFullRequest();
-        }
-        return '';
-    }
 
     public function updateKeys(null | string $rootKey = null)
     {
@@ -564,5 +525,36 @@ abstract class BaseType
 
 
         return  $columns;
+    }
+
+
+    public function getKeysGraph(): array
+    {
+        if (!$this->key) {
+            return ['->X'];
+        }
+
+
+        if (isset($this->items)) {
+
+            $keys = [];
+            foreach ($this->items as $key => $item) {
+                $keys = [
+                    $key => $item->getKeysGraph(),
+                    ...$keys
+                ];
+            }
+            return $keys;
+
+            return [$this->key => $keys];
+        }
+
+        if (isset($this->itemType)) {
+            return [$this->key . "[]" => $this->itemType->getKeysGraph()];
+        }
+
+
+
+        return [$this->key];
     }
 }

@@ -5,6 +5,7 @@ namespace Shm\ShmTypes\CompositeTypes\GeoTypes;
 use Shm\Shm;
 
 use Shm\ShmTypes\StructureType;
+use Shm\ShmUtils\ShmUtils;
 
 class MongoPolygonType extends StructureType
 {
@@ -20,6 +21,15 @@ class MongoPolygonType extends StructureType
             'coordinates' => Shm::arrayOf(Shm::arrayOf(Shm::float())),
         ]);
     }
+
+
+
+
+    public function baseTypeName()
+    {
+        return  ShmUtils::onlyLetters($this->type);
+    }
+
 
 
 

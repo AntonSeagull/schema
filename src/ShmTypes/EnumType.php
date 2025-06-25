@@ -65,7 +65,7 @@ class EnumType extends BaseType
     }
 
 
-    public function filterType(): ?BaseType
+    public function filterType($safeMode = false): ?BaseType
     {
 
         if ($this->filterType) {
@@ -73,13 +73,87 @@ class EnumType extends BaseType
         }
 
         $itemTypeFilter =  Shm::structure([
+            'eq' => Shm::enum($this->values)->title('Равно'),
             'in' => Shm::arrayOf(Shm::enum($this->values)->title('Включает значения')),
             'nin' => Shm::arrayOf(Shm::enum($this->values)->title('Исключает значения')),
             'all' => Shm::arrayOf(Shm::enum($this->values)->title('Все значения')),
+            'isEmpty' => Shm::enum([
+                'true' => 'Да',
+                'false' => 'Нет'
+            ])->title('Не заполнено'),
         ])->fullEditable();
 
-        $this->filterType = $itemTypeFilter;
+        $this->filterType = $itemTypeFilter->fullEditable()->fullInAdmin($this->inAdmin)->title($this->title);
         return  $this->filterType;
+    }
+
+
+    public function filterToPipeline($filter, array | null $absolutePath = null): ?array
+    {
+
+        $in = $filter['in'] ?? null;
+        $nin = $filter['nin'] ?? null;
+        $all = $filter['all'] ?? null;
+        $eq = $filter['eq'] ?? null;
+        $isEmpty = $filter['isEmpty'] ?? null;
+
+        $path = $absolutePath ? implode('.', $absolutePath) . '.' . $this->key : $this->key;
+
+        $pipeline = [];
+
+        if ($eq !== null) {
+            $pipeline[] = [
+                '$match' => [
+                    $path => $eq
+                ]
+            ];
+        }
+
+
+        if ($in !== null) {
+            $pipeline[] = [
+                '$match' => [
+                    $path => ['$in' => $in]
+                ]
+            ];
+        }
+        if ($nin !== null) {
+            $pipeline[] = [
+                '$match' => [
+                    $path => ['$nin' => $nin]
+                ]
+            ];
+        }
+        if ($all !== null) {
+            $pipeline[] = [
+                '$match' => [
+                    $path => ['$all' => $all]
+                ]
+            ];
+        }
+        if ($isEmpty !== null) {
+
+
+            if ($isEmpty == 'true') {
+                $pipeline[] = [
+                    '$match' => [
+                        '$or' => [
+                            [$path => null],
+                            [$path => ['$exists' => false]],
+                        ]
+                    ]
+                ];
+            } else {
+                $pipeline[] = [
+                    '$match' => [
+                        $path => ['$ne' => null]
+                    ]
+                ];
+            }
+        }
+
+
+        return $pipeline;
     }
 
 
@@ -105,9 +179,14 @@ class EnumType extends BaseType
     public function tsType(): TSType
     {
 
+        $tsTypeValue = [];
 
+        foreach ($this->values as $key => $value) {
+            $tsTypeValue[] = '"' . $key . '"';
+        }
+        $TSType = new TSType($this->getEnumTypeName(),  implode('|', $tsTypeValue), false);
 
-
+        /*
         $tsTypeValue = [];
 
         foreach ($this->values as $key => $value) {
@@ -115,7 +194,7 @@ class EnumType extends BaseType
         }
         $TSType = new TSType($this->getEnumTypeName(), '{\n' . implode(',\n', $tsTypeValue) . '\n}', true);
 
-
+*/
 
         return $TSType;
     }

@@ -8,6 +8,7 @@ class TSType
 
 
     public static $tsTypes = [];
+    private static $tsTypesHashData = [];
 
     private bool $isEnum = false;
 
@@ -18,12 +19,40 @@ class TSType
     {
 
 
-        $this->tsTypeName = $tsTypeName;
-        $this->tsTypeValue = $tsTypeValue;
+
+
+
+        $tsTypeHash = md5($tsTypeValue . ($isEnum ? 'enum' : 'type'));
+
+
+
+        if ($tsTypeValue && isset(self::$tsTypesHashData[$tsTypeHash]) && self::$tsTypesHashData[$tsTypeHash]['tsTypeName'] != $tsTypeName) {
+
+
+            $this->tsTypeName = $tsTypeName;
+
+            $cachedData = self::$tsTypesHashData[$tsTypeHash];
+            //   $this->tsTypeName = $cachedData['tsTypeName'];
+
+            $this->tsTypeValue = $cachedData['tsTypeName'];
+        } else {
+
+            $this->tsTypeName = $tsTypeName;
+
+
+            self::$tsTypesHashData[$tsTypeHash] = [
+                'tsTypeName' => $tsTypeName,
+                'tsTypeValue' => $tsTypeValue,
+            ];
+
+
+            $this->tsTypeValue = $tsTypeValue;
+        }
 
         $this->isEnum = $isEnum;
 
-        self::$tsTypes[$this->tsTypeName] = $this->getType();
+        if ($tsTypeValue)
+            self::$tsTypes[$this->tsTypeName] = $this->getType();
     }
 
     public function getTsTypeName(): string
@@ -34,6 +63,13 @@ class TSType
 
     public function getType(): string
     {
+
+
+        if (!isset($this->tsTypeValue) || empty($this->tsTypeValue)) {
+            return '';
+            //   throw new \InvalidArgumentException("Type name is not set or empty.");
+        }
+
 
         if (!isset($this->tsTypeName) || empty($this->tsTypeName)) {
             return '';

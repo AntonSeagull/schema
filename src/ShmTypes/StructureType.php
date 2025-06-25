@@ -13,6 +13,7 @@ use Shm\CachedType\CachedObjectType;
 use Shm\Shm;
 use Shm\ShmAdmin\Types\VisualGroupType;
 use Shm\ShmRPC\ShmRPCCodeGen\TSType;
+use Shm\ShmTypes\SupportTypes\StageType;
 use Shm\ShmUtils\AutoPostfix;
 use Shm\ShmUtils\DeepAccess;
 use Shm\ShmUtils\Inflect;
@@ -30,6 +31,27 @@ class StructureType extends BaseType
 
     private $pipeline = [];
 
+
+    private $stages = [];
+
+
+    public $publicStages = [];
+
+
+    public function stages(StructureType $stages): self
+    {
+
+        foreach ($stages->items as $key => $stage) {
+            if (!($stage instanceof StageType)) {
+                throw new \InvalidArgumentException("Stage '{$key}' must be an instance of StageType.");
+            }
+
+            $this->publicStages[$key] = $stage->title ?? $stage->key;
+        }
+
+        $this->stages = $stages;
+        return $this;
+    }
 
     public function pipeline(array $pipeline): self
     {
@@ -182,9 +204,22 @@ class StructureType extends BaseType
         }
     }
 
+    private $staticBaseTypeName = null;
+
+    public function staticBaseTypeName(string $name): self
+    {
+        $this->staticBaseTypeName = ShmUtils::onlyLetters($name);
+        return $this;
+    }
 
     public function baseTypeName()
     {
+
+        if ($this->staticBaseTypeName) {
+            return $this->staticBaseTypeName;
+        }
+
+
         if (!$this->key) {
             throw new \InvalidArgumentException("baseTypeName -> Key is not set for StructureType." . print_r($this, true));
         }
@@ -299,17 +334,32 @@ class StructureType extends BaseType
         return $this;
     }
 
+    public function safeFullEditable(bool $editable = true): static
+    {
+        $this->editable = $editable;
+
+
+        if ($this->collection) return $this;
+
+
+        foreach ($this->items as $key => $field) {
+
+            $field->fullEditable($editable);
+        }
+
+        return $this;
+    }
+
+
 
     public function externalData($data)
     {
 
         $this->updateKeys();
         $this->updatePath();
-        $paths = $this->getIDsPaths();
+        $paths = $this->getIDsPaths([]);
 
 
-        echo json_encode($paths);
-        exit;
 
 
 
@@ -430,8 +480,9 @@ class StructureType extends BaseType
     }
 
 
+    public ?BaseType $filterType = null;
 
-    public function filterType(): ?BaseType
+    public function filterType($safeMode = false): ?BaseType
     {
 
         if ($this->filterType) {
@@ -442,7 +493,7 @@ class StructureType extends BaseType
 
         foreach ($this->items as $key => $field) {
 
-            $input = $field->filterType();
+            $input = $field->filterType($safeMode);
             if ($input) {
                 $fields[$key] = $input;
             }
@@ -452,7 +503,7 @@ class StructureType extends BaseType
         }
         $itemTypeFilter = Shm::structure($fields);
 
-        $this->filterType = $itemTypeFilter;
+        $this->filterType = $itemTypeFilter->fullEditable()->fullInAdmin()->title($this->title);
         return  $this->filterType;
     }
 

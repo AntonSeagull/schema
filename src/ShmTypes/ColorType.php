@@ -42,7 +42,7 @@ class ColorType extends BaseType
 
 
 
-    public function filterType(): ?BaseType
+    public function filterType($safeMode = false): ?BaseType
     {
 
         if ($this->filterType) {
@@ -51,14 +51,14 @@ class ColorType extends BaseType
 
         $itemTypeFilter = Shm::string()->editable();
 
-        $this->filterType = $itemTypeFilter;
+        $this->filterType = $itemTypeFilter->fullEditable()->fullInAdmin($this->inAdmin)->title($this->title);
         return  $this->filterType;
     }
 
 
     public function tsType(): TSType
     {
-        $TSType = new TSType('String', 'string');
+        $TSType = new TSType('string');
 
 
         return $TSType;

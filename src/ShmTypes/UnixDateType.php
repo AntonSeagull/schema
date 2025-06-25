@@ -42,31 +42,62 @@ class UnixDateType extends BaseType
 
 
 
-    public function filterType(): ?BaseType
+    public function filterType($safeMode = false): ?BaseType
     {
 
-        if ($this->filterType) {
-            return $this->filterType;
-        }
 
 
         $itemTypeFilter = Shm::structure([
-            'gte' => Shm::int()->title('Больше или равно'),
-            'eq' => Shm::int()->title('Равно'),
-            'lte' => Shm::int()->title('Меньше или равно'),
-        ])->fullEditable();
+            'gte' => Shm::unixdate()->title('Больше')->setCol(12),
+            'lte' => Shm::unixdate()->title('Меньше')->setCol(12),
+            'eq' => Shm::unixdate()->title('Равно'),
 
-        $this->filterType = $itemTypeFilter;
-        return  $this->filterType;
+        ])->fullEditable()->staticBaseTypeName("UnixDateFilterType");
+
+        return $itemTypeFilter->fullEditable()->fullInAdmin($this->inAdmin)->title($this->title);
     }
 
+
+    public function filterToPipeline($filter, array | null $absolutePath = null): ?array
+    {
+
+
+        $path = $absolutePath ? implode('.', $absolutePath) . '.' . $this->key : $this->key;
+
+
+        $match = [];
+
+        if (isset($filter['gte'])) {
+            $match['$gte'] = (int) $filter['gte'];
+        }
+        if (isset($filter['eq'])) {
+            $match['$eq'] = (int) $filter['eq'];
+        }
+        if (isset($filter['lte'])) {
+            $match['$lte'] = (int) $filter['lte'];
+        }
+        if (empty($match)) {
+            return null;
+        }
+        return [
+            [
+                '$match' => [
+                    $path => $match
+                ]
+            ]
+        ];
+
+
+
+        return null;
+    }
 
 
 
 
     public function tsType(): TSType
     {
-        $TSType = new TSType("Int", "number");
+        $TSType = new TSType("number");
 
 
         return $TSType;

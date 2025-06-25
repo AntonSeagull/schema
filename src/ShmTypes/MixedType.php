@@ -24,7 +24,7 @@ class MixedType extends BaseType
 
     public function tsType(): TSType
     {
-        $TSType = new TSType("Any", "any");
+        $TSType = new TSType("any");
 
 
         return $TSType;

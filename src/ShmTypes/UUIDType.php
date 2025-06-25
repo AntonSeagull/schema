@@ -40,7 +40,7 @@ class UUIDType extends BaseType
 
     public function tsType(): TSType
     {
-        $TSType = new TSType("String", "string");
+        $TSType = new TSType("string");
 
 
         return $TSType;

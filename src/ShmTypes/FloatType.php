@@ -42,7 +42,7 @@ class FloatType extends BaseType
     }
 
 
-    public function filterType(): ?BaseType
+    public function filterType($safeMode = false): ?BaseType
     {
 
         if ($this->filterType) {
@@ -50,12 +50,12 @@ class FloatType extends BaseType
         }
 
         $itemTypeFilter =  Shm::structure([
-            'gte' => Shm::float()->title('Больше или равно'),
-            'eq' => Shm::float()->title('Равно'),
-            'lte' => Shm::float()->title('Меньше или равно'),
-        ])->fullEditable();
+            'gte' => Shm::float()->title('Больше')->col(8),
+            'eq' => Shm::float()->title('Равно')->col(8),
+            'lte' => Shm::float()->title('Меньше')->col(8),
+        ])->fullEditable()->staticBaseTypeName("FloatFilterType");
 
-        $this->filterType = $itemTypeFilter;
+        $this->filterType = $itemTypeFilter->fullEditable()->fullInAdmin($this->inAdmin)->title($this->title);
         return  $this->filterType;
     }
 
@@ -101,10 +101,9 @@ class FloatType extends BaseType
 
 
 
-
     public function tsType(): TSType
     {
-        $TSType = new TSType('Float', 'number');
+        $TSType = new TSType('number');
 
 
         return $TSType;

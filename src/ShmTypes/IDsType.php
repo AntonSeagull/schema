@@ -62,7 +62,7 @@ class IDsType extends BaseType
 
 
 
-    public function filterType(): ?BaseType
+    public function filterType($safeMode = false): ?BaseType
     {
 
         if ($this->filterType) {
@@ -70,14 +70,113 @@ class IDsType extends BaseType
         }
 
         $itemTypeFilter = Shm::structure([
-            'in' => Shm::arrayOf(Shm::string()->title('In')),
-            'nin' => Shm::arrayOf(Shm::string()->title('Not In')),
-            'all' => Shm::arrayOf(Shm::string()->title('All')),
-            'isEmpty' => Shm::arrayOf(Shm::boolean()->title('Is Empty')),
+            'in' => Shm::IDs($this->document)->title('Содержит хотя бы один из'),
+            'nin' => Shm::IDs($this->document)->title('Не содержит ни одного из'),
+            'all' => Shm::IDs($this->document)->title('Содержит все из списка'), // корректно для $all
+            'setIsSubset' => Shm::IDs($this->document)->title('Содержит только из списка'), // подчёркивает "не больше"
+            'isEmpty' => Shm::enum([
+                'true' => 'Да',
+                'false' => 'Нет'
+            ])->title('Не заполнено'),
+            'children' =>  !$safeMode && $this->document ? $this->document->filterType(true)->title($this->title . ' — дополнительные фильтры') : null,
         ])->fullEditable();
 
-        $this->filterType = $itemTypeFilter;
+
+        if (!$safeMode && !$this->document) {
+            $itemTypeFilter->staticBaseTypeName("IDsFilterType");
+        }
+
+
+
+        $this->filterType = $itemTypeFilter->fullEditable()->fullInAdmin($this->inAdmin)->title($this->title)->title($this->title);
         return  $this->filterType;
+    }
+
+
+    public function filterToPipeline($filter, array | null $absolutePath = null): ?array
+    {
+
+        $in = $filter['in'] ?? null;
+        $nin = $filter['nin'] ?? null;
+        $all = $filter['all'] ?? null;
+        $isEmpty = $filter['isEmpty'] ?? null;
+        $setIsSubset = $filter['setIsSubset'] ?? null;
+        $eq = $filter['eq'] ?? null;
+
+        $path = $absolutePath ? implode('.', $absolutePath) . '.' . $this->key : $this->key;
+
+        $pipeline = [];
+
+        if ($eq !== null) {
+            $pipeline[] = [
+                '$match' => [
+                    $path => ['$eq' => array_map(fn($id) => mDB::id($id), $eq)]
+                ]
+            ];
+        }
+
+
+        if ($in !== null && count($in) > 0) {
+            $pipeline[] = [
+                '$match' => [
+                    $path => ['$in' => array_map(fn($id) => mDB::id($id), $in)]
+                ]
+            ];
+        }
+        if ($nin !== null  && count($nin) > 0) {
+            $pipeline[] = [
+                '$match' => [
+                    $path => ['$nin' => array_map(fn($id) => mDB::id($id), $nin)]
+                ]
+            ];
+        }
+        if ($all !== null  && count($all) > 0) {
+            $pipeline[] = [
+                '$match' => [
+                    $path => ['$all' => array_map(fn($id) => mDB::id($id), $all)]
+                ]
+            ];
+        }
+        if ($isEmpty !== null) {
+
+            if ($isEmpty == 'true') {
+                $pipeline[] = [
+                    '$match' => [
+                        '$expr' => [
+                            '$eq' => [
+                                ['$size' => '$' . $path],
+                                0
+                            ]
+                        ]
+                    ]
+                ];
+            }
+            if ($isEmpty == 'false') {
+                $pipeline[] = [
+                    '$match' => [
+                        '$expr' => [
+                            '$gt' => [
+                                ['$size' => '$' . $path],
+                                0
+                            ]
+                        ]
+                    ]
+                ];
+            }
+        }
+        if ($setIsSubset !== null  && count($setIsSubset) > 0) {
+            $pipeline[] = [
+                '$match' => [
+                    '$expr' => [
+                        '$setIsSubset' => ['$' . $path, array_map(fn($id) => mDB::id($id), $setIsSubset)]
+                    ]
+                ]
+            ];
+        }
+
+
+
+        return $pipeline;
     }
 
 
@@ -96,13 +195,13 @@ class IDsType extends BaseType
 
             $documentTsType = $this->document->tsType();
 
-            $TSType = new TSType($documentTsType->getTsTypeName() . 'Array', $documentTsType->getTsTypeName() . '[]');
+            $TSType = new TSType($documentTsType->getTsTypeName() . '[]');
 
 
             return $TSType;
         } else {
 
-            $TSType = new TSType("IDs", 'string[]');
+            $TSType = new TSType('string[]');
 
             return $TSType;
         }
@@ -113,7 +212,7 @@ class IDsType extends BaseType
     {
 
 
-        $TSType = new TSType("IDs", 'string[]');
+        $TSType = new TSType('string[]');
 
         return $TSType;
     }
@@ -129,12 +228,12 @@ class IDsType extends BaseType
         $this->path = $newPath;
     }
 
-    public function getIDsPaths(): array
+    public function getIDsPaths(array $path): array
     {
         if ($this->document && !$this->document->hide) {
             return [
                 [
-                    'path' => $this->path,
+                    'path' => [...$path],
                     'many' => true,
                     'document' => $this->document,
                 ]

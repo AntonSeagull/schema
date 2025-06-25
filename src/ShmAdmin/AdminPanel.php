@@ -86,6 +86,7 @@ class AdminPanel
 
     private static $allTypes = [
         'enum',
+        'enums',
         'string',
         'structure',
         'color',
@@ -125,6 +126,10 @@ class AdminPanel
             'itemType' => Shm::selfRef(function () use (&$type) {
                 return $type;
             }),
+
+            'publicStages' => Shm::structure([
+                "*" => Shm::string()
+            ]),
             'filterType' => Shm::selfRef(function () use (&$type) {
                 return $type;
             }),
@@ -149,6 +154,7 @@ class AdminPanel
             'values' => Shm::structure([
                 "*" => Shm::string()
             ]),
+            'hide' => Shm::bool(),
             "svgIcon" => Shm::string(),
             "single" => Shm::boolean(),
             "min" => Shm::float(),

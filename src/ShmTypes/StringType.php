@@ -38,10 +38,12 @@ class StringType extends BaseType
     }
 
 
+    public $columnsWidth = 200;
+
 
     public function tsType(): TSType
     {
-        $TSType = new TSType("String", "string");
+        $TSType = new TSType("string");
 
 
         return $TSType;

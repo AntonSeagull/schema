@@ -85,7 +85,7 @@ class GeoPointType extends StructureType
     }
 
 
-    public function filterType(): ?BaseType
+    public function filterType($safeMode = false): ?BaseType
     {
 
         if ($this->filterType) {
@@ -96,9 +96,9 @@ class GeoPointType extends StructureType
             'latitude' => Shm::float(),
             'longitude' => Shm::float(),
             'maxDistance' => Shm::int(),
-        ])->fullEditable();
+        ])->fullEditable()->staticBaseTypeName("GeoPointFilterType");
 
-        $this->filterType = $itemTypeFilter;
+        $this->filterType = $itemTypeFilter->title($this->title);
         return  $this->filterType;
     }
 }

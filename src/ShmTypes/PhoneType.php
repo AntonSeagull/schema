@@ -43,7 +43,7 @@ class PhoneType extends BaseType
 
     public function tsType(): TSType
     {
-        $TSType = new TSType("Phone", "number");
+        $TSType = new TSType("number");
 
 
 

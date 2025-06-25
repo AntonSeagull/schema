@@ -121,6 +121,17 @@ abstract class BaseType
     public function inAdmin(bool $isAdmin = true): static
     {
         $this->inAdmin = $isAdmin;
+
+        if (isset($this->items)) {
+            foreach ($this->items as $key => $item) {
+                $item->inAdmin($isAdmin);
+            }
+        }
+
+        if (isset($this->itemType)) {
+            $this->itemType->inAdmin($isAdmin);
+        }
+
         return $this;
     }
 
@@ -302,7 +313,7 @@ abstract class BaseType
     /**
      * Set a title for use in error messages.
      */
-    public function title(string $title): static
+    public function title(null | string $title): static
     {
         $this->title = $title;
         return $this;
@@ -347,9 +358,9 @@ abstract class BaseType
 
 
 
-    public ?BaseType $filterType = null;
+    //  public ?BaseType $filterType = null;
 
-    public function filterType(): ?BaseType
+    public function filterType($safeMode = false): ?BaseType
     {
         return null;
     }
@@ -358,12 +369,35 @@ abstract class BaseType
         return null;
     }
 
+    public function safeFullEditable(bool $editable = true): static
+    {
+        return $this->fullEditable($editable);
+    }
+
 
     public function fullEditable(bool $editable = true): static
     {
         $this->editable = $editable;
         return $this;
     }
+
+    public function fullInAdmin(bool $isAdmin = true): static
+    {
+        $this->inAdmin = $isAdmin;
+
+        if (isset($this->items)) {
+            foreach ($this->items as $key => $item) {
+                $item->fullInAdmin($isAdmin);
+            }
+        }
+
+        if (isset($this->itemType)) {
+            $this->itemType->fullInAdmin($isAdmin);
+        }
+
+        return $this;
+    }
+
 
 
     public function fullCleanDefault(): static
@@ -378,7 +412,7 @@ abstract class BaseType
 
     public function tsType(): TSType
     {
-        $TSType = new TSType('Any', 'any');
+        $TSType = new TSType('any');
 
         return $TSType;
     }
@@ -449,7 +483,7 @@ abstract class BaseType
         }
     }
 
-    public function getIDsPaths(): array
+    public function getIDsPaths(array $path): array
     {
 
         $findPaths = [];
@@ -457,12 +491,12 @@ abstract class BaseType
         if (isset($this->items)) {
             foreach ($this->items as $key => $item) {
 
-                $findPaths = [...$findPaths, ...$item->getIDsPaths()];
+                $findPaths = [...$findPaths, ...$item->getIDsPaths([...$path, $key])];
             }
         }
 
         if (isset($this->itemType)) {
-            $findPaths =   [...$findPaths, ...$this->itemType->getIDsPaths()];
+            $findPaths =   [...$findPaths, ...$this->itemType->getIDsPaths([...$path, '[]'])];
         }
 
         return  $findPaths;
@@ -491,6 +525,15 @@ abstract class BaseType
     }
 
 
+    public $columnsWidth = null;
+
+    public function setColumnsWidth(int $width): static
+    {
+        $this->columnsWidth = $width;
+        return $this;
+    }
+
+
     public $columns = null;
 
 
@@ -499,6 +542,9 @@ abstract class BaseType
 
 
 
+        if (!$this->inTable || !$this->inAdmin) {
+            return [];
+        }
 
         $key = $this->key;
 
@@ -515,7 +561,7 @@ abstract class BaseType
                 'title' => $this->title,
                 'dataIndex' =>  $key,
                 'key' => $key,
-                'width' => 100,
+                'width' => $this->columnsWidth,
                 'type' => $this,
 
             ]

@@ -16,6 +16,37 @@ class ClassGenerator
 {
 
 
+    public static function generateClasses()
+    {
+
+        $classes = [];
+
+        if (is_dir(ShmInit::$rootDir . '/app/Collections')) {
+
+
+
+
+            $files = scandir(ShmInit::$rootDir . '/app/Collections');
+            foreach ($files as $file) {
+                if (!in_array($file, ['.', '..']) && pathinfo($file, PATHINFO_EXTENSION) === 'php') {
+                    $className = str_replace('.php', '', $file);
+                    $fullClassName = 'App\\Collections\\' . $className;
+
+
+                    $class = new $fullClassName();
+
+                    $classes[] = $class;
+                }
+            }
+
+
+            //TODO: Mare remove all classes from /app/DataClasses/ before generate new classes
+            foreach ($classes as $class) {
+
+                self::generate($class::structure());
+            }
+        }
+    }
 
     public static function cmdInit()
     {
@@ -26,37 +57,8 @@ class ClassGenerator
 
 
 
-            $classes = [];
 
-            if (is_dir(ShmInit::$rootDir . '/app/Collections')) {
-
-
-
-
-                $files = scandir(ShmInit::$rootDir . '/app/Collections');
-                foreach ($files as $file) {
-                    if (!in_array($file, ['.', '..']) && pathinfo($file, PATHINFO_EXTENSION) === 'php') {
-                        $className = str_replace('.php', '', $file);
-                        $fullClassName = 'App\\Collections\\' . $className;
-
-
-                        $class = new $fullClassName();
-
-                        $classes[] = $class;
-                    }
-                }
-
-
-                //TODO: Mare remove all classes from /app/DataClasses/ before generate new classes
-                foreach ($classes as $class) {
-
-                    //   if ($class instanceof StructureType) {
-                    self::generate($class::structure());
-                    // }
-                }
-
-                echo "Classes generated successfully.\n";
-            }
+            self::generateClasses();
         });
     }
 
@@ -301,6 +303,6 @@ class ClassGenerator
         // Теперь просто сохраняем всё в файл
         file_put_contents($filePath, $output);
 
-        echo "Файл создан: $filePath\n";
+        // echo "Файл создан: $filePath\n";
     }
 }

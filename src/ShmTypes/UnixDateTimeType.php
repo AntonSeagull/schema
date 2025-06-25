@@ -44,24 +44,59 @@ class UnixDateTimeType extends BaseType
 
 
 
-    public function filterType(): ?BaseType
+    public function filterType($safeMode = false): ?BaseType
     {
 
-        if ($this->filterType) {
-            return $this->filterType;
-        }
 
 
         $itemTypeFilter = Shm::structure([
-            'gte' => Shm::int()->title('Больше или равно'),
-            'eq' => Shm::int()->title('Равно'),
-            'lte' => Shm::int()->title('Меньше или равно'),
-        ])->fullEditable();
+            'gte' => Shm::unixdatetime()->title('Больше')->setCol(12),
+            'lte' => Shm::unixdatetime()->title('Меньше')->setCol(12),
+            'eq' => Shm::unixdatetime()->title('Равно'),
+        ])->fullEditable()->staticBaseTypeName("UnixDateFilterType");
 
-        $this->filterType = $itemTypeFilter;
-        return  $this->filterType;
+        if (!$this->inAdmin) {
+            echo "Warning: UnixDateTimeType filterType is being used outside of admin context. This may not work as expected.";
+            exit;
+        }
+
+        return $itemTypeFilter->fullEditable()->fullInAdmin($this->inAdmin)->title($this->title);
     }
 
+
+    public function filterToPipeline($filter, array | null $absolutePath = null): ?array
+    {
+
+
+        $path = $absolutePath ? implode('.', $absolutePath) . '.' . $this->key : $this->key;
+
+
+        $match = [];
+
+        if (isset($filter['gte'])) {
+            $match['$gte'] = (int) $filter['gte'];
+        }
+        if (isset($filter['eq'])) {
+            $match['$eq'] = (int) $filter['eq'];
+        }
+        if (isset($filter['lte'])) {
+            $match['$lte'] = (int) $filter['lte'];
+        }
+        if (empty($match)) {
+            return null;
+        }
+        return [
+            [
+                '$match' => [
+                    $path => $match
+                ]
+            ]
+        ];
+
+
+
+        return null;
+    }
 
 
 
@@ -70,7 +105,7 @@ class UnixDateTimeType extends BaseType
 
     public function tsType(): TSType
     {
-        $TSType = new TSType("Int", "number");
+        $TSType = new TSType("number");
 
 
 

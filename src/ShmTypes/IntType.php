@@ -45,7 +45,7 @@ class IntType extends BaseType
 
 
 
-    public function filterType(): ?BaseType
+    public function filterType($safeMode = false): ?BaseType
     {
 
         if ($this->filterType) {
@@ -53,12 +53,12 @@ class IntType extends BaseType
         }
 
         $itemTypeFilter = Shm::structure([
-            'gte' => Shm::int()->title('Больше или равно'),
-            'eq' => Shm::int()->title('Равно'),
-            'lte' => Shm::int()->title('Меньше или равно'),
-        ])->fullEditable();
+            'gte' => Shm::int()->title('Больше')->col(8),
+            'eq' => Shm::int()->title('Равно')->col(8),
+            'lte' => Shm::int()->title('Меньше')->col(8),
+        ])->fullEditable()->staticBaseTypeName("IntFilterType");
 
-        $this->filterType = $itemTypeFilter;
+        $this->filterType = $itemTypeFilter->fullEditable()->fullInAdmin($this->inAdmin)->title($this->title);
         return  $this->filterType;
     }
 
@@ -98,9 +98,11 @@ class IntType extends BaseType
     }
 
 
+
+
     public function tsType(): TSType
     {
-        $TSType = new TSType("Int", "number");
+        $TSType = new TSType("number");
 
 
         return $TSType;

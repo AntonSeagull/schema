@@ -29,6 +29,7 @@ use Shm\ShmTypes\MixedType;
 use Shm\ShmTypes\PhoneType;
 use Shm\ShmTypes\SelfRefType;
 use Shm\ShmTypes\SelfType;
+use Shm\ShmTypes\SupportTypes\StageType;
 use Shm\ShmTypes\UnixDateTimeType;
 use Shm\ShmTypes\Utils\JsonLogicBuilder;
 use Shm\ShmTypes\UUIDType;
@@ -226,5 +227,10 @@ class Shm
     public static function visualGroup(array $fields): VisualGroupType
     {
         return new VisualGroupType($fields);
+    }
+
+    public static function stage(): StageType
+    {
+        return new StageType();
     }
 }

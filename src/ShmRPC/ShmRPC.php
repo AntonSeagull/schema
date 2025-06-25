@@ -14,6 +14,7 @@ use Shm\ShmUtils\DeepAccess;
 use Shm\ShmUtils\ProcessLogs;
 use Shm\ShmUtils\Response;
 use Shm\ShmTypes\StructureType;
+use Shm\ShmUtils\ShmUtils;
 
 class ShmRPC
 {
@@ -35,11 +36,7 @@ class ShmRPC
 
         if (isset($field['args'])) {
 
-            $field['args']->editable()->updateKeys($key . 'Args');
-
-            foreach ($field['args']->items as $argItem) {
-                $argItem->editable();
-            }
+            $field['args']->safeFullEditable()->staticBaseTypeName('Args' . ShmUtils::onlyLetters($key));
         }
 
         return $field;

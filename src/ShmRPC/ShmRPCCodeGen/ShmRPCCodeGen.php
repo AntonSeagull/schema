@@ -2,7 +2,7 @@
 
 namespace Shm\ShmRPC\ShmRPCCodeGen;
 
-
+use Shm\ShmCodeGen\ClassGenerator;
 
 class ShmRPCCodeGen
 {
@@ -11,6 +11,9 @@ class ShmRPCCodeGen
 
     public static function html(array $schema)
     {
+
+
+        ClassGenerator::generateClasses();
 
 
         $requests = [];
@@ -45,7 +48,7 @@ class ShmRPCCodeGen
 
 
         $requests = [
-            "import { RpcResponse " . implode(',', $allTypesKeys) . " } from './types';",
+            "import { RpcResponse, " . implode(',', $allTypesKeys) . " } from './types';",
 
             'export const rpc = {',
             ...$requests,

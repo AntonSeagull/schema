@@ -272,32 +272,25 @@ class ShmBlueprintQuery
                 } else {
 
 
-                    /*   $basePipeline = [...$collection->basePipeline(), ...$collection->getPipeline()];
-
-
-                    if (count($_this->pipeline) > 0) {
-                        $basePipeline = [...$basePipeline, ...$_this->pipeline];
+                    //Проверка нет ли в $pipeline sort
+                    $hasSort = false;
+                    foreach ($pipeline as $stage) {
+                        if (isset($stage['$sort'])) {
+                            $hasSort = true;
+                            break;
+                        }
                     }
 
-
-                    // Объединение всех массивов в один
-                    $mergedArray = call_user_func_array('array_merge',  $basePipeline);
+                    if (!$hasSort) {
 
 
-
-                    if (!isset($mergedArray['$sort'])) {
-
-                        if ($collection->sortWeight) {
-                            $collection->sort([
+                        $pipeline[] = [
+                            '$sort' => [
                                 "_sortWeight" => -1,
                                 "_id" => -1,
-                            ]);
-                        } else {
-                            $collection->sort([
-                                "_id" => -1,
-                            ]);
-                        }
-                    }*/
+                            ],
+                        ];
+                    }
                 }
 
                 if ($args['offset'] && $args['offset'] > 0) {

@@ -42,7 +42,7 @@ class BoolType extends BaseType
     }
 
 
-
+    public $columnsWidth = 100;
 
     public function filterToPipeline($filter, array | null $absolutePath = null): ?array
     {
@@ -78,22 +78,22 @@ class BoolType extends BaseType
         return null;
     }
 
-    public function filterType(): ?BaseType
+    public function filterType($safeMode = false): ?BaseType
     {
 
         if ($this->filterType) {
             return $this->filterType;
         }
 
-        $itemTypeFilter = Shm::bool()->editable();
+        $itemTypeFilter = Shm::bool()->editable()->inAdmin();
 
-        $this->filterType = $itemTypeFilter;
+        $this->filterType = $itemTypeFilter->fullEditable()->fullInAdmin($this->inAdmin)->title($this->title);
         return  $this->filterType;
     }
 
     public function tsType(): TSType
     {
-        $TSType = new TSType('Boolean', 'boolean');
+        $TSType = new TSType('boolean');
 
 
         return $TSType;

@@ -18,6 +18,9 @@ class ArrayOfType extends BaseType
     {
 
 
+        if ($itemType instanceof EnumType) {
+            $this->type = 'enums';
+        }
 
 
         $this->itemType = $itemType;
@@ -133,9 +136,14 @@ class ArrayOfType extends BaseType
     }
 
 
+    public function safeFullEditable(bool $editable = true): static
+    {
+        return $this->fullEditable($editable);
+    }
 
 
-    public function filterType(): ?BaseType
+
+    public function filterType($safeMode = false): ?BaseType
     {
 
         if ($this->filterType) {
@@ -150,7 +158,7 @@ class ArrayOfType extends BaseType
         }
         $itemTypeFilter->editable();
 
-        $this->filterType = $itemTypeFilter;
+        $this->filterType = $itemTypeFilter->fullEditable()->fullInAdmin($this->inAdmin)->title($this->title);
         return  $this->filterType;
     }
 
@@ -159,7 +167,7 @@ class ArrayOfType extends BaseType
 
 
 
-        $TSType = new TSType($this->itemType->tsType()->getTsTypeName() . 'Array',  $this->itemType->tsType()->getTsTypeName() . '[]');
+        $TSType = new TSType($this->itemType->tsType()->getTsTypeName() . '[]', '');
 
 
 
@@ -168,7 +176,7 @@ class ArrayOfType extends BaseType
 
     public function tsInputType(): TSType
     {
-        $TSType = new TSType($this->itemType->tsType()->getTsTypeName() . 'Array',  $this->itemType->tsInputType()->getTsTypeName() . '[]');
+        $TSType = new TSType($this->itemType->tsInputType()->getTsTypeName() . '[]', '');
         return $TSType;
     }
 
@@ -196,7 +204,7 @@ class ArrayOfType extends BaseType
 
         $structureType->updateKeys();
         $structureType->updatePath();
-        $paths =  $structureType->getIDsPaths();
+        $paths =  $structureType->getIDsPaths([]);
 
 
 

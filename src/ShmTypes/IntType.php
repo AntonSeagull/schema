@@ -48,9 +48,7 @@ class IntType extends BaseType
     public function filterType($safeMode = false): ?BaseType
     {
 
-        if ($this->filterType) {
-            return $this->filterType;
-        }
+
 
         $itemTypeFilter = Shm::structure([
             'gte' => Shm::int()->title('Больше')->col(8),
@@ -58,8 +56,7 @@ class IntType extends BaseType
             'lte' => Shm::int()->title('Меньше')->col(8),
         ])->fullEditable()->staticBaseTypeName("IntFilterType");
 
-        $this->filterType = $itemTypeFilter->fullEditable()->fullInAdmin($this->inAdmin)->title($this->title);
-        return  $this->filterType;
+        return $itemTypeFilter->fullEditable()->fullInAdmin($this->inAdmin)->title($this->title);
     }
 
 

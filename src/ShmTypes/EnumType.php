@@ -68,9 +68,7 @@ class EnumType extends BaseType
     public function filterType($safeMode = false): ?BaseType
     {
 
-        if ($this->filterType) {
-            return $this->filterType;
-        }
+
 
         $itemTypeFilter =  Shm::structure([
             'eq' => Shm::enum($this->values)->title('Равно'),
@@ -83,8 +81,7 @@ class EnumType extends BaseType
             ])->title('Не заполнено'),
         ])->fullEditable();
 
-        $this->filterType = $itemTypeFilter->fullEditable()->fullInAdmin($this->inAdmin)->title($this->title);
-        return  $this->filterType;
+        return $itemTypeFilter->fullEditable()->fullInAdmin($this->inAdmin)->title($this->title);
     }
 
 

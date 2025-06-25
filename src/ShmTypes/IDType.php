@@ -54,9 +54,7 @@ class IDType extends BaseType
     public function filterType($safeMode = false): ?BaseType
     {
 
-        if ($this->filterType) {
-            return $this->filterType;
-        }
+
 
         $itemTypeFilter = Shm::structure([
             'eq' => Shm::ID()->title('Равно'),
@@ -75,8 +73,7 @@ class IDType extends BaseType
             $itemTypeFilter->staticBaseTypeName("IDFilterType");
         }
 
-        $this->filterType = $itemTypeFilter->fullEditable()->fullInAdmin($this->inAdmin)->title($this->title);
-        return  $this->filterType;
+        return $itemTypeFilter->fullEditable()->fullInAdmin($this->inAdmin)->title($this->title);
     }
 
 

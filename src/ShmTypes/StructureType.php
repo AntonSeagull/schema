@@ -32,11 +32,15 @@ class StructureType extends BaseType
     private $pipeline = [];
 
 
-    private $stages = [];
+    private null | StructureType $stages = null;
 
 
     public $publicStages = [];
 
+    public function getStages(): ?StructureType
+    {
+        return $this->stages;
+    }
 
     public function stages(StructureType $stages): self
     {
@@ -52,6 +56,16 @@ class StructureType extends BaseType
         $this->stages = $stages;
         return $this;
     }
+
+    public function findStage(string $key): ?StageType
+    {
+        if ($this->stages && isset($this->stages->items[$key])) {
+            return $this->stages->items[$key];
+        }
+
+        return null;
+    }
+
 
     public function pipeline(array $pipeline): self
     {
@@ -485,7 +499,8 @@ class StructureType extends BaseType
     public function filterType($safeMode = false): ?BaseType
     {
 
-        if ($this->filterType) {
+
+        if ($this->type == "structure" && $this->filterType) {
             return $this->filterType;
         }
 
@@ -501,10 +516,13 @@ class StructureType extends BaseType
         if (count($fields) == 0) {
             return null;
         }
-        $itemTypeFilter = Shm::structure($fields);
+        $itemTypeFilter = Shm::structure($fields)->fullEditable()->fullInAdmin()->title($this->title);
 
-        $this->filterType = $itemTypeFilter->fullEditable()->fullInAdmin()->title($this->title);
-        return  $this->filterType;
+        if ($this->type == "structure") {
+            $this->filterType =  $itemTypeFilter;
+        }
+
+        return  $itemTypeFilter;
     }
 
 
@@ -773,13 +791,6 @@ class StructureType extends BaseType
     {
 
 
-
-        $key = $this->key;
-
-
-        if ($path) {
-            $key = implode('.', [...($path ?? []), $this->key]);
-        }
 
         $this->columns = [];
 

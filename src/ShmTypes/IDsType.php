@@ -65,9 +65,6 @@ class IDsType extends BaseType
     public function filterType($safeMode = false): ?BaseType
     {
 
-        if ($this->filterType) {
-            return $this->filterType;
-        }
 
         $itemTypeFilter = Shm::structure([
             'in' => Shm::IDs($this->document)->title('Содержит хотя бы один из'),
@@ -88,8 +85,7 @@ class IDsType extends BaseType
 
 
 
-        $this->filterType = $itemTypeFilter->fullEditable()->fullInAdmin($this->inAdmin)->title($this->title)->title($this->title);
-        return  $this->filterType;
+        return $itemTypeFilter->fullEditable()->fullInAdmin($this->inAdmin)->title($this->title)->title($this->title);
     }
 
 

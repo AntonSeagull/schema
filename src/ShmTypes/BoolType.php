@@ -81,14 +81,10 @@ class BoolType extends BaseType
     public function filterType($safeMode = false): ?BaseType
     {
 
-        if ($this->filterType) {
-            return $this->filterType;
-        }
 
         $itemTypeFilter = Shm::bool()->editable()->inAdmin();
 
-        $this->filterType = $itemTypeFilter->fullEditable()->fullInAdmin($this->inAdmin)->title($this->title);
-        return  $this->filterType;
+        return $itemTypeFilter->fullEditable()->fullInAdmin($this->inAdmin)->title($this->title);
     }
 
     public function tsType(): TSType

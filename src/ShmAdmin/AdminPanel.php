@@ -185,7 +185,7 @@ class AdminPanel
 
 
 
-        ]);
+        ])->staticBaseTypeName("Structure");
 
         return $type;
     }
@@ -326,6 +326,7 @@ class AdminPanel
                         'field' => Shm::string(),
                     ]),
                     'filter' => Shm::mixed(),
+                    'stage' => Shm::string()
                 ]),
                 'resolve' => function ($root, $args) {
 
@@ -352,6 +353,20 @@ class AdminPanel
                     $root['type']->items['data']->updateKeys("data");
 
                     $pipeline = $structure->getPipeline();
+
+
+                    if (isset($args['stage'])) {
+
+                        $stage = $structure->findStage($args['stage']);
+
+                        if ($stage) {
+                            $pipeline = [
+                                ...$pipeline,
+                                ...$stage->getPipeline(),
+                            ];
+                        }
+                    }
+
 
 
                     if (isset($args['_id'])) {
@@ -481,6 +496,108 @@ class AdminPanel
                         'offset' => $args['offset'] ?? 0,
                         'total' => $total,
                     ];
+                }
+
+            ],
+
+            'stagesTotal' => [
+                'type' => Shm::structure([
+
+                    "*" => Shm::number(),
+
+                ]),
+                'args' => Shm::structure([
+
+                    "collection" => Shm::nonNull(Shm::string()),
+                    'search' => Shm::string()->default(''),
+                    'filter' => Shm::mixed(),
+                ]),
+                'resolve' => function ($root, $args) {
+
+                    //  Auth::authenticateOrThrow(...self::$users);
+
+                    if (!isset($args['collection'])) {
+                        Response::validation("Данные не доступны для просмотра");
+                    }
+
+
+
+                    $structure = self::$schema->findItemByCollection($args['collection']);
+
+
+
+
+                    if (!$structure) {
+                        Response::validation("Данные не доступны для просмотра");
+                    }
+
+
+                    $pipeline = $structure->getPipeline();
+
+
+                    $stages = $structure->getStages();
+
+                    if (!$stages) {
+                        return [];
+                    }
+
+
+
+                    if (isset($args['filter'])) {
+
+
+                        $pipelineFilter =  $structure->filterToPipeline($args['filter']);
+
+
+                        if ($pipelineFilter) {
+
+                            $pipeline = [
+                                ...$pipeline,
+                                ...$pipelineFilter,
+                            ];
+                        }
+                    };
+
+
+
+
+                    if (isset($args['search'])) {
+
+                        $pipeline[] = [
+                            '$match' => [
+                                'search_string' => ['$regex' => mb_strtolower(trim($args['search'])), '$options' => 'i'],
+                            ],
+                        ];
+                    }
+
+
+
+                    $facet = [];
+
+                    foreach ($stages->items as $stage) {
+                        $facet[$stage->key] = [
+                            ...$stage->getPipeline(),
+                            [
+                                '$group' => [
+                                    '_id' => null,
+                                    'count' => ['$sum' => 1],
+                                ]
+                            ]
+                        ];
+                    }
+
+                    $stagesCounts = $structure->aggregate([
+                        ...$pipeline,
+                        ['$facet' => $facet]
+                    ])->toArray()[0] ?? [];
+
+                    $result = [];
+
+                    foreach ($stages->items as $stage) {
+                        $result[$stage->key] = $stagesCounts[$stage->key][0]['count'] ?? 0;
+                    }
+
+                    return $result;
                 }
 
             ],

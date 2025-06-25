@@ -146,9 +146,7 @@ class ArrayOfType extends BaseType
     public function filterType($safeMode = false): ?BaseType
     {
 
-        if ($this->filterType) {
-            return $this->filterType;
-        }
+
 
         $this->itemType->key = $this->key;
 
@@ -158,8 +156,7 @@ class ArrayOfType extends BaseType
         }
         $itemTypeFilter->editable();
 
-        $this->filterType = $itemTypeFilter->fullEditable()->fullInAdmin($this->inAdmin)->title($this->title);
-        return  $this->filterType;
+        return $itemTypeFilter->fullEditable()->fullInAdmin($this->inAdmin)->title($this->title);
     }
 
     public function tsType(): TSType

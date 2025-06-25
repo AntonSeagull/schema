@@ -45,9 +45,7 @@ class FloatType extends BaseType
     public function filterType($safeMode = false): ?BaseType
     {
 
-        if ($this->filterType) {
-            return $this->filterType;
-        }
+
 
         $itemTypeFilter =  Shm::structure([
             'gte' => Shm::float()->title('Больше')->col(8),
@@ -55,8 +53,7 @@ class FloatType extends BaseType
             'lte' => Shm::float()->title('Меньше')->col(8),
         ])->fullEditable()->staticBaseTypeName("FloatFilterType");
 
-        $this->filterType = $itemTypeFilter->fullEditable()->fullInAdmin($this->inAdmin)->title($this->title);
-        return  $this->filterType;
+        return  $itemTypeFilter->fullEditable()->fullInAdmin($this->inAdmin)->title($this->title);
     }
 
 

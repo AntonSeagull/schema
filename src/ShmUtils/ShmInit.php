@@ -16,18 +16,13 @@ class ShmInit
 
 
 
-    public  static  $mdbClass = null;
+
 
     public static $rootDir = null;
 
     public static function init(string $bootstrapAppDir): void
     {
 
-        if (Config::driverIsMongoDBLite()) {
-            self::$mdbClass = mDBLite::class;
-        } else {
-            self::$mdbClass = mDB::class;
-        }
 
 
         if (php_sapi_name() !== 'cli') {
@@ -105,10 +100,6 @@ class ShmInit
             }
             $content = "<?php
             return [
-                'driver' => 'mongodb',
-                'mongodbLite'=>[
-                    'sqlite' => 'database/database.sqlite',
-                ],
                 'mongodb' => [
                   'host' => 'localhost',
                     'port' => 27017,

@@ -6,11 +6,7 @@ namespace Shm\ShmUtils;
 class Config
 {
 
-    public static function driverIsMongoDBLite(): bool
-    {
-        $driver = self::get('driver');
-        return $driver === 'mongodbLite';
-    }
+
 
 
 

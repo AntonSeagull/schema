@@ -322,12 +322,9 @@ class FileUploader
             'created_at' => time(),
         ];
 
-        if (Config::driverIsMongoDBLite()) {
-            $file = mDBLite::collection("_files")->insertOne($fields);
-        } else {
 
-            $file = mDB::collection("_files")->insertOne($fields);
-        }
+
+        $file = mDB::collection("_files")->insertOne($fields);
         $id = $file->getInsertedId();
         $fields['_id'] = (string) $id;
 

@@ -37,8 +37,8 @@ class ShmUtils
             return;
         }
 
-        if (!preg_match('/^[a-zA-Z0-9_]+$/', $key)) {
-            throw new \InvalidArgumentException("Key must contain only letters, numbers, and underscores. Invalid key: {$key}");
+        if (!preg_match('/^[a-zA-Z0-9_*]+$/', $key)) {
+            throw new \InvalidArgumentException("Key must contain only letters, numbers, underscores, and asterisks (*). Invalid key: {$key}");
         }
     }
 }

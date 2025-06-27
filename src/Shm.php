@@ -120,6 +120,11 @@ class Shm
         return new FloatType();
     }
 
+    public static function rate(): FloatType
+    {
+        return (new FloatType())->type('rate');
+    }
+
     public static function boolean(): BoolType
     {
         return self::bool();

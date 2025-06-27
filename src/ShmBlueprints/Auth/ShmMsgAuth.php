@@ -34,7 +34,7 @@ class ShmMsgAuth extends ShmAuthBase
                         'link' => Shm::string(),
                         'image' => Shm::string(),
                         'color' => Shm::string(),
-                    ])
+                    ])->staticBaseTypeName('ShmMsgAuthLink')
                 ),
                 'otherLinks' =>  Shm::arrayOf(
                     Shm::structure([
@@ -44,9 +44,9 @@ class ShmMsgAuth extends ShmAuthBase
                         'link' => Shm::string(),
                         'image' => Shm::string(),
                         'color' => Shm::string(),
-                    ])
+                    ])->staticBaseTypeName('ShmMsgAuthLink')
                 ),
-            ]),
+            ])->staticBaseTypeName('ShmMsgAuth'),
             'description' => 'Авторизация через Месенджеры',
             'args' => Shm::structure([
 

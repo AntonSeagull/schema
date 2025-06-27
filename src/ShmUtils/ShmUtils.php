@@ -29,4 +29,16 @@ class ShmUtils
         }
         return ucfirst(implode('', $text));
     }
+
+    public static function isValidKey($key)
+    {
+
+        if (!$key) {
+            return;
+        }
+
+        if (!preg_match('/^[a-zA-Z0-9_]+$/', $key)) {
+            throw new \InvalidArgumentException("Key must contain only letters, numbers, and underscores. Invalid key: {$key}");
+        }
+    }
 }

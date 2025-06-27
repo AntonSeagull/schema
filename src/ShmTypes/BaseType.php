@@ -7,6 +7,7 @@ use Nette\PhpGenerator\Method;
 use Shm\ShmRPC\ShmRPCCodeGen\TSType;
 use Shm\ShmTypes\Utils\JsonLogicBuilder;
 use Shm\ShmUtils\MaterialIcons;
+use Shm\ShmUtils\ShmUtils;
 
 abstract class BaseType
 {
@@ -150,6 +151,8 @@ abstract class BaseType
 
     public function key(string $key): static
     {
+
+        ShmUtils::isValidKey($key);
         $this->key = $key;
 
 
@@ -166,6 +169,9 @@ abstract class BaseType
     //Установить ключ если если он не установлен
     public function keyIfNot(string $key): static
     {
+
+        ShmUtils::isValidKey($key);
+
         if ($this->key === null) {
             $this->key($key);
         }

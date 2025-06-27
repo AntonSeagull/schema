@@ -5,6 +5,8 @@ namespace Shm\ShmUtils;
 use Shm\ShmCmd\Cmd;
 use Shm\ShmCmd\CmdSchedule;
 use Shm\ShmCodeGen\ClassGenerator;
+use Shm\ShmDB\mDB;
+use Shm\ShmDB\mDBLite;
 use Throwable;
 
 class ShmInit
@@ -12,10 +14,21 @@ class ShmInit
     private static $inited = false;
 
 
+
+
+    public  static  $mdbClass = null;
+
     public static $rootDir = null;
 
     public static function init(string $bootstrapAppDir): void
     {
+
+        if (Config::driverIsMongoDBLite()) {
+            self::$mdbClass = mDBLite::class;
+        } else {
+            self::$mdbClass = mDB::class;
+        }
+
 
         if (php_sapi_name() !== 'cli') {
             header("Access-Control-Allow-Origin: *");
@@ -92,6 +105,10 @@ class ShmInit
             }
             $content = "<?php
             return [
+                'driver' => 'mongodb',
+                'mongodbLite'=>[
+                    'sqlite' => 'database/database.sqlite',
+                ],
                 'mongodb' => [
                   'host' => 'localhost',
                     'port' => 27017,
@@ -104,17 +121,11 @@ class ShmInit
                     'connectTimeoutMS' => 360000,
                     'socketTimeoutMS' => 360000,
                 ],
+                
                 'redis' => [
                     'host' => 'localhost',
                     'port' => 6379,
                     'password' => null,
-                ],
-                'mysql' => [
-                    'host' => 'localhost',
-                    'port' => 3306,
-                    'database' => 'your_database_name',
-                    'username' => 'your_username',
-                    'password' => 'your_password',
                 ],
                 'sentry' => [
                     'dsn' => '',

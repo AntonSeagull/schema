@@ -94,6 +94,11 @@ class StructureType extends BaseType
         $_items = [];
         foreach ($items as $key => $field) {
 
+
+
+
+            ShmUtils::isValidKey($key);
+
             if (!$field) {
                 continue;
             }
@@ -516,7 +521,7 @@ class StructureType extends BaseType
         if (count($fields) == 0) {
             return null;
         }
-        $itemTypeFilter = Shm::structure($fields)->fullEditable()->fullInAdmin()->title($this->title);
+        $itemTypeFilter = Shm::structure($fields)->fullEditable()->fullInAdmin()->title($this->title)->staticBaseTypeName($this->key . 'FilterArgs');
 
         if ($this->type == "structure") {
             $this->filterType =  $itemTypeFilter;

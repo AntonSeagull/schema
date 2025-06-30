@@ -21,7 +21,7 @@ use Shm\ShmTypes\CompositeTypes\RangeUnixDateType;
 use Shm\ShmTypes\CompositeTypes\SocialType;
 use Shm\ShmTypes\CompositeTypes\TimeType;
 use Shm\ShmTypes\StructureType;
-use Shm\ShmTypes\UnixdateType;
+use Shm\ShmTypes\UnixDateType;
 use Shm\ShmTypes\EnumType;
 use Shm\ShmTypes\IDsType;
 use Shm\ShmTypes\IDType;

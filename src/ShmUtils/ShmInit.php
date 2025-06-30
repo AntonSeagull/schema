@@ -150,7 +150,7 @@ class ShmInit
 
 
         $whoops = new \Whoops\Run;
-        if (($_SERVER['SERVER_NAME'] ?? null) !== "localhost") {
+        if (!isset($_GET['debug']) && ($_SERVER['SERVER_NAME'] ?? null) !== "localhost") {
             $whoops->pushHandler(function (Throwable $exception, $inspector, $run) {
 
                 \Sentry\captureException($exception);

@@ -154,6 +154,10 @@ class AdminPanel
             'values' => Shm::structure([
                 "*" => Shm::string()
             ]),
+
+            'canUpdate' => Shm::boolean(),
+            'canDelete' => Shm::boolean(),
+            'canCreate' => Shm::boolean(),
             'hide' => Shm::bool(),
             "svgIcon" => Shm::string(),
             "single" => Shm::boolean(),
@@ -242,6 +246,7 @@ class AdminPanel
 
             ],
 
+
             'init' => [
                 'type' => Shm::structure([
 
@@ -298,6 +303,80 @@ class AdminPanel
                     ];
                 }
 
+            ],
+
+            'emptyData' => [
+                'type' => Shm::structure([
+                    "_id" => Shm::ID(),
+                    "*" => Shm::mixed(),
+                ]),
+                'args' => Shm::structure([
+
+                    "collection" => Shm::nonNull(Shm::string()),
+                ]),
+                'resolve' => function ($root, $args) {
+
+                    if (!isset($args['collection'])) {
+                        Response::validation("Данные не доступны для просмотра");
+                    }
+
+                    $structure = self::$schema->findItemByCollection($args['collection']);
+
+
+                    if (!$structure) {
+                        Response::validation("Данные не доступны для просмотра");
+                    }
+
+
+                    $root['type'] = $structure;
+
+                    $root['type']->updateKeys("type");
+
+
+
+                    return $structure->normalize([], true);
+                }
+
+            ],
+
+            'deleteData' => [
+                'type' => Shm::bool(),
+                'args' => Shm::structure([
+
+                    "_ids" => Shm::IDs()->default(null),
+                    "collection" => Shm::nonNull(Shm::string()),
+                ]),
+                'resolve' => function ($root, $args) {
+
+                    //  Auth::authenticateOrThrow(...self::$users);
+
+                    if (!isset($args['collection'])) {
+                        Response::validation("Данные не доступны для просмотра");
+                    }
+
+
+
+                    $structure = self::$schema->findItemByCollection($args['collection']);
+
+
+                    $_ids = $args['_ids'] ?? null;
+
+                    if (!$_ids) {
+                        Response::validation("Нет данных для удаления");
+                    }
+
+
+                    if (!$structure) {
+                        Response::validation("Данные не доступны для просмотра");
+                    }
+
+
+                    $structure->deleteMany([
+                        '_id' => ['$in' => $_ids]
+                    ]);
+
+                    return true;
+                }
             ],
 
             'data' => [
@@ -499,6 +578,103 @@ class AdminPanel
                 }
 
             ],
+
+
+
+
+            'update' => [
+                'type' => Shm::structure(
+                    [
+                        'data' => Shm::arrayOf(Shm::structure([
+                            "_id" => Shm::ID(),
+                            "*" => Shm::mixed(),
+                        ])),
+                    ]
+                ),
+                'args' => Shm::structure([
+
+                    "_ids" => Shm::IDs()->default(null),
+                    "collection" => Shm::nonNull(Shm::string()),
+                    'values' => Shm::mixed(),
+                ]),
+                'resolve' => function ($root, $args) {
+
+                    //  Auth::authenticateOrThrow(...self::$users);
+
+                    if (!isset($args['collection'])) {
+                        Response::validation("Данные не доступны для просмотра");
+                    }
+
+
+
+                    $structure = self::$schema->findItemByCollection($args['collection']);
+
+
+
+
+                    if (!$structure) {
+                        Response::validation("Данные не доступны для просмотра");
+                    }
+
+
+                    $root['type']->items['data'] = Shm::arrayOf($structure);
+
+                    $root['type']->items['data']->updateKeys("data");
+
+
+                    $values = $args['values'] ?? null;
+
+                    if (!$values) {
+                        Response::validation("Нет данных для обновления");
+                    }
+
+                    $values = $structure->normalize($values);
+                    $values = $structure->removeOtherItems($values);
+
+                    //remove _id
+                    if (isset($values['_id'])) {
+                        unset($values['_id']);
+                    }
+
+                    $ids = $args['_ids'] ?? null;
+
+                    if ($ids) {
+
+
+
+                        $structure->updateMany(
+                            [
+                                "_id" => ['$in' => $ids],
+                            ],
+                            [
+                                '$set' => $values
+                            ]
+                        );
+
+                        return [
+                            'data' => $structure->find([
+                                '_id' => ['$in' => $ids],
+                            ]),
+                        ];
+                    } else {
+                        $insert =  $structure->insertOne($values);
+
+                        if (!$insert) {
+                            Response::validation("Ошибка при добавлении данных");
+                        }
+
+                        $result = $structure->find([
+                            '_id' => $insert->getInsertedId(),
+                        ]);
+
+                        return [
+                            'data' => [$result],
+                        ];
+                    }
+                }
+
+            ],
+
 
             'stagesTotal' => [
                 'type' => Shm::structure([

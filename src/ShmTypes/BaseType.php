@@ -277,6 +277,25 @@ abstract class BaseType
         return $this;
     }
 
+    public function fullRequired(bool $required = true): static
+    {
+        $this->required = $required;
+
+        if (isset($this->items)) {
+            foreach ($this->items as $key => $item) {
+                $item->fullRequired($required);
+            }
+        }
+
+        if (isset($this->itemType)) {
+            $this->itemType->fullRequired($required);
+        }
+
+        return $this;
+    }
+
+
+
     /**
      * Mark the field as nullable or not.
      */
@@ -393,6 +412,9 @@ abstract class BaseType
 
         if (isset($this->items)) {
             foreach ($this->items as $key => $item) {
+                if ($key === '_id') {
+                    continue;
+                }
                 $item->fullInAdmin($isAdmin);
             }
         }

@@ -272,11 +272,12 @@ class CollectionEvents
      * @param array $options Опции для удаления
      * @return \MongoDB\DeleteResult
      */
-    public function deleteOne(array $filter = [], array $options = []): \MongoDB\DeleteResult
+    public function deleteOne(array $filter = [], array $options = [])
     {
 
+        return $this->updateOne($filter, ['$set' => ['deleted_at' => time()]], $options);
 
-        return $this->collection->deleteOne($filter, $options);
+        //  return $this->collection->deleteOne($filter, $options);
     }
 
     /**
@@ -286,13 +287,15 @@ class CollectionEvents
      * @param array $options Опции для удаления
      * @return \MongoDB\DeleteResult
      */
-    public function deleteMany(array $filter = [], array $options = []): \MongoDB\DeleteResult
+    public function deleteMany(array $filter = [], array $options = [])
     {
 
 
+        // Устанавливаем поле deleted_at для всех документов, соответствующих фильтру
+        return  $this->updateMany($filter, ['$set' => ['deleted_at' => time()]], $options);
 
 
-        return $this->collection->deleteMany($filter, $options);
+        //  return $this->collection->deleteMany($filter, $options);
     }
 
     /**

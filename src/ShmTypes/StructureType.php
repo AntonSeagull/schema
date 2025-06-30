@@ -32,6 +32,31 @@ class StructureType extends BaseType
     private $pipeline = [];
 
 
+    public bool $canUpdate = false;
+    public bool $canCreate = false;
+    public bool $canDelete = false;
+
+
+
+    public function canDelete(bool $canDelete = true): self
+    {
+        $this->canDelete = $canDelete;
+        return $this;
+    }
+
+
+    public function canUpdate(bool $canUpdate = true): self
+    {
+        $this->canUpdate = $canUpdate;
+        return $this;
+    }
+    public function canCreate(bool $canCreate = true): self
+    {
+        $this->canCreate = $canCreate;
+        return $this;
+    }
+
+
     private null | StructureType $stages = null;
 
 
@@ -91,7 +116,8 @@ class StructureType extends BaseType
     public function __construct(array $items)
     {
 
-        $_items = [];
+
+
         foreach ($items as $key => $field) {
 
 
@@ -142,6 +168,7 @@ class StructureType extends BaseType
         if ($addDefaultValues) {
 
             if (!(is_array($value) || $value instanceof Traversable)) {
+                //$value = [];
                 return null;
             }
 
@@ -347,6 +374,9 @@ class StructureType extends BaseType
 
         foreach ($this->items as $key => $field) {
 
+            if ($key == "_id") {
+                continue;
+            }
             $field->fullEditable($editable);
         }
 
@@ -636,6 +666,9 @@ class StructureType extends BaseType
 
     public function updateMany(array $filter = [], array $update = [], array $options = []): \MongoDB\UpdateResult
     {
+
+        $filter = mDB::replaceStringToObjectIds($filter);
+
         if (isset($update['$set'])) {
 
             if (array_key_exists("_id", (array) $update['$set'])) {
@@ -666,6 +699,15 @@ class StructureType extends BaseType
 
         return   mDB::collection($this->collection)->deleteOne($filter, $options);
     }
+
+    public function deleteMany(array $filter = [], array $options = [])
+    {
+        $filter = mDB::replaceStringToObjectIds($filter);
+
+        return   mDB::collection($this->collection)->deleteMany($filter, $options);
+    }
+
+
 
 
     public function find(array $filter = [], array $options = [])

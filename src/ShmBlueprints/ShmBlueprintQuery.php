@@ -260,13 +260,15 @@ class ShmBlueprintQuery
 
 
 
+                $sortField = $args['sort']['field'] ?? null;
+                $sortDirection = $args['sort']['direction'] ?? null;
 
 
-                if ($args['sort'] && isset($args['sort']['field']) && isset($args['sort']['direction'])) {
+                if ($sortField && $sortDirection) {
 
                     $pipeline[] = [
                         '$sort' => [
-                            $args['sort']['field'] => $args['sort']['direction'] == "DESC" ? -1 : 1,
+                            $sortField => $sortDirection == "DESC" ? -1 : 1,
                         ],
                     ];
                 } else {

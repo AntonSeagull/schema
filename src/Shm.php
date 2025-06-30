@@ -28,7 +28,6 @@ use Shm\ShmTypes\IDType;
 use Shm\ShmTypes\MixedType;
 use Shm\ShmTypes\PhoneType;
 use Shm\ShmTypes\SelfRefType;
-use Shm\ShmTypes\SelfType;
 use Shm\ShmTypes\StaticType;
 use Shm\ShmTypes\SupportTypes\StageType;
 use Shm\ShmTypes\UnixDateTimeType;

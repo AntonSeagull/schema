@@ -72,18 +72,24 @@ class Collection
     }
 
 
+
+    private static $cachedStructure = null;
+
     public static function structure(): StructureType | null
     {
+
+        if (self::$cachedStructure) {
+            return self::$cachedStructure;
+        }
+
         $_this = new static();
 
         if (method_exists($_this, 'expect')) {
-            return $_this->expect();
+            self::$cachedStructure = $_this->expect();
         }
 
-        return null;
+        return self::$cachedStructure;
     }
-
-
 
 
     public function schema(): StructureType | null

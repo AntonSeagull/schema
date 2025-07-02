@@ -37,6 +37,5 @@
         "maximal/audio-waveform": "*",
         "kornrunner/blurhash": "*"
     },
-    "minimum-stability": "dev",
     "prefer-stable": true
 }

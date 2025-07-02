@@ -36,6 +36,10 @@ class ShmRPC
 
         if (isset($field['args'])) {
 
+            if (is_array($field['args']) && !($field['args'] instanceof StructureType)) {
+                $field['args'] = new StructureType($field['args']);
+            }
+
             $field['args']->safeFullEditable()->staticBaseTypeName('Args' . ShmUtils::onlyLetters($key));
         }
 

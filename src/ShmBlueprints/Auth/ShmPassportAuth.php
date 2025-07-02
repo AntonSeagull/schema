@@ -150,7 +150,7 @@ class ShmPassportAuth extends ShmAuthBase
                     }
 
 
-                    return  Auth::getToken($user->getInsertedId());
+                    return  Auth::genToken($authStructure, $user->getInsertedId());
                 } else {
 
 
@@ -184,7 +184,7 @@ class ShmPassportAuth extends ShmAuthBase
                     }
 
 
-                    return Auth::getToken($user->_id);
+                    return Auth::genToken($userStructure, $user->_id);
                 }
             }
         ];

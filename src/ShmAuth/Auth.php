@@ -10,51 +10,6 @@ class Auth
 {
 
 
-    /**
-     * @var StructureType[]
-     * Список коллекций, которые поддерживают авторизацию
-     */
-    private static $authStructures = [];
-
-    /**
-     * @var StructureType[]
-     * Структура для API ключа
-     */
-    public static $apiStructures  = [];
-
-
-    public static function addApiKeyStructure(StructureType ...$structures): void
-    {
-        foreach ($structures as $structure) {
-            if (!$structure instanceof StructureType) {
-                throw new \InvalidArgumentException("Structure must be an instance of StructureType.");
-            }
-
-            if (!isset($structure->collection)) {
-                throw new \InvalidArgumentException("Structure must have a collection defined.");
-            }
-
-            self::$apiStructures[] = $structure;
-        }
-    }
-
-    public  static function addStructure(StructureType ...$structures): void
-    {
-
-        foreach ($structures as $structure) {
-
-
-            if (!$structure instanceof StructureType) {
-                throw new \InvalidArgumentException("Structure must be an instance of StructureType.");
-            }
-
-            if (!isset($structure->collection)) {
-                throw new \InvalidArgumentException("Structure must have a collection defined.");
-            }
-
-            self::$authStructures[] = $structure;
-        }
-    }
 
     private static function  getRequestKey(array $keys): ?string
     {
@@ -84,24 +39,23 @@ class Auth
 
 
 
-    private static $auth = null;
-    private static StructureType | null $authStructure = null;
+    private static $authOwner = null;
+    private static string | null $authCollection = null;
 
-    private static $apikey = null;
-    private static StructureType | null $apikeyStructure = null;
+    private static $apikeyOwner = null;
+    private static string | null $apikeyCollection = null;
 
     private static $token_collection = "_tokens";
+    private static $apikey_collection = "_apikeys";
 
 
     private static $initialized = false;
-
 
 
     private static function init()
     {
 
         $token = self::getRequestKey(['token', 'authorization', 'x-auth-token']);
-
 
 
         $apikey = self::getRequestKey(['apikey', 'x-api-key', 'api-key']);
@@ -111,74 +65,39 @@ class Auth
             $findToken = mDB::collection(self::$token_collection)->findOne([
                 "token" => $token,
             ]);
+
             if ($findToken) {
-                foreach (self::$authStructures as $structure) {
-
-
-                    $auth = mDB::collection($structure->collection)->findOne([
-                        "_id" => $findToken['user_id'],
-                    ]);
-
-                    if ($auth) {
-
-                        self::$authStructure = $structure;
-                        self::$auth = $auth;
-
-                        break;
-                    }
-                }
+                self::$apikeyCollection = $findToken->collection;
+                self::$authOwner = $findToken->owner;
             }
         }
 
         if ($apikey) {
 
-            foreach (self::$apiStructures as $structure) {
+            $findApiKey = mDB::collection(self::$apikey_collection)->findOne([
+                "apikey" => $apikey,
+            ]);
 
-
-                $findApiKey = mDB::collection($structure->collection)->findOne([
-                    "apikey" => $apikey,
-                ]);
-
-                if ($findApiKey) {
-
-                    self::$apikeyStructure = $structure;
-                    self::$apikey = $findApiKey;
-
-                    break;
-                }
+            if ($findApiKey) {
+                self::$apikeyCollection = $findApiKey->collection;
+                self::$apikeyOwner = $findApiKey->owner;
             }
         }
         self::$initialized = true;
     }
 
-    public static function getApiKeyId(): ?string
-    {
 
-        if (!self::$initialized) {
-            self::init();
-        }
-
-        if (self::$apikey !== null && isset(self::$apikey->_id)) {
-            return self::$apikey->_id;
-        }
-
-        return null;
-    }
 
     public static function authenticateOrThrow(StructureType ...$authStructures)
     {
 
+
+
         if ($authStructures) {
-
-            $authStructure = Auth::getAuthStructure();
-            if (!$authStructure) {
-                Response::unauthorized();
-            }
-
 
             foreach ($authStructures as $structure) {
 
-                if ($structure->collection == $authStructure->collection) {
+                if ($structure->collection &&  $structure->collection == self::$authCollection) {
                     return false;
                 }
             }
@@ -186,108 +105,84 @@ class Auth
             Response::unauthorized();
         }
 
-        if (!self::getAuthId()) {
+        if (!self::getAuthOwner()) {
             Response::unauthorized();
         }
     }
 
 
 
-    public static function getAuthId(): mixed
+    public static function getAuthOwner(): mixed
     {
         if (!self::$initialized) {
             self::init();
         }
 
-        if (self::$auth !== null && isset(self::$auth['_id'])) {
-            return self::$auth['_id'];
-        }
 
-        return null;
+        return self::$authOwner ?? null;
     }
 
 
-    public static function getAuth(): mixed
+    public static function getApiKeyOwner(): mixed
     {
-
         if (!self::$initialized) {
             self::init();
         }
 
-        if (self::$auth !== null) {
-            return self::$auth;
-        }
 
-        return null;
-    }
-
-    public static function getApiKey(): ?object
-    {
-
-        if (!self::$initialized) {
-            self::init();
-        }
-
-        if (self::$apikey !== null) {
-            return self::$apikey;
-        }
-
-        return null;
+        return self::$apikeyOwner ?? null;
     }
 
     public static function getAuthCollection(): ?string
     {
-
         if (!self::$initialized) {
             self::init();
         }
 
-        if (self::$authStructure !== null && isset(self::$authStructure->collection)) {
-            return self::$authStructure->collection;
-        }
-
-        return null;
+        return self::$authCollection;
     }
 
-    public static function getAuthStructure(): ?StructureType
+    public static function getApiKeyCollection(): ?string
+    {
+        if (!self::$initialized) {
+            self::init();
+        }
+
+        return self::$apikeyCollection;
+    }
+
+
+
+
+
+    public static function genApiKey(StructureType $structure,  $_id): string
     {
 
-        if (!self::$initialized) {
-            self::init();
-        }
+        $apikey =  hash("sha512", $_id . time() . bin2hex(openssl_random_pseudo_bytes(64)));
 
-        if (self::$authStructure !== null) {
-            return self::$authStructure;
-        }
+        mDB::collection(self::$apikey_collection)->insertOne([
+            "apikey" => $apikey,
+            'collection' => $structure->collection,
+            "agent" => $_SERVER['HTTP_USER_AGENT'] ?? null,
+            "ip" => $_SERVER['REMOTE_ADDR'] ?? null,
+            "owner" => mDB::id($_id),
+        ]);
 
-        return null;
-    }
-
-    public static function getApiKeyStructure(): ?StructureType
-    {
-
-        if (!self::$initialized) {
-            self::init();
-        }
-
-        if (self::$apikeyStructure !== null) {
-            return self::$apikeyStructure;
-        }
-
-        return null;
+        return $apikey;
     }
 
 
-    public static function getToken($_id): string
+    public static function getToken(StructureType $structure,  $_id): string
     {
 
         $token =  hash("sha512", $_id . time() . bin2hex(openssl_random_pseudo_bytes(64)));
 
         mDB::collection(self::$token_collection)->insertOne([
             "token" => $token,
+            'collection' => $structure->collection,
             "agent" => $_SERVER['HTTP_USER_AGENT'] ?? null,
             "ip" => $_SERVER['REMOTE_ADDR'] ?? null,
-            "user_id" => mDB::id($_id),
+            "owner" => mDB::id($_id),
         ]);
 
 

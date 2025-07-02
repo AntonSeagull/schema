@@ -55,7 +55,7 @@ class ShmSocAuth extends ShmAuthBase
 
 
                     $user = $authModel->updateOne([
-                        "_id" => Auth::getAuthId(),
+                        "_id" => Auth::getAuthOwner(),
                     ], [
                         '$pull' => [
                             $socialField => [
@@ -64,7 +64,7 @@ class ShmSocAuth extends ShmAuthBase
                         ],
                     ]);
 
-                    return Auth::getToken(Auth::getAuthId());
+                    return Auth::genToken($authModel, Auth::getAuthOwner());
                 }
 
 
@@ -128,12 +128,12 @@ class ShmSocAuth extends ShmAuthBase
 
 
                     $user = $authModel->updateOne([
-                        "_id" => Auth::getAuthId(),
+                        "_id" => Auth::getAuthOwner(),
                     ], [
                         '$push' => [$socialField  => $userSoc],
                     ]);
 
-                    return  Auth::getToken(Auth::getAuthId());
+                    return  Auth::genToken($authModel, Auth::getAuthOwner());
                 } else {
 
                     $user = null;
@@ -199,7 +199,7 @@ class ShmSocAuth extends ShmAuthBase
 
 
 
-                        return Auth::getToken($user['_id']);
+                        return Auth::genToken($userStructure, $user['_id']);
                     } else {
 
                         $authStructure = $this->authStructures[0];
@@ -272,7 +272,7 @@ class ShmSocAuth extends ShmAuthBase
                         }
 
 
-                        return Auth::getToken($user->getInsertedId());
+                        return Auth::genToken($authStructure, $user->getInsertedId());
                     }
                 }
             }

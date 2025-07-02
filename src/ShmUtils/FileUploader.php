@@ -309,7 +309,7 @@ class FileUploader
 
         $fields = [
             "fileType" => "image",
-            'user' => Auth::getAuthId(),
+            'user' => Auth::getAuthOwner(),
             'name' => is_string($image) ? "none" : $image['name'],
             'url' => $url,
             'url_medium' => $url_filename_medium,
@@ -372,7 +372,7 @@ class FileUploader
 
         $fields = [
             "fileType" => "document",
-            'user' => Auth::getAuthId(),
+            'user' => Auth::getAuthOwner(),
             'name' => $document['name'],
             'url' => $url,
             'source' => "local",
@@ -462,7 +462,7 @@ class FileUploader
         $fields = [
 
             "fileType" => "video",
-            'user' => Auth::getAuthId(),
+            'user' => Auth::getAuthOwner(),
             'name' => $video_file['name'],
             'url' => $url,
             'cover' => $url_cover,
@@ -649,7 +649,7 @@ class FileUploader
             "type" => self::getMimeType($path . '/' . $filename),
             "wave" => $wave,
             "duration" => $duration,
-            'user' => Auth::getAuthId(),
+            'user' => Auth::getAuthOwner(),
             'created_at' => time(),
         ];
 

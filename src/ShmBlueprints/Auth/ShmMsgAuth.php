@@ -104,7 +104,7 @@ class ShmMsgAuth extends ShmAuthBase
 
 
                             $user = $authStructure->updateOne([
-                                "_id" => Auth::getAuthId(),
+                                "_id" => Auth::getAuthOwner(),
                             ], [
                                 '$set' => [
                                     $phoneField => (int) $phone,
@@ -166,14 +166,14 @@ class ShmMsgAuth extends ShmAuthBase
                                 ]);
 
                                 return [
-                                    "token" => Auth::getToken($user->getInsertedId()),
+                                    "token" => Auth::genToken($authStructure, $user->getInsertedId()),
                                     "auth" => true,
                                 ];
                             } else {
 
 
                                 return [
-                                    "token" => Auth::getToken($user->_id),
+                                    "token" => Auth::genToken($authStructure, $user->_id),
                                     "auth" => true,
                                 ];
                             }

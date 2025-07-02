@@ -165,10 +165,10 @@ class ShmSmsAuth extends ShmAuthBase
 
                         $user = mDB::collection($authStructure->collection)->insertOne($insertData);
 
-                        return  Auth::getToken($user->getInsertedId());
+                        return  Auth::genToken($authStructure, $user->getInsertedId());
                     } else {
 
-                        return Auth::getToken($user->_id);
+                        return Auth::genToken($userStructure, $user->_id);
                     }
                 } else {
 

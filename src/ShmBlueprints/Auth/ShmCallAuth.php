@@ -126,11 +126,11 @@ class ShmCallAuth extends ShmAuthBase
                             $phoneField => (int) $phone,
                         ]);
 
-                        return  Auth::getToken($user->getInsertedId());
+                        return  Auth::genToken($authStructure, $user->getInsertedId());
                     } else {
 
 
-                        return Auth::getToken($user->_id);
+                        return Auth::genToken($userStructure, $user->_id);
                     }
                 } else {
 

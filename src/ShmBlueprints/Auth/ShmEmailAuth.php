@@ -191,7 +191,7 @@ class ShmEmailAuth extends ShmAuthBase
                                 ]
                             );
 
-                            return Auth::getToken($user['_id']);
+                            return Auth::genToken($userStructure, $user['_id']);
                         }
                     } else {
 
@@ -333,7 +333,7 @@ class ShmEmailAuth extends ShmAuthBase
                     if ($user && $userStructure) {
 
 
-                        return Auth::getToken($user['_id']);
+                        return Auth::genToken($userStructure, $user['_id']);
                     } else {
                         Response::validation('Неверная пара email и пароль');
                     }

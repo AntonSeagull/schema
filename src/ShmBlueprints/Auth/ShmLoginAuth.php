@@ -139,7 +139,7 @@ class ShmLoginAuth extends ShmAuthBase
 
 
 
-                    return Auth::getToken($user['_id']);
+                    return Auth::genToken($userStructure, $user['_id']);
                 } else {
                     Response::validation('Неверная пара логин и пароль');
                 }

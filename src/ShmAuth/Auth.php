@@ -66,8 +66,8 @@ class Auth
                 "token" => $token,
             ]);
 
-            if ($findToken) {
-                self::$apikeyCollection = $findToken->collection;
+            if ($findToken && isset($findToken->collection) && isset($findToken->owner)) {
+                self::$authCollection = $findToken->collection;
                 self::$authOwner = $findToken->owner;
             }
         }
@@ -78,7 +78,7 @@ class Auth
                 "apikey" => $apikey,
             ]);
 
-            if ($findApiKey) {
+            if ($findApiKey && isset($findApiKey->collection) && isset($findApiKey->owner)) {
                 self::$apikeyCollection = $findApiKey->collection;
                 self::$apikeyOwner = $findApiKey->owner;
             }

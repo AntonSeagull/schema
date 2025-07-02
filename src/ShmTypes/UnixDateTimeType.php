@@ -55,10 +55,7 @@ class UnixDateTimeType extends BaseType
             'eq' => Shm::unixdatetime()->title('Равно'),
         ])->fullEditable()->staticBaseTypeName("UnixDateFilterType");
 
-        if (!$this->inAdmin) {
-            echo "Warning: UnixDateTimeType filterType is being used outside of admin context. This may not work as expected.";
-            exit;
-        }
+
 
         return $itemTypeFilter->fullEditable()->fullInAdmin($this->inAdmin)->title($this->title);
     }

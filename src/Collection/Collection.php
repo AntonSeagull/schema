@@ -3,6 +3,7 @@
 namespace Shm\Collection;
 
 use Error;
+use Shm\Shm;
 use Shm\ShmAuth\Auth;
 use Shm\ShmUtils\Response;
 use Shm\ShmTypes\StructureType;
@@ -71,25 +72,22 @@ class Collection
         return null;
     }
 
-
-
-    private static $cachedStructure = null;
+    public static $cachedStructure = [];
 
     public static function structure(): StructureType | null
     {
 
-        if (self::$cachedStructure) {
-            return self::$cachedStructure;
-        }
-
         $_this = new static();
 
+
         if (method_exists($_this, 'expect')) {
-            self::$cachedStructure = $_this->expect();
+            return $_this->expect();
         }
 
-        return self::$cachedStructure;
+        return null;
     }
+
+
 
 
     public function schema(): StructureType | null
@@ -99,7 +97,16 @@ class Collection
 
     final public function expect(): StructureType | null
     {
-        return $this->schema()
+
+        if (self::$cachedStructure[$this->collection] ?? null) {
+            return self::$cachedStructure[$this->collection];
+        }
+
+        self::$cachedStructure[$this->collection] = Shm::structure([
+            '_' => Shm::string()
+        ])->key("_");
+
+        return self::$cachedStructure[$this->collection] = $this->schema()
             ->key($this->collection)
             ->collection($this->collection)
             ->pipeline($this->basePipeline() ?? []);

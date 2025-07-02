@@ -93,12 +93,55 @@ class GeoPointType extends StructureType
         }
 
         $itemTypeFilter =  Shm::structure([
-            'latitude' => Shm::float(),
-            'longitude' => Shm::float(),
-            'maxDistance' => Shm::int(),
+            'geoNear' => Shm::structure([
+                'latitude' => Shm::float(),
+                'longitude' => Shm::float(),
+                'maxDistance' => Shm::int(),
+            ])->staticBaseTypeName("GeoNearFilterType"),
         ])->fullEditable()->staticBaseTypeName("GeoPointFilterType");
 
         $this->filterType = $itemTypeFilter->title($this->title);
         return  $this->filterType;
+    }
+
+    public function filterToPipeline($filter, array | null $absolutePath = null): ?array
+    {
+
+        $geoNear = $filter['geoNear'] ?? null;
+
+        $path = $absolutePath ? implode('.', $absolutePath) . '.' . $this->key : $this->key;
+
+        $pipeline = [];
+
+        if ($geoNear !== null) {
+
+            $longitude = $geoNear['longitude'] ?? null;
+            $latitude = $geoNear['latitude'] ?? null;
+            $maxDistance = $geoNear['maxDistance'] ?? null;
+
+            if ($longitude && $latitude) {
+                $pipeline[] = [
+                    '$geoNear' => [
+                        'near' => [
+                            'type' => 'Point',
+                            'coordinates' => [$longitude, $latitude],
+                        ],
+                        'distanceField' => 'distance_near_' . $this->key,
+                        'spherical' => true,
+                        'maxDistance' => $maxDistance ?? null,
+                        'key' => $path . '.location.coordinates',
+                    ]
+                ];
+
+                $pipeline[] = [
+                    '$sort' => [
+                        'distance_near_' . $this->key => 1
+                    ]
+                ];
+            }
+        }
+
+
+        return $pipeline;
     }
 }

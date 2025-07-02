@@ -20,7 +20,7 @@ class Auth
      * @var StructureType[]
      * Структура для API ключа
      */
-    public static $apiStructure  = [];
+    public static $apiStructures  = [];
 
 
     public static function addApiKeyStructure(StructureType ...$structures): void
@@ -34,7 +34,7 @@ class Auth
                 throw new \InvalidArgumentException("Structure must have a collection defined.");
             }
 
-            self::$apiStructure[] = $structure;
+            self::$apiStructures[] = $structure;
         }
     }
 
@@ -132,7 +132,7 @@ class Auth
 
         if ($apikey) {
 
-            foreach (self::$apikeyStructure as $structure) {
+            foreach (self::$apiStructures as $structure) {
 
 
                 $findApiKey = mDB::collection($structure->collection)->findOne([

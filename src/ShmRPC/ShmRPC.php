@@ -61,9 +61,6 @@ class ShmRPC
             if (!isset($field['type']) || !($field['type'] instanceof \Shm\ShmTypes\BaseType)) {
                 throw new \InvalidArgumentException("Schema field '{$key}' must have a 'type' of BaseType.");
             }
-            if (isset($field['args']) && !($field['args'] instanceof StructureType)) {
-                throw new \InvalidArgumentException("Schema field '{$key}' must have 'args' of StructureType.");
-            }
         }
     }
 

@@ -47,11 +47,11 @@ class ShmAuthBase
 
         $this->authStructures = $authStructures;
 
-        if (Auth::getApiKey()) {
+        if (Auth::getApiKeyOwner()) {
 
-            $key = Inflect::singularize(Auth::getApiKeyStructure()->collection);
+            $key = Inflect::singularize(Auth::getApiKeyCollection());
             $this->initialValues = [
-                $key => Auth::getApiKey()->_id
+                $key => Auth::getApiKeyOwner(),
             ];
         }
 

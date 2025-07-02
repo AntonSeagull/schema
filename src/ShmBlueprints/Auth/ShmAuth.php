@@ -16,7 +16,7 @@ class ShmAuth
     {
 
 
-        Auth::addStructure(...$authStructures);
+
 
         $this->authStructures = $authStructures;
 

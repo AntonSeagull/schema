@@ -172,7 +172,7 @@ class Auth
     }
 
 
-    public static function getToken(StructureType $structure,  $_id): string
+    public static function genToken(StructureType $structure,  $_id): string
     {
 
         $token =  hash("sha512", $_id . time() . bin2hex(openssl_random_pseudo_bytes(64)));

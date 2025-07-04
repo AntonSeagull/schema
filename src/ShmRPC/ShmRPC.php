@@ -8,6 +8,7 @@ use Shm\Shm;
 use Shm\ShmBlueprints\Auth\ShmAuth;
 use Shm\ShmBlueprints\ShmBlueprintMutation;
 use Shm\ShmBlueprints\ShmBlueprintQuery;
+use Shm\ShmCodeGen\ClassGenerator;
 use Shm\ShmDB\mDB;
 use Shm\ShmRPC\ShmRPCCodeGen\ShmRPCCodeGen;
 use Shm\ShmUtils\DeepAccess;
@@ -77,7 +78,84 @@ class ShmRPC
     }
 
 
+    private  static  function shift_encrypt(string $text, string $key): string
+    {
+        $min = 32;
+        $max = 126;
+        $range = $max - $min + 1;
+        $keyLen = strlen($key);
 
+        $result = '';
+        for ($i = 0; $i < strlen($text); $i++) {
+            $code = ord($text[$i]);
+            $keyShift = ord($key[$i % $keyLen]);
+            $shifted = ($code - $min + $i + $keyShift) % $range + $min;
+            $result .= chr($shifted);
+        }
+        return $result;
+    }
+
+    private  static  function shift_decrypt(string $text, string $key): string
+    {
+        $min = 32;
+        $max = 126;
+        $range = $max - $min + 1;
+        $keyLen = strlen($key);
+
+        $result = '';
+        for ($i = 0; $i < strlen($text); $i++) {
+            $code = ord($text[$i]);
+            $keyShift = ord($key[$i % $keyLen]);
+            $shifted = ($code - $min - $i - $keyShift + $range * 2) % $range + $min;
+            $result .= chr($shifted);
+        }
+        return $result;
+    }
+
+
+    private  static function xor_encrypt(string $text, string $key): string
+    {
+        $keyLen = strlen($key);
+        $output = '';
+
+        for ($i = 0, $len = strlen($text); $i < $len; $i++) {
+            $output .= $text[$i] ^ $key[$i % $keyLen];
+        }
+
+        return base64_encode($output);
+    }
+
+    private  static function xor_decrypt(string $encodedText, string $key): string
+    {
+        $text = base64_decode($encodedText);
+        $keyLen = strlen($key);
+        $output = '';
+
+        for ($i = 0, $len = strlen($text); $i < $len; $i++) {
+            $output .= $text[$i] ^ $key[$i % $keyLen];
+        }
+
+        return $output;
+    }
+
+    private  static function encrypt($text, $key)
+    {
+        $result = '';
+        for ($i = 0; $i < strlen($text); $i++) {
+            $result .= chr(ord($text[$i]) + ord($key[$i % strlen($key)]));
+        }
+        return base64_encode($result);
+    }
+
+    private  static function decrypt($encodedText, $key)
+    {
+        $text = base64_decode($encodedText);
+        $result = '';
+        for ($i = 0; $i < strlen($text); $i++) {
+            $result .= chr(ord($text[$i]) - ord($key[$i % strlen($key)]));
+        }
+        return $result;
+    }
 
 
 
@@ -95,19 +173,27 @@ class ShmRPC
     {
 
 
+
+        if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+            ClassGenerator::generateClasses();
+        }
+
         Response::startTime();
 
         self::validateSchemaParams($schemaParams);
 
 
-        foreach ($schemaParams as $key => $field) {
-            $schemaParams[$key] = self::transformSchemaParams($field, $key);
-        }
 
 
 
         //If GET request, we can return the schema
         if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+
+            foreach ($schemaParams as $key => $field) {
+                $schemaParams[$key] = self::transformSchemaParams($field, $key);
+            }
+
+
             ShmRPCCodeGen::html($schemaParams);
         };
 
@@ -120,7 +206,20 @@ class ShmRPC
         $request = \json_decode($body, true);
 
         $method = $request['method'] ?? null;
-        $params = $request['params'] ?? null;
+        $params = $request['params'] ?? [];
+
+        $context = $request['context'] ?? null;
+
+        if ($context && is_string($params)) {
+
+            $params = self::xor_decrypt($params, $context);
+
+            try {
+                $params = \json_decode($params, true);
+            } catch (\Exception $e) {
+                Response::validation("Ошибка выполнения запроса");
+            }
+        }
 
 
         if ($method === null) {
@@ -128,27 +227,33 @@ class ShmRPC
         }
 
         $schemaMethod = $schemaParams[$method] ?? null;
+
+        Response::startTraceTiming('transformSchemaParams');
+        $schemaMethod = self::transformSchemaParams($schemaMethod, $method);
+        Response::endTraceTiming('transformSchemaParams');
         if ($schemaMethod === null) {
             Response::notFound("Method '{$method}' not found.");
         }
 
+        Response::startTraceTiming("executeMethod");
         $result = self::executeMethod($schemaMethod, $params);
+        Response::endTraceTiming("executeMethod");
 
 
-
-
+        Response::startTraceTiming("normalize");
         $result = $schemaMethod['type']->normalize($result, false);
 
         $result = $schemaMethod['type']->removeOtherItems($result);
-
+        Response::endTraceTiming("normalize");
 
 
         if ($result) {
 
 
             if ($schemaMethod['type'] instanceof StructureType || $schemaMethod['type'] instanceof \Shm\ShmTypes\ArrayOfType) {
-
+                Response::startTraceTiming("externalData");
                 $result = $schemaMethod['type']->externalData($result);
+                Response::endTraceTiming("externalData");
             }
         }
 
@@ -158,6 +263,11 @@ class ShmRPC
         $end = microtime(true);
         $duration = round(($end - $start) * 1000);
 
+
+        if ($context) {
+            $result = json_encode($result);
+            $result = self::xor_encrypt($result, $context);
+        }
 
         Response::success($result);
     }

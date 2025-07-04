@@ -5,6 +5,8 @@ namespace Shm\Collection;
 use Error;
 use Shm\Shm;
 use Shm\ShmAuth\Auth;
+use Shm\ShmTypes\IDsType;
+use Shm\ShmTypes\IDType;
 use Shm\ShmUtils\Response;
 use Shm\ShmTypes\StructureType;
 
@@ -72,19 +74,59 @@ class Collection
         return null;
     }
 
-    public static $cachedStructure = [];
 
-    public static function structure(): StructureType | null
+    public static $flattenCache = [];
+
+    public static function flatten(): StructureType | null
     {
 
         $_this = new static();
 
+        if (isset(self::$flattenCache[$_this->collection])) {
+            return self::$flattenCache[$_this->collection];
+        }
+
 
         if (method_exists($_this, 'expect')) {
-            return $_this->expect();
+            return self::$flattenCache[$_this->collection] = $_this->expect()->baseTypePrefix("Flat");
         }
 
         return null;
+    }
+
+
+    public static function ID(): IDType
+    {
+
+        return Shm::ID(fn() => self::flatten());
+    }
+
+    public static function IDs(): IDsType
+    {
+
+        return Shm::IDs(fn() => self::flatten());
+    }
+
+
+    public static $structureCache = [];
+
+
+    public static function structure(): StructureType
+    {
+
+        $_this = new static();
+
+        if (isset(self::$structureCache[$_this->collection])) {
+            return self::$structureCache[$_this->collection];
+        }
+
+
+        if (method_exists($_this, 'expect')) {
+            return self::$structureCache[$_this->collection] = $_this->expect()->stripNestedIds();
+        }
+
+
+        return Shm::structure([]);
     }
 
 
@@ -98,18 +140,19 @@ class Collection
     final public function expect(): StructureType | null
     {
 
-        if (self::$cachedStructure[$this->collection] ?? null) {
-            return self::$cachedStructure[$this->collection];
-        }
 
-        self::$cachedStructure[$this->collection] = Shm::structure([
-            '_' => Shm::string()
-        ])->key("_");
-
-        return self::$cachedStructure[$this->collection] = $this->schema()
+        $schema =  $this->schema()
             ->key($this->collection)
             ->collection($this->collection)
             ->pipeline($this->basePipeline() ?? []);
+
+        $schema->addField("_id", Shm::ID());
+        $schema->addField("_sortWeight", Shm::int());
+        $schema->addField("created_at", Shm::int());
+        $schema->addField("updated_at", Shm::int());
+
+
+        return $schema;
     }
 
 

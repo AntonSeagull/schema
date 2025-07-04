@@ -5,6 +5,7 @@ namespace Shm\ShmBlueprints;
 use Shm\ShmDB\mDB;
 use Shm\Shm;
 use Shm\ShmTypes\StructureType;
+use Shm\ShmUtils\Response;
 
 class ShmBlueprintMutation
 {
@@ -18,20 +19,12 @@ class ShmBlueprintMutation
         $this->structure = $structure;
     }
 
-    /**
-     * @var callable|null
-     */
-    public $beforeMutation = null;
 
 
     public $delete = true;
 
 
 
-    /**
-     * @var callable|null
-     */
-    public $afterMutation = null;
 
     public function delete(bool $delete): self
     {
@@ -40,17 +33,14 @@ class ShmBlueprintMutation
     }
 
 
-    public function before(callable $beforeMutation): self
+    public $pipeline = [];
+
+    public function pipeline($pipeline = []): self
     {
-        $this->beforeMutation = $beforeMutation;
+        $this->pipeline = $pipeline;
         return $this;
     }
 
-    public function after(callable $afterMutation): self
-    {
-        $this->afterMutation = $afterMutation;
-        return $this;
-    }
 
     public function flattenObject($data, $parentKey = '', &$result = [])
     {
@@ -143,17 +133,19 @@ class ShmBlueprintMutation
 
         $structure = $this->structure;
 
-        $beforeMutation = $this->beforeMutation;
-        $afterMutation = $this->afterMutation;
+        $pipeline = $this->pipeline;
 
         return [
             "type" => $this->structure,
             "args" => $argsStructure,
-            'resolve' => function ($root, $args) use ($structure, $beforeMutation, $afterMutation, $argsStructure) {
+            'resolve' => function ($root, $args) use ($structure, $pipeline, $argsStructure) {
 
-                if ($beforeMutation && is_callable($beforeMutation)) {
-                    $beforeMutation();
-                }
+
+
+                $pipeline = [
+                    ...$pipeline,
+                    ...$structure->getPipeline()
+                ];
 
 
                 $originalArgs = $args;
@@ -161,6 +153,27 @@ class ShmBlueprintMutation
 
                 $_id = $args['_id'] ?? null;
                 if (isset($_id)) {
+
+
+
+                    $findItem = $structure->aggregate([
+                        ...$pipeline,
+                        [
+                            '$match' => [
+                                "_id" => mDB::id($_id),
+                            ],
+                        ],
+                        [
+                            '$limit' => 1
+                        ],
+                    ])->toArray()[0] ?? null;
+
+                    if (!$findItem) {
+                        Response::validation('Ошибка доступа, у вас нет доступа для редактирования этой записи');
+                    }
+
+
+
                     if ($args['delete'] == true) {
                         $structure->deleteOne([
                             "_id" => mDB::id($_id)
@@ -243,9 +256,6 @@ class ShmBlueprintMutation
 
 
 
-                        if ($afterMutation && is_callable($afterMutation)) {
-                            $afterMutation();
-                        }
 
                         return  $structure->findOne([
                             "_id" => mDB::id($_id)
@@ -259,9 +269,6 @@ class ShmBlueprintMutation
 
                         $insert =  $structure->insertOne($inserValue);
 
-                        if ($afterMutation && is_callable($afterMutation)) {
-                            $afterMutation();
-                        }
 
                         return $structure->findOne([
                             "_id" => $insert->getInsertedId()

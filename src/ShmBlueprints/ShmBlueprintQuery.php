@@ -174,10 +174,16 @@ class ShmBlueprintQuery
                 }
 
 
-                $pipeline = $pipeline;
+                $pipeline = [
+                    ...$pipeline,
+                    ...$structure->getPipeline()
+                ];
 
 
-                if ($args['_id']) {
+
+
+
+                if (isset($args['_id'])) {
 
                     $pipeline = [
                         ...$pipeline,
@@ -226,7 +232,7 @@ class ShmBlueprintQuery
 
 
 
-                if ($args['search']) {
+                if (isset($args['search'])) {
 
                     $pipeline[] = [
                         '$match' => [
@@ -295,7 +301,7 @@ class ShmBlueprintQuery
                     }
                 }
 
-                if ($args['offset'] && $args['offset'] > 0) {
+                if (isset($args['offset']) && $args['offset'] > 0) {
 
                     $pipeline[] = [
                         '$skip' => $args['offset'],
@@ -309,7 +315,7 @@ class ShmBlueprintQuery
                 $result = $structure->aggregate(
                     $pipeline,
                     [
-                        'limit' => $args['limit'],
+                        'limit' => $args['limit'] ?? 20,
                     ]
                 )->toArray();
 
@@ -324,8 +330,8 @@ class ShmBlueprintQuery
 
                     return [
                         'data' => $result,
-                        'limit' => $args['limit'],
-                        'offset' => $args['offset'],
+                        'limit' => $args['limit'] ?? 20,
+                        'offset' => $args['offset'] ?? 0,
                         'total' => $total,
                     ];
                 }

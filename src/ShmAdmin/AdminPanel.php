@@ -2,6 +2,8 @@
 
 namespace Shm\ShmAdmin;
 
+use GuzzleHttp\Client;
+use GuzzleHttp\Psr7\Request;
 use Shm\ShmDB\mDB;
 use Shm\Shm;
 use Shm\ShmAdmin\Types\AdminType;
@@ -115,7 +117,10 @@ class AdminPanel
         'mongoPoint',
         'adminGroup',
         'dashboard',
-        'admin'
+        'admin',
+        "login",
+        "password",
+        "email",
     ];
 
     private static function baseStructure(): StructureType
@@ -338,6 +343,104 @@ class AdminPanel
                 }
 
             ],
+
+
+
+            'geocode' =>  [
+
+                "type" => Shm::arrayOf(Shm::structure([
+                    'id' => Shm::string(),
+                    'name' => Shm::string(),
+                    'description' => Shm::string(),
+                    'coordinates' => Shm::structure([
+                        'latitude' => Shm::float(),
+                        'longitude' => Shm::float(),
+
+                    ]),
+
+                ])),
+                'args' => [
+                    'byCoords' => Shm::structure([
+                        'latitude' => Shm::float(),
+                        'longitude' => Shm::float(),
+                    ]),
+                    'byString' => Shm::structure(
+                        [
+                            'string' => Shm::string(),
+                            'latutude' => Shm::float(),
+                            'longitude' => Shm::float()
+                        ]
+                    )
+
+                ],
+                'resolve' => function ($root, $args) {
+
+                    $byCoordsLat = $args['byCoords']['latitude'] ?? null;
+                    $byCoordsLon = $args['byCoords']['longitude'] ?? null;
+
+                    $byString = $args['byString']['string'] ?? null;
+                    $byStringLat = $args['byString']['latitude'] ?? null;
+                    $byStringLon = $args['byString']['longitude'] ?? null;
+
+                    $queryParams = [
+                        'apikey' => Config::get("yandexGeocodeKey"),
+                        'format' => 'json',
+                        'lang' => "ru_RU",
+                        'kind' => "house"
+                    ];
+
+                    $geocodeSeted = false;
+
+                    if ($byCoordsLat && $byCoordsLon) {
+                        $queryParams['geocode'] = $byCoordsLon . ',' . $byCoordsLat;
+                        $geocodeSeted = true;
+                    } elseif ($byString) {
+                        $queryParams['geocode'] = $byString;
+                        $geocodeSeted = true;
+                        if ($byStringLat && $byStringLon) {
+                            $queryParams['ll'] = $byStringLon . ',' . $byStringLat;
+                        }
+                    }
+
+                    if (!$geocodeSeted) return [];
+
+                    $client = new Client();
+                    $request = new Request('GET', 'https://geocode-maps.yandex.ru/1.x/?' . http_build_query($queryParams));
+                    $res = $client->sendAsync($request)->wait();
+                    $body = $res->getBody();
+
+                    $body =  json_decode($body, true);
+
+                    $featureMember = $body['response']['GeoObjectCollection']['featureMember'] ?? null;
+                    $result = [];
+                    foreach ($featureMember as $val) {
+
+
+
+
+                        $cord = explode(' ', $val['GeoObject']['Point']['pos']);
+
+                        $name = $val['GeoObject']['name'] ?? "";
+                        $description = $val['GeoObject']['description'] ?? "";
+                        if ($name) {
+                            $result[] = [
+                                'id' => md5($name . $description . $cord[0] . $cord[1]),
+                                'name' => $name,
+                                'description' => $description,
+                                'coordinates' => [
+                                    "longitude" =>  +$cord[0],
+                                    "latitude" =>   +$cord[1]
+                                ],
+                            ];
+                        }
+                    }
+
+                    return $result;
+                },
+
+            ],
+
+
 
             'deleteData' => [
                 'type' => Shm::bool(),
@@ -794,7 +897,7 @@ class AdminPanel
                     ]);
 
 
-                    return $fieldDescription[$args['type']][Auth::getApiKeyStructure()->collection][$args['path']] ?? null;
+                    return $fieldDescription[$args['type']][Auth::getAuthCollection()][$args['path']] ?? null;
                 }
 
             ],
@@ -827,7 +930,7 @@ class AdminPanel
 
                     $result = [];
 
-                    $fields = DescriptionsUtils::fields($args['collection'], Auth::getApiKeyStructure()->collection);
+                    $fields = DescriptionsUtils::fields($args['collection'], Auth::getAuthCollection());
 
                     foreach ($fields as $key => $val) {
                         $result['fields'][] = [
@@ -836,7 +939,7 @@ class AdminPanel
                         ];
                     }
 
-                    $groups = DescriptionsUtils::groups($args['collection'], Auth::getApiKeyStructure()->collection);
+                    $groups = DescriptionsUtils::groups($args['collection'], Auth::getAuthCollection());
 
                     foreach ($groups  as $key => $val) {
                         $result['groups'][] = [
@@ -844,7 +947,7 @@ class AdminPanel
                             "description" => $val
                         ];
                     }
-                    $tabs = DescriptionsUtils::tabs($args['collection'], Auth::getApiKeyStructure()->collection);
+                    $tabs = DescriptionsUtils::tabs($args['collection'], Auth::getAuthCollection());
                     foreach ($tabs as $key => $val) {
                         $result['tabs'][] = [
                             "key" => $key,
@@ -852,7 +955,7 @@ class AdminPanel
                         ];
                     }
 
-                    $menu = DescriptionsUtils::menu($args['collection'], Auth::getApiKeyStructure()->collection);
+                    $menu = DescriptionsUtils::menu($args['collection'], Auth::getAuthCollection());
                     foreach ($menu as $key => $val) {
                         $result['menu'][] = [
                             "key" => $key,

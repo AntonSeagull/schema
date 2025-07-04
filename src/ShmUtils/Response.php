@@ -17,6 +17,28 @@ class Response
     }
 
 
+    private static $traceTimingsStart = [];
+    private static $traceTimingsResult = [];
+
+
+    public static function startTraceTiming(string $name): void
+    {
+        self::$traceTimingsStart[$name] = microtime(true);
+    }
+
+    public static function endTraceTiming(string $name): void
+    {
+        if (isset(self::$traceTimingsStart[$name])) {
+            self::$traceTimingsResult[$name] = round((microtime(true) - self::$traceTimingsStart[$name]) * 1000);
+            unset(self::$traceTimingsStart[$name]);
+        } else {
+            throw new \Exception("Trace timing '{$name}' was not started.");
+        }
+    }
+
+
+
+
     /**
      * Базовая структура ответа.
      *
@@ -45,6 +67,11 @@ class Response
             'success' => true,
             'result' => $result,
             'executionTime' => self::$startTime ? round((microtime(true) - self::$startTime) * 1000) : null,
+            'traceTimings' => self::$traceTimingsResult,
+            'memoryUsage' => [
+                'used' => memory_get_usage(),
+                'peak' => memory_get_peak_usage(),
+            ],
         ]);
         exit(0);
     }

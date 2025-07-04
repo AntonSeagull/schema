@@ -26,6 +26,7 @@ use Shm\ShmTypes\EnumType;
 use Shm\ShmTypes\IDsType;
 use Shm\ShmTypes\IDType;
 use Shm\ShmTypes\MixedType;
+use Shm\ShmTypes\PasswordType;
 use Shm\ShmTypes\PhoneType;
 use Shm\ShmTypes\SelfRefType;
 use Shm\ShmTypes\StaticType;
@@ -69,9 +70,9 @@ class Shm
         return (new StringType())->type('login');
     }
 
-    public static function password(): StringType
+    public static function password(): PasswordType
     {
-        return (new StringType())->type('password');
+        return (new PasswordType());
     }
 
     public static function arrayOf(BaseType $itemType): ArrayOfType
@@ -104,14 +105,14 @@ class Shm
         return new RangeUnixDateType();
     }
 
-    public static function ID(StructureType | null $document = null): IDType
+    public static function ID(callable  | StructureType $documentResolver = null): IDType
     {
-        return (new IDType($document));
+        return (new IDType($documentResolver));
     }
 
-    public static function IDs(StructureType | null $document = null): IDsType
+    public static function IDs(callable | StructureType $documentResolver = null): IDsType
     {
-        return (new IDsType($document));
+        return (new IDsType($documentResolver));
     }
 
 

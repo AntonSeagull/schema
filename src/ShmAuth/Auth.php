@@ -195,4 +195,10 @@ class Auth
 
         return $hash;
     }
+
+    public static function isPasswordHash($password): bool
+    {
+        // Проверяем, является ли строка хешем SHA-512
+        return strlen($password) === 128;
+    }
 }

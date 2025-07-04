@@ -81,6 +81,7 @@ class ArrayOfType extends BaseType
 
 
 
+
     public function validate(mixed $value): void
     {
         parent::validate($value);

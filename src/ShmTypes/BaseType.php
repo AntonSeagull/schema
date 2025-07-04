@@ -15,6 +15,14 @@ abstract class BaseType
     public $hide = false;
 
 
+    public $notNull = false;
+
+    public function notNull(bool $notNull = true): static
+    {
+        $this->notNull = $notNull;
+        return $this;
+    }
+
     public $single = false;
 
     public function hide($hide = true): self
@@ -123,11 +131,11 @@ abstract class BaseType
     {
         $this->inAdmin = $isAdmin;
 
-        if (isset($this->items)) {
+        /* if (isset($this->items)) {
             foreach ($this->items as $key => $item) {
                 $item->inAdmin($isAdmin);
             }
-        }
+        }*/
 
         if (isset($this->itemType)) {
             $this->itemType->inAdmin($isAdmin);
@@ -600,6 +608,39 @@ abstract class BaseType
 
         return  $columns;
     }
+
+
+
+
+    public function stripNestedIds(): self
+    {
+
+
+
+
+        if (isset($this->items)) {
+
+
+            foreach ($this->items as $key => $item) {
+
+                if ($item instanceof IDType || $item instanceof IDsType) {
+                    $item->documentResolver();
+                }
+
+                if ($item instanceof StructureType) {
+                    $item->stripNestedIds();
+                }
+            }
+        }
+
+        if (isset($this->itemType)) {
+            $this->itemType->stripNestedIds();
+        }
+
+        return $this;
+    }
+
+
 
 
     public function getKeysGraph(): array

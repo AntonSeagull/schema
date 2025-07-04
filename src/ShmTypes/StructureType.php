@@ -38,6 +38,20 @@ class StructureType extends BaseType
 
 
 
+    public function addField(string $key, BaseType $type): self
+    {
+
+
+        if (!isset(
+            $this->items[$key]
+        ))
+            $this->items[$key] = $type;
+
+
+        return $this;
+    }
+
+
     public function canDelete(bool $canDelete = true): self
     {
         $this->canDelete = $canDelete;
@@ -194,9 +208,18 @@ class StructureType extends BaseType
             }
 
             foreach ($this->items as $key => $type) {
+
+
+
                 if (isset($value[$key]) || $type instanceof UUIDType) {
 
                     $value[$key] = $this->items[$key]->normalize($value[$key] ?? null, $addDefaultValues, $processId);
+                }
+
+
+                if ($type->notNull && !$value[$key]) {
+                    unset($value[$key]);
+                    continue;
                 }
             }
         }
@@ -258,6 +281,16 @@ class StructureType extends BaseType
         return $this;
     }
 
+    private  $baseTypePrefix = null;
+
+
+    public  function baseTypePrefix(string $prefix): self
+    {
+        $this->baseTypePrefix = ShmUtils::onlyLetters($prefix);
+
+        return $this;
+    }
+
     public function baseTypeName()
     {
 
@@ -281,7 +314,7 @@ class StructureType extends BaseType
             $typeName = Inflect::singularize(ShmUtils::onlyLetters($this->key)) .  AutoPostfix::get($keys);
         }
 
-        return $typeName;
+        return $this->baseTypePrefix ? $this->baseTypePrefix . $typeName : $typeName;
     }
 
 
@@ -832,6 +865,9 @@ class StructureType extends BaseType
 
         return mDB::collection($this->collection)->aggregate($pipeline);
     }
+
+
+
 
 
     public function columns(array | null $path = null): array

@@ -2,6 +2,7 @@
 
 namespace Shm\ShmTypes;
 
+use InvalidArgumentException;
 use Shm\ShmDB\mDB;
 
 use Shm\Shm;
@@ -15,10 +16,38 @@ class IDsType extends BaseType
 
     public  StructureType | null $document = null;
 
-    public function __construct(StructureType | null $document = null)
+
+
+    private $documentResolver = null;
+
+
+
+    public function documentResolver()
     {
-        $this->document = $document;
+
+        if ($this->documentResolver !== null) {
+            $resolver = $this->documentResolver;
+            $result = $resolver(); // вызов замыкания
+            if ($result instanceof StructureType || $result === null) {
+                $this->document = $result;
+            } else {
+                throw new InvalidArgumentException('documentResolver must return StructureType or null');
+            }
+        }
     }
+
+
+    public function __construct(callable  | StructureType $documentResolver = null)
+    {
+
+        if ($documentResolver instanceof StructureType) {
+            $this->document = $documentResolver;
+        } else {
+
+            $this->documentResolver = $documentResolver;
+        }
+    }
+
 
     public function normalize(mixed $values, $addDefaultValues = false, string | null $processId = null): mixed
     {

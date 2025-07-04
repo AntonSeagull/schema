@@ -13,7 +13,6 @@ class ShmRPCCodeGen
     {
 
 
-        ClassGenerator::generateClasses();
 
 
         $requests = [];

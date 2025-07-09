@@ -39,7 +39,7 @@ class ShmAuthBase
     }
 
     public $errorAccountNotFound = "Ваша учетная запись не найдена.";
-    public $initialValues = [];
+
 
     public function __construct(StructureType ...$authStructures)
     {
@@ -47,13 +47,7 @@ class ShmAuthBase
 
         $this->authStructures = $authStructures;
 
-        if (Auth::getApiKeyOwner()) {
 
-            $key = Inflect::singularize(Auth::getApiKeyCollection());
-            $this->initialValues = [
-                $key => Auth::getApiKeyOwner(),
-            ];
-        }
 
         return $this;
     }

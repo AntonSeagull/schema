@@ -122,10 +122,17 @@ class ShmBlueprintMutation
             $args['pull']  = Shm::structure($fields)->fullEditable();
         }
 
-        $args['move'] = Shm::structure([
-            'aboveId' => Shm::ID(),
-            'belowId' => Shm::ID()
-        ]);
+
+        if ($this->structure->manualSort) {
+
+            $args['move'] = Shm::structure([
+                'aboveId' => Shm::ID(),
+                'belowId' => Shm::ID()
+            ]);
+        }
+
+
+
 
         $_this = $this;
 

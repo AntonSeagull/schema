@@ -9,7 +9,8 @@ use Shm\ShmUtils\ShmUtils;
 
 class MongoPolygonType extends StructureType
 {
-    public string $type = 'mongoPolygonType';
+
+    public string $type = 'mongoPolygon';
 
     protected StructureType $fields;
 

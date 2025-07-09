@@ -38,15 +38,26 @@ class Auth
     }
 
 
+    private static $authOwnerData = null;
+
+
+    private static $authOwnerDataLoad = false;
 
     private static $authOwner = null;
     private static string | null $authCollection = null;
 
+
+    private static $apikeyOwnerData = null;
+
+    private static $apikeyOwnerDataLoad = false;
+
     private static $apikeyOwner = null;
     private static string | null $apikeyCollection = null;
 
-    private static $token_collection = "_tokens";
-    private static $apikey_collection = "_apikeys";
+    public static $token_collection = "_tokens";
+    public static $apikey_collection = "_apikeys";
+
+
 
 
     private static $initialized = false;
@@ -62,9 +73,19 @@ class Auth
 
         if ($token) {
 
-            $findToken = mDB::collection(self::$token_collection)->findOne([
-                "token" => $token,
-            ]);
+
+
+
+            $findToken = mDB::_collection(self::$token_collection)->findOneAndUpdate(
+                [
+                    "token" => $token,
+                ],
+                [
+                    '$set' => [
+                        'last_used' => time(),
+                    ],
+                ]
+            );
 
             if ($findToken && isset($findToken->collection) && isset($findToken->owner)) {
                 self::$authCollection = $findToken->collection;
@@ -74,9 +95,16 @@ class Auth
 
         if ($apikey) {
 
-            $findApiKey = mDB::collection(self::$apikey_collection)->findOne([
-                "apikey" => $apikey,
-            ]);
+            $findApiKey = mDB::_collection(self::$apikey_collection)->findOneAndUpdate(
+                [
+                    "apikey" => $apikey,
+                ],
+                [
+                    '$set' => [
+                        'last_used' => time(),
+                    ],
+                ]
+            );
 
             if ($findApiKey && isset($findApiKey->collection) && isset($findApiKey->owner)) {
                 self::$apikeyCollection = $findApiKey->collection;
@@ -110,6 +138,52 @@ class Auth
         }
     }
 
+
+    public static function getAuthOwnerField(string $key, $default = null): mixed
+    {
+        if (!self::$initialized) {
+            self::init();
+        }
+
+        if (self::$authOwner && self::$authCollection && !self::$authOwnerDataLoad) {
+
+
+            self::$authOwnerDataLoad = true;
+
+            self::$authOwnerData = mDB::collection(self::$authCollection)->findOne([
+                "_id" => self::$authOwner
+            ]);
+        }
+
+        if (!self::$authOwnerData) {
+            return $default;
+        }
+
+
+        return self::$authOwnerData && isset(self::$authOwnerData->{$key}) ? self::$authOwnerData->{$key} : $default;
+    }
+
+
+    public static function getApiKeyOwnerField(string $key, $default = null): mixed
+    {
+        if (!self::$initialized) {
+            self::init();
+        }
+
+        if (self::$apikeyOwner && self::$apikeyCollection && !self::$apikeyOwnerDataLoad) {
+
+            self::$apikeyOwnerDataLoad = true;
+
+            self::$apikeyOwnerData = mDB::collection(self::$apikeyCollection)->findOne([
+                "_id" => self::$apikeyOwner
+            ]);
+        }
+
+        if (!self::$apikeyOwnerData) {
+            return $default;
+        }
+        return self::$apikeyOwnerData && isset(self::$apikeyOwnerData->{$key}) ? self::$apikeyOwnerData->{$key} : $default;
+    }
 
 
     public static function getAuthOwner(): mixed
@@ -155,14 +229,15 @@ class Auth
 
 
 
-    public static function genApiKey(StructureType $structure,  $_id): string
+    public static function genApiKey(string $title, string $collection,  $_id): string
     {
 
         $apikey =  hash("sha512", $_id . time() . bin2hex(openssl_random_pseudo_bytes(64)));
 
         mDB::collection(self::$apikey_collection)->insertOne([
             "apikey" => $apikey,
-            'collection' => $structure->collection,
+            'title' => $title,
+            'collection' => $collection,
             "agent" => $_SERVER['HTTP_USER_AGENT'] ?? null,
             "ip" => $_SERVER['REMOTE_ADDR'] ?? null,
             "owner" => mDB::id($_id),
@@ -181,6 +256,7 @@ class Auth
             "token" => $token,
             'collection' => $structure->collection,
             "agent" => $_SERVER['HTTP_USER_AGENT'] ?? null,
+            'last_used' => time(),
             "ip" => $_SERVER['REMOTE_ADDR'] ?? null,
             "owner" => mDB::id($_id),
         ]);

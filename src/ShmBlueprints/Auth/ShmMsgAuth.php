@@ -132,7 +132,7 @@ class ShmMsgAuth extends ShmAuthBase
                                 if (!$phoneField) continue;
 
                                 $match = [
-                                    ...$this->initialValues,
+
                                     $phoneField => (int) $phone,
                                 ];
 
@@ -161,7 +161,7 @@ class ShmMsgAuth extends ShmAuthBase
                                 }
 
                                 $user = $authStructure->insertOne([
-                                    ...$this->initialValues,
+
                                     $phoneField => (int) $phone,
                                 ]);
 

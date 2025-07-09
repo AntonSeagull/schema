@@ -15,6 +15,8 @@ abstract class BaseType
     public $hide = false;
 
 
+
+
     public $notNull = false;
 
     public function notNull(bool $notNull = true): static
@@ -51,11 +53,24 @@ abstract class BaseType
         'key' => 'default'
     ];
 
-    public function group(string $groupTitle, string | null $svgIcon): static
+    public function hideNotInTable(): self
+    {
+
+        if (!$this->key || $this->key == '_id') {
+            return $this;
+        }
+
+        if (! $this->inTable) {
+            $this->hide = true;
+        }
+        return $this;
+    }
+
+    public function group(string $groupTitle, string | null $icon): static
     {
         $this->group = [
             'key' => md5($groupTitle),
-            'svgIcon' => $svgIcon,
+            'icon' => $icon,
             'title' => $groupTitle,
         ];
         return $this;
@@ -118,7 +133,7 @@ abstract class BaseType
         return $this;
     }
 
-    public $svgIcon = null;
+
 
 
 
@@ -206,6 +221,17 @@ abstract class BaseType
     }
 
 
+    public function icon(string $icon): self
+    {
+        $this->assets([
+            'icon' => $icon,
+        ]);
+
+        return $this;
+    }
+
+
+
     /**
      * Set the column width for admin forms.
      * 12 = half-width, 24 = full-width.
@@ -216,11 +242,6 @@ abstract class BaseType
         return $this;
     }
 
-    public function svgIcon(string $icon): static
-    {
-        $this->svgIcon = $icon;
-        return $this;
-    }
 
     /**
      * Set whether this field is for table display.
@@ -502,6 +523,8 @@ abstract class BaseType
     }
 
 
+
+
     public function updatePath(array | null $path = null): void
     {
 
@@ -570,44 +593,6 @@ abstract class BaseType
     }
 
 
-    public $columns = null;
-
-
-    public function columns(array | null $path = null): array
-    {
-
-
-
-        if (!$this->inTable || !$this->inAdmin) {
-            return [];
-        }
-
-        $key = $this->key;
-
-
-        if ($path) {
-            $key = implode('.', [...($path ?? []), $this->key]);
-        }
-
-
-
-        $columns = [
-
-            [
-                'title' => $this->title,
-                'dataIndex' =>  $key,
-                'key' => $key,
-                'width' => $this->columnsWidth,
-                'type' => $this,
-
-            ]
-
-        ];
-
-
-
-        return  $columns;
-    }
 
 
 

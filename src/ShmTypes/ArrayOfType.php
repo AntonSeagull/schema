@@ -179,16 +179,6 @@ class ArrayOfType extends BaseType
     }
 
 
-    public function columns(array | null $path = null): array
-    {
-
-
-        $this->columns = $this->itemType->columns($path ? [...$path, $this->key] : [$this->key]);
-
-        return parent::columns($path);
-    }
-
-
 
     public function externalData($data)
     {

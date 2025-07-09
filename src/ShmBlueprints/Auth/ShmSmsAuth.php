@@ -115,7 +115,7 @@ class ShmSmsAuth extends ShmAuthBase
                         }
 
                         $match = [
-                            ...$this->initialValues,
+
                             $phoneField->key => (int) $phone,
                         ];
 
@@ -155,15 +155,15 @@ class ShmSmsAuth extends ShmAuthBase
 
 
                         $insertData = [
-                            ...$this->initialValues,
+
                             $phoneField->key => (int) $phone,
                         ];
 
 
 
-                        $insertData = $authStructure->normalize($insertData, true);
 
-                        $user = mDB::collection($authStructure->collection)->insertOne($insertData);
+
+                        $user = $authStructure->insertOne($insertData);
 
                         return  Auth::genToken($authStructure, $user->getInsertedId());
                     } else {

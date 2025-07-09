@@ -14,6 +14,14 @@ class Collection
 {
 
 
+    public function __construct()
+    {
+
+
+        if (!$this->collection) {
+            $this->collection = $this->getShortClassName();
+        }
+    }
 
     public static function isAuthenticated(): bool
     {
@@ -30,6 +38,8 @@ class Collection
     {
         $_this = new static();
 
+
+
         if (Auth::getAuthCollection() != $_this->collection) {
             Response::unauthorized();
         }
@@ -40,27 +50,7 @@ class Collection
     public $collection;
 
 
-    public function initialValues(): array
-    {
-        return [];
-    }
 
-
-    public function basePipeline(): array
-    {
-
-        return [];
-    }
-
-
-    public function __construct()
-    {
-
-        if (!isset($this->collection) || empty($this->collection)) {
-
-            new Error("Collection class must have a 'collection' property defined.");
-        }
-    }
 
 
     public static function cloneSchema(): StructureType | null
@@ -81,6 +71,10 @@ class Collection
     {
 
         $_this = new static();
+
+        if (!$_this->collection) {
+            $_this->collection = $_this->getShortClassName();
+        }
 
         if (isset(self::$flattenCache[$_this->collection])) {
             return self::$flattenCache[$_this->collection];
@@ -114,7 +108,14 @@ class Collection
     public static function structure(): StructureType
     {
 
+
+
         $_this = new static();
+
+        if (!$_this->collection) {
+            $_this->collection = $_this->getShortClassName();
+        }
+
 
         if (isset(self::$structureCache[$_this->collection])) {
             return self::$structureCache[$_this->collection];
@@ -137,19 +138,39 @@ class Collection
         return null;
     }
 
+    public function getShortClassName(): string
+    {
+        $fullClassName = static::class;
+        $parts = explode('\\', $fullClassName);
+        $shortName = end($parts);
+
+        return lcfirst($shortName);
+    }
+
     final public function expect(): StructureType | null
     {
 
 
+        if (!$this->collection) {
+            $this->collection = $this->getShortClassName();
+        }
+
+
+
         $schema =  $this->schema()
             ->key($this->collection)
-            ->collection($this->collection)
-            ->pipeline($this->basePipeline() ?? []);
+            ->collection($this->collection);
 
         $schema->addField("_id", Shm::ID());
-        $schema->addField("_sortWeight", Shm::int());
+
+        if ($schema->manualSort) {
+            $schema->addField("_sortWeight", Shm::int());
+        }
+
         $schema->addField("created_at", Shm::int());
         $schema->addField("updated_at", Shm::int());
+
+
 
 
         return $schema;

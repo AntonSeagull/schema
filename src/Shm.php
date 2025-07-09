@@ -17,7 +17,8 @@ use Shm\ShmTypes\CompositeTypes\GeoTypes\GeoPointType;
 use Shm\ShmTypes\CompositeTypes\GeoTypes\MongoPointType;
 use Shm\ShmTypes\CompositeTypes\GeoTypes\MongoPolygonType;
 use Shm\ShmTypes\CompositeTypes\GeoTypes\MonogPointType;
-use Shm\ShmTypes\CompositeTypes\RangeUnixDateType;
+use Shm\ShmTypes\CompositeTypes\RangeType;
+
 use Shm\ShmTypes\CompositeTypes\SocialType;
 use Shm\ShmTypes\CompositeTypes\TimeType;
 use Shm\ShmTypes\StructureType;
@@ -100,10 +101,12 @@ class Shm
         return self::float();
     }
 
-    public static function rangeunixdate(): RangeUnixDateType
+    public static function range(BaseType $type): RangeType
     {
-        return new RangeUnixDateType();
+        return new RangeType($type);
     }
+
+
 
     public static function ID(callable  | StructureType $documentResolver = null): IDType
     {

@@ -101,9 +101,10 @@ class ShmLoginAuth extends ShmAuthBase
 
                 $this->hasValueValidator(['login', "password"], $args);
 
+                if (($_SERVER['SERVER_NAME'] ?? null) !== "localhost") {
 
-                self::forceProtect();
-
+                    self::forceProtect();
+                }
 
 
                 $user = null;
@@ -114,7 +115,7 @@ class ShmLoginAuth extends ShmAuthBase
                     $passwordField = $authStructure->findItemByType(Shm::password())?->key;
 
                     $match  = [
-                        ...$this->initialValues,
+
                         $loginField => $args['login'],
                         $passwordField => Auth::getPassword($args['password']),
 

@@ -31,10 +31,23 @@ class StructureType extends BaseType
 
     private $pipeline = [];
 
+    private $insertValues = [];
+
+
+    public bool $manualSort = false;
+
 
     public bool $canUpdate = false;
     public bool $canCreate = false;
     public bool $canDelete = false;
+
+
+    public function manualSort(bool $manualSort = true): self
+    {
+        $this->manualSort = $manualSort;
+        return $this;
+    }
+
 
 
 
@@ -105,6 +118,18 @@ class StructureType extends BaseType
         return null;
     }
 
+    public function insertValues(array $insertValues): self
+    {
+        $this->insertValues = $insertValues;
+        return $this;
+    }
+
+
+    public function getInsertValues(): array
+    {
+        return $this->insertValues;
+    }
+
 
     public function pipeline(array $pipeline): self
     {
@@ -152,7 +177,7 @@ class StructureType extends BaseType
                 foreach ($field->items as $subKey => $subField) {
 
 
-                    $subField->key($subKey)->group($field->title ?? "Default", $field->svgIcon);
+                    $subField->key($subKey)->group($field->title ?? "Default", $field->assets['icon'] ?? null);
                     $_items[$subKey] = $subField;
                 }
 
@@ -217,7 +242,7 @@ class StructureType extends BaseType
                 }
 
 
-                if ($type->notNull && !$value[$key]) {
+                if ($type->notNull && !isset($value[$key])) {
                     unset($value[$key]);
                     continue;
                 }
@@ -338,9 +363,19 @@ class StructureType extends BaseType
     {
         foreach ($this->items as $item) {
 
+
+            if ($item instanceof IDType || $item instanceof IDsType) {
+
+                if ($item->document && $item->document->collection === $collection) {
+                    return $item->document;
+                }
+            }
+
+
             if ($item instanceof StructureType) {
                 if ($item->collection === $collection)
                     return $item;
+
 
 
                 if ($item instanceof StructureType) {
@@ -584,7 +619,7 @@ class StructureType extends BaseType
         if (count($fields) == 0) {
             return null;
         }
-        $itemTypeFilter = Shm::structure($fields)->fullEditable()->fullInAdmin()->title($this->title)->staticBaseTypeName($this->key . 'FilterArgs');
+        $itemTypeFilter = Shm::structure($fields)->fullEditable()->title($this->title)->staticBaseTypeName($this->key . 'FilterArgs');
 
         if ($this->type == "structure") {
             $this->filterType =  $itemTypeFilter;
@@ -600,6 +635,7 @@ class StructureType extends BaseType
     public function tsType(): TSType
     {
         $TSType = new TSType();
+
 
 
 
@@ -645,7 +681,14 @@ class StructureType extends BaseType
                 continue;
             }
 
+
             $separate = $item->nullable ? '?: ' : ': ';
+
+            if ($key == "*") {
+                $key = '[key: string]';
+                $separate = ': ';
+            }
+
 
             $value[] = $key .  $separate . $item->tsInputType()->getTsTypeName();
         }
@@ -742,12 +785,40 @@ class StructureType extends BaseType
 
 
 
-
     public function find(array $filter = [], array $options = [])
     {
         $filter = mDB::replaceStringToObjectIds($filter);
 
-        return   mDB::collection($this->collection)->find($filter, $options);
+        $pipeline = [
+            [
+                '$match' => $filter
+            ],
+            ...$this->getPipeline(),
+
+        ];
+
+        if (isset($options['sort']) && is_array($options['sort'])) {
+            $pipeline[] = [
+                '$sort' => $options['sort']
+            ];
+        }
+        if (isset($options['limit']) && is_int($options['limit'])) {
+            $pipeline[] = [
+                '$limit' => $options['limit']
+            ];
+        }
+        if (isset($options['skip']) && is_int($options['skip'])) {
+            $pipeline[] = [
+                '$skip' => $options['skip']
+            ];
+        }
+        if (isset($options['projection']) && is_array($options['projection'])) {
+            $pipeline[] = [
+                '$project' => $options['projection']
+            ];
+        }
+
+        return   mDB::collection($this->collection)->aggregate($pipeline);
     }
 
     public function distinct(string $field, array $filter = [])
@@ -767,7 +838,15 @@ class StructureType extends BaseType
 
         $filter = mDB::replaceStringToObjectIds($filter);
 
-        return   mDB::collection($this->collection)->findOne($filter, $options);
+        return   mDB::collection($this->collection)->aggregate([
+            [
+                '$match' => $filter
+            ],
+            ...$this->getPipeline(),
+            [
+                '$limit' => 1
+            ]
+        ])->toArray()[0] ?? null;
     }
 
 
@@ -775,7 +854,15 @@ class StructureType extends BaseType
     public function insertOne($document, array $options = []): \MongoDB\InsertOneResult
     {
 
+        $document = [
+            ...$document,
+            ...$this->getInsertValues()
+        ];
+
+
         $document = $this->normalize($document, true);
+
+
 
         return mDB::collection($this->collection)->insertOne($document, $options);
     }
@@ -868,37 +955,21 @@ class StructureType extends BaseType
 
 
 
-
-
-    public function columns(array | null $path = null): array
+    public function hideNotInTable(): self
     {
 
+        if ($this->type == "structure") {
 
 
-        $this->columns = [];
+            foreach ($this->items as $key => $item) {
 
-        $columns = [];
-
-
-
-        foreach ($this->items as $key => $item) {
-
-            if ($item->inAdmin) {
-                if (!$this->collection) {
-                    $columns = [...$columns, ...$item->columns([$this->key])];
-                } else {
-                    $columns = [...$columns, ...$item->columns()];
-                }
-            } else {
-                $item->columns();
+                $item->hideNotInTable();
+            }
+        } else {
+            if (! $this->inTable) {
+                $this->hide = true;
             }
         }
-
-        if ($this->collection) {
-            $this->columns = $columns;
-        }
-
-
-        return $columns;
+        return $this;
     }
 }

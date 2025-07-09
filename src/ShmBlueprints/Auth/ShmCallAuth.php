@@ -91,7 +91,6 @@ class ShmCallAuth extends ShmAuthBase
                         $phoneField = $authStructure->findItemByType(Shm::phone())?->key;
 
                         $match = [
-                            ...$this->initialValues,
                             $phoneField => (int) $phone,
                         ];
 
@@ -122,7 +121,6 @@ class ShmCallAuth extends ShmAuthBase
                         }
 
                         $user = $authStructure->insertOne([
-                            ...$this->initialValues,
                             $phoneField => (int) $phone,
                         ]);
 

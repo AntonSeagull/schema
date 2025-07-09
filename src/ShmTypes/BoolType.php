@@ -49,31 +49,32 @@ class BoolType extends BaseType
 
 
 
-        if (is_bool($filter)) {
 
 
-            $path = $absolutePath ? implode('.', $absolutePath) . '.' . $this->key : $this->key;
 
-            if ($filter) {
-                return [
-                    [
-                        '$match' => [
-                            $path => true
-                        ]
+        $path = $absolutePath ? implode('.', $absolutePath) . '.' . $this->key : $this->key;
+
+        if ($filter == 'true') {
+            return [
+                [
+                    '$match' => [
+                        $path => true
                     ]
-                ];
-            } else {
-
-
-                return [
-                    [
-                        '$match' => [
-                            $path => ['$ne' => true]
-                        ]
-                    ]
-                ];
-            }
+                ]
+            ];
         }
+        if ($filter == 'false') {
+
+
+            return [
+                [
+                    '$match' => [
+                        $path => ['$ne' => true]
+                    ]
+                ]
+            ];
+        }
+
 
         return null;
     }
@@ -82,9 +83,12 @@ class BoolType extends BaseType
     {
 
 
-        $itemTypeFilter = Shm::bool()->editable()->inAdmin();
+        $itemTypeFilter = Shm::enum([
+            "true" => "Да",
+            "false" => "Нет",
+        ])->editable();
 
-        return $itemTypeFilter->fullEditable()->fullInAdmin($this->inAdmin)->title($this->title);
+        return $itemTypeFilter->fullEditable()->inAdmin($this->inAdmin)->title($this->title);
     }
 
     public function tsType(): TSType

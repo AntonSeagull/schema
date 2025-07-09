@@ -4,7 +4,7 @@ namespace Shm\ShmUtils;
 
 use Shm\ShmCmd\Cmd;
 use Shm\ShmCmd\CmdSchedule;
-use Shm\ShmCodeGen\ClassGenerator;
+
 use Shm\ShmDB\mDB;
 use Shm\ShmDB\mDBLite;
 use Throwable;
@@ -20,6 +20,8 @@ class ShmInit
 
     public static $rootDir = null;
 
+    public static $shmDir = null;
+
     public static function init(string $bootstrapAppDir): void
     {
 
@@ -32,7 +34,13 @@ class ShmInit
             header("Access-Control-Allow-Headers: *");
         }
 
+
+
+
+
         self::$rootDir = realpath($bootstrapAppDir . '/../');
+
+        self::$shmDir = realpath(dirname(__FILE__) . '/../');
 
         if (self::$inited) {
             return;
@@ -45,7 +53,7 @@ class ShmInit
         self::updateTimezone();
         self::makeConfigFile();
 
-        ClassGenerator::cmdInit();
+        Doctor::cmdInit();
         SearchStringUpdate::cmdInit();
 
         CmdSchedule::run();

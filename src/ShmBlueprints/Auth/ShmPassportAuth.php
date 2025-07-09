@@ -85,7 +85,7 @@ class ShmPassportAuth extends ShmAuthBase
                     }
 
                     $match = [
-                        ...$this->initialValues,
+
                         $phoneField => (int) $phone,
                     ];
 
@@ -113,7 +113,7 @@ class ShmPassportAuth extends ShmAuthBase
                     $phoneField = $authStructure->findItemByType(Shm::phone())?->key;
 
                     $user = $authStructure->insertOne([
-                        ...$this->initialValues,
+
                         $phoneField => (int) $phone,
                     ]);
 
@@ -127,13 +127,13 @@ class ShmPassportAuth extends ShmAuthBase
 
                             mDB::collection("devices")->updateOne(
                                 [
-                                    ...$this->initialValues,
+
                                     ...$deviceInfo,
                                     'user' => $userId,
                                 ],
                                 [
                                     '$set' => [
-                                        ...$this->initialValues,
+
                                         ...$deviceInfo,
                                         'user' => $userId,
 
@@ -161,13 +161,13 @@ class ShmPassportAuth extends ShmAuthBase
 
                             mDB::collection("devices")->updateOne(
                                 [
-                                    ...$this->initialValues,
+
                                     ...$deviceInfo,
                                     'user' => $user->_id
                                 ],
                                 [
                                     '$set' => [
-                                        ...$this->initialValues,
+
                                         ...$deviceInfo,
                                         'user' => $user->_id
 

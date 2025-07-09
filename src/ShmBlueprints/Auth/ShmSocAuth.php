@@ -150,7 +150,7 @@ class ShmSocAuth extends ShmAuthBase
                         }
 
                         $match = [
-                            ...$this->initialValues,
+
                             $socialField . ".id" => $userSoc['id'],
 
                         ];
@@ -175,13 +175,13 @@ class ShmSocAuth extends ShmAuthBase
 
                                 mDB::collection("devices")->updateOne(
                                     [
-                                        ...$this->initialValues,
+
                                         ...$deviceInfo,
                                         'user' => mDB::id($user['_id'])
                                     ],
                                     [
                                         '$set' => [
-                                            ...$this->initialValues,
+
                                             ...$deviceInfo,
                                             'user' => mDB::id($user['_id'])
 
@@ -222,7 +222,7 @@ class ShmSocAuth extends ShmAuthBase
                         $photoField = $authStructure->findItemByType(Shm::fileImageLink());
 
                         $insers = [
-                            ...$this->initialValues,
+
                             $socialField => [$userSoc],
                         ];
 
@@ -249,13 +249,13 @@ class ShmSocAuth extends ShmAuthBase
 
                                 mDB::collection("devices")->updateOne(
                                     [
-                                        ...$this->initialValues,
+
                                         ...$deviceInfo,
                                         'user' => mDB::id($user['_id'])
                                     ],
                                     [
                                         '$set' => [
-                                            ...$this->initialValues,
+
                                             ...$deviceInfo,
                                             'user' => mDB::id($user['_id'])
 

@@ -10,10 +10,11 @@ use Shm\ShmAdmin\Types\AdminType;
 use Shm\ShmAdmin\Types\GroupType;
 use Shm\ShmAdmin\Utils\DescriptionsUtils;
 use Shm\ShmAuth\Auth;
-use Shm\ShmBlueprints\Auth\ShmAuth;
+
 use Shm\ShmRPC\ShmRPC;
 use Shm\ShmTypes\StructureType;
 use Shm\ShmUtils\Config;
+use Shm\ShmUtils\Inflect;
 use Shm\ShmUtils\Response;
 
 
@@ -78,7 +79,7 @@ class AdminPanel
 
         self::$schema->filterType();
 
-        self::$schema->columns();
+
 
         $data = json_decode(json_encode(get_object_vars(self::$schema)), true);
         $data = self::removeNullValues($data);
@@ -103,7 +104,7 @@ class AdminPanel
         'text',
         'html',
         'time',
-        'rangeunixdate',
+        'range',
         'file',
         'imagelink',
         'video',
@@ -121,6 +122,8 @@ class AdminPanel
         "login",
         "password",
         "email",
+        "mongoPoint",
+        "mongoPolygon"
     ];
 
     private static function baseStructure(): StructureType
@@ -132,6 +135,8 @@ class AdminPanel
                 return $type;
             }),
 
+
+            'manualSort' => Shm::bool(),
             'publicStages' => Shm::structure([
                 "*" => Shm::string()
             ]),
@@ -147,15 +152,7 @@ class AdminPanel
                 return $type;
             }),
 
-            "columns" => Shm::arrayOf(Shm::structure([
-                'key' => Shm::string(),
-                'title' => Shm::string(),
-                'dataIndex' => Shm::string(),
-                'width' => Shm::int(),
-                "type" => Shm::selfRef(function () use (&$type) {
-                    return $type;
-                }),
-            ])),
+
             'values' => Shm::structure([
                 "*" => Shm::string()
             ]),
@@ -164,7 +161,6 @@ class AdminPanel
             'canDelete' => Shm::boolean(),
             'canCreate' => Shm::boolean(),
             'hide' => Shm::bool(),
-            "svgIcon" => Shm::string(),
             "single" => Shm::boolean(),
             "min" => Shm::float(),
             "max" => Shm::float(),
@@ -188,7 +184,7 @@ class AdminPanel
             ]),
             'group' => Shm::structure([
                 'key' => Shm::string(),
-                'svgIcon' => Shm::string(),
+                'icon' => Shm::string(),
                 'title' => Shm::string(),
             ]),
 
@@ -199,8 +195,117 @@ class AdminPanel
         return $type;
     }
 
+    private static function url($path = "")
+    {
+
+
+        $scheme =  (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on') ? 'https' : 'http';
+
+        $host = $_SERVER['HTTP_HOST'] ?? "";
+
+        $currentURL = $scheme . '://' . $host;
+
+        return $currentURL . $path;
+    }
+
+
+    private static function html()
+    {
+
+
+        $title = self::$schema->title ?? "Admin";
+
+        $icon = self::$schema->assets['icon'] ?? null;
+        $color = self::$schema->assets['color'] ?? "#000000";
+        $url = (string) self::url();
+
+        $js =  $url . "/static/js/main.js";
+        $css = $url . "/static/css/main.css";
+
+        $html = '<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover" />
+    <script async src="https://unpkg.com/pwacompat" crossorigin="anonymous"></script>
+    <meta name="theme-color" content="#000000" />
+    <meta name="description" content="" />
+    <title>' . $title . '</title>
+
+   
+    <link rel="icon" href="' . $icon . '" type="image/x-icon" />
+    <link rel="apple-touch-icon" href="' . $icon . '">
+    <meta name="theme-color" content="black" />
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="' . $title . '">
+    <meta name="msapplication-TileImage" content="' . $icon . '">
+    <meta name="msapplication-TileColor" content="#000">
+
+   
+
+    <link rel="stylesheet" href="' . $css . '" />
+   
+</head>
+
+<body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="load-preloader"
+        style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; display: flex; justify-content: center; align-items: center;">
+        <span class="init-loader"></span>
+    </div>
+    <div id="root"></div>
+</body>
+
+<script src="' . $js . '"></script>
+
+<style>
+    .init-loader {
+        width: 38px;
+        height: 38px;
+        border: 3px solid;
+
+        border-color: ' . $color . ' transparent;
+        border-radius: 50%;
+        display: inline-block;
+        box-sizing: border-box;
+        animation: rotation 1s linear infinite;
+    }
+
+    @keyframes rotation {
+        0% {
+            transform: rotate(0deg);
+        }
+
+        100% {
+            transform: rotate(360deg);
+        }
+    }
+</style>
+
+</html>
+';
+
+        return $html;
+    }
+
     public static function rpc()
     {
+
+
+        if (!isset($_GET['schema']) && $_SERVER['REQUEST_METHOD'] === 'GET') {
+            header_remove("X-Frame-Options");
+            $html = self::html();
+
+            header('Content-Type: text/html; charset=utf-8');
+            echo $html;
+            exit;
+        }
+
+
+
 
         ShmRPC::init([
 
@@ -211,13 +316,10 @@ class AdminPanel
 
             'profile' =>  [
                 "type" => Shm::structure([
-                    "_id" => Shm::string(),
-                    "photo" => Shm::string(),
-                    "name" => Shm::string(),
-                    "phone" => Shm::float(),
-                    "surname" => Shm::string(),
-                    "email" => Shm::string(),
-                    "social" => Shm::social(),
+
+                    'structure' => self::baseStructure(),
+                    'data' => Shm::mixed(),
+                    'changePassword' => Shm::boolean(),
                 ]),
 
                 'resolve' => function ($root, $args) {
@@ -225,27 +327,33 @@ class AdminPanel
 
                     Auth::authenticateOrThrow(...self::$users);
 
-                    $model =  Auth::getApiKeyStructure();
+
+                    $findStructure = null;
+
+                    foreach (self::$users as $user) {
+
+                        if ($user->collection == Auth::getAuthCollection()) {
+                            $findStructure = $user;
+                            break;
+                        }
+                    }
+
+                    if (!$findStructure) {
+                        Response::validation("Ошибка доступа");
+                    }
 
 
-                    $emailField = $model->findItemByType(Shm::email());
-                    $socialField = $model->findItemByType(Shm::social());
-                    $nameField = $model->findItemByKey('name');
-                    $surnameField = $model->findItemByKey('surname');
-                    $photoField = $model->findItemByType(Shm::fileImageLink());
-                    $phoneField = $model->findItemByType(Shm::phone());
+                    $passwordField =  $findStructure->findItemByType(Shm::password());
 
-
-                    $currentManager = Auth::getAuth();
+                    if ($passwordField)
+                        $findStructure->items[$passwordField->key]->inAdmin(false);
 
                     return [
-                        "_id" => $currentManager->_id,
-                        "photo" => $currentManager[$photoField] ?? null,
-                        "name" =>  $currentManager[$nameField] ?? null,
-                        "surname" => $currentManager[$surnameField] ?? null,
-                        "email" => $currentManager[$emailField] ?? null,
-                        "phone" => $currentManager[$phoneField] ?? null,
-                        "social" => $currentManager[$socialField] ?? [],
+                        'structure' => json_decode(json_encode(get_object_vars($findStructure)), true),
+                        'data' => $findStructure->normalize($findStructure->findOne([
+                            '_id' => Auth::getAuthOwner()
+                        ])),
+                        'changePassword' => $passwordField ? true : false,
                     ];
                 }
 
@@ -271,7 +379,7 @@ class AdminPanel
 
                 ]),
                 'resolve' => function ($root, $args) {
-                    // Auth::authenticateOrThrow(...self::$users);
+
 
                     $initData = self::json();
 
@@ -320,6 +428,8 @@ class AdminPanel
                     "collection" => Shm::nonNull(Shm::string()),
                 ]),
                 'resolve' => function ($root, $args) {
+
+                    Auth::authenticateOrThrow(...self::$users);
 
                     if (!isset($args['collection'])) {
                         Response::validation("Данные не доступны для просмотра");
@@ -374,6 +484,8 @@ class AdminPanel
 
                 ],
                 'resolve' => function ($root, $args) {
+
+                    Auth::authenticateOrThrow(...self::$users);
 
                     $byCoordsLat = $args['byCoords']['latitude'] ?? null;
                     $byCoordsLon = $args['byCoords']['longitude'] ?? null;
@@ -451,7 +563,7 @@ class AdminPanel
                 ]),
                 'resolve' => function ($root, $args) {
 
-                    //  Auth::authenticateOrThrow(...self::$users);
+                    Auth::authenticateOrThrow(...self::$users);
 
                     if (!isset($args['collection'])) {
                         Response::validation("Данные не доступны для просмотра");
@@ -482,6 +594,167 @@ class AdminPanel
                 }
             ],
 
+
+            'hash' => [
+                'type' => Shm::string(),
+                'args' => Shm::structure([
+                    "collection" => Shm::nonNull(Shm::string()),
+                    'limit' => Shm::int()->default(30),
+                    'offset' =>  Shm::int()->default(0),
+                    'search' => Shm::string()->default(''),
+                    'sort' => Shm::structure([
+                        'direction' => Shm::enum([
+                            'ASC' => 'По возрастанию',
+                            'DESC' => 'По убыванию',
+                        ])->default('DESC'),
+                        'field' => Shm::string(),
+                    ]),
+                    'filter' => Shm::mixed(),
+                    'stage' => Shm::string()
+                ]),
+
+                'resolve' => function ($root, $args) {
+
+
+
+                    Auth::authenticateOrThrow(...self::$users);
+
+                    if (!isset($args['collection'])) {
+                        Response::validation("Данные не доступны для просмотра");
+                    }
+
+
+
+                    $structure = self::$schema->findItemByCollection($args['collection']);
+
+
+
+                    if (!$structure) {
+                        Response::validation("Данные не доступны для просмотра");
+                    }
+
+
+                    $pipeline = $structure->getPipeline();
+
+
+                    if (isset($args['stage'])) {
+
+                        $stage = $structure->findStage($args['stage']);
+
+                        if ($stage) {
+                            $pipeline = [
+                                ...$pipeline,
+                                ...$stage->getPipeline(),
+                            ];
+                        }
+                    }
+
+
+                    if (isset($args['filter'])) {
+
+
+                        $pipelineFilter =  $structure->filterToPipeline($args['filter']);
+
+
+                        if ($pipelineFilter) {
+
+                            $pipeline = [
+                                ...$pipeline,
+                                ...$pipelineFilter,
+                            ];
+                        }
+                    };
+
+
+
+
+                    if (isset($args['search'])) {
+
+                        $pipeline[] = [
+                            '$match' => [
+                                'search_string' => ['$regex' => mb_strtolower(trim($args['search'])), '$options' => 'i'],
+                            ],
+                        ];
+                    }
+
+
+
+                    $_limit = $args['limit'] ?? null;
+
+                    if (! $_limit) {
+                        return null;
+                    }
+
+
+
+
+                    if (isset($args['sort']) && isset($args['sort']['field']) && isset($args['sort']['direction'])) {
+
+                        $pipeline[] = [
+                            '$sort' => [
+                                $args['sort']['field'] => $args['sort']['direction'] == "DESC" ? -1 : 1,
+                            ],
+                        ];
+                    } else {
+
+                        if ($structure->manualSort) {
+
+                            $pipeline[] = [
+                                '$sort' => [
+                                    "_sortWeight" => -1,
+
+                                ],
+                            ];
+                        } else {
+
+                            $pipeline[] = [
+                                '$sort' => [
+                                    "_id" => -1,
+                                ],
+                            ];
+                        }
+                    }
+
+                    if (isset($args['offset']) && $args['offset'] > 0) {
+
+                        $pipeline[] = [
+                            '$skip' => $args['offset'],
+                        ];
+                    }
+
+
+                    //Оставляем только _id и updated_at для хеширования
+                    $pipeline[] = [
+                        '$project' => [
+                            '_id' => 1,
+                            'updated_at' => 1,
+                        ],
+                    ];
+
+                    $pipeline[] = [
+                        '$limit' => $args['limit'] ?? 20,
+                    ];
+
+
+                    Response::startTraceTiming("data_aggregate");
+                    $result = $structure->aggregate(
+                        $pipeline
+
+                    )->toArray();
+                    Response::endTraceTiming("data_aggregate");
+
+
+                    $hash = [];
+
+                    foreach ($result as $val) {
+                        $hash[] = $val['_id'] . $val['updated_at'];
+                    }
+
+                    return  md5(implode("", $hash));
+                }
+
+            ],
+
             'data' => [
                 'type' => Shm::structure([
                     'data' => Shm::arrayOf(Shm::structure([
@@ -489,15 +762,17 @@ class AdminPanel
                         "*" => Shm::mixed(),
                     ])),
                     'limit' => Shm::int(),
+                    'hash' => Shm::string(),
                     'offset' => Shm::int(),
                     'total' => Shm::int(),
                 ]),
                 'args' => Shm::structure([
 
                     "_id" => Shm::ID()->default(null),
+                    'table' => Shm::boolean()->default(false),
                     "collection" => Shm::nonNull(Shm::string()),
                     'limit' => Shm::int()->default(30),
-                    'delete' => Shm::boolean()->default(false),
+
                     'offset' =>  Shm::int()->default(0),
                     'search' => Shm::string()->default(''),
                     'sort' => Shm::structure([
@@ -512,7 +787,9 @@ class AdminPanel
                 ]),
                 'resolve' => function ($root, $args) {
 
-                    //  Auth::authenticateOrThrow(...self::$users);
+
+
+                    Auth::authenticateOrThrow(...self::$users);
 
                     if (!isset($args['collection'])) {
                         Response::validation("Данные не доступны для просмотра");
@@ -524,6 +801,10 @@ class AdminPanel
 
 
 
+                    $structure->inTable(true);
+                    if ($args['table'] ?? false) {
+                        $structure->hideNotInTable();
+                    }
 
                     if (!$structure) {
                         Response::validation("Данные не доступны для просмотра");
@@ -587,6 +868,7 @@ class AdminPanel
                         $pipelineFilter =  $structure->filterToPipeline($args['filter']);
 
 
+
                         if ($pipelineFilter) {
 
                             $pipeline = [
@@ -611,12 +893,14 @@ class AdminPanel
 
                     $total = 0;
 
+                    Response::startTraceTiming("total_count");
                     $total =  $structure->aggregate([
                         ...$pipeline,
                         [
                             '$count' => 'total',
                         ],
                     ])->toArray()[0]['total'] ?? 0;
+                    Response::endTraceTiming("total_count");
 
                     $_limit = $args['limit'] ?? null;
 
@@ -643,13 +927,22 @@ class AdminPanel
                         ];
                     } else {
 
+                        if ($structure->manualSort) {
 
-                        $pipeline[] = [
-                            '$sort' => [
-                                "_sortWeight" => -1,
-                                "_id" => -1,
-                            ],
-                        ];
+                            $pipeline[] = [
+                                '$sort' => [
+                                    "_sortWeight" => -1,
+
+                                ],
+                            ];
+                        } else {
+
+                            $pipeline[] = [
+                                '$sort' => [
+                                    "_id" => -1,
+                                ],
+                            ];
+                        }
                     }
 
                     if (isset($args['offset']) && $args['offset'] > 0) {
@@ -660,28 +953,185 @@ class AdminPanel
                     }
 
 
+                    $pipeline[] = [
+                        '$limit' => $args['limit'] ?? 20,
+                    ];
 
+
+                    Response::startTraceTiming("data_aggregate");
                     $result = $structure->aggregate(
-                        $pipeline,
-                        [
-                            'limit' => $args['limit'] ?? 30,
-                        ]
+                        $pipeline
+
                     )->toArray();
+                    Response::endTraceTiming("data_aggregate");
 
 
+                    $hash = [];
+
+                    foreach ($result as $val) {
+                        $hash[] = $val['_id'] . $val['updated_at'];
+                    }
+
+                    $hash = md5(implode("", $hash));
 
 
 
                     return [
                         'data' => $result,
-                        'limit' => $args['limit'] ?? 30,
+                        'limit' => $args['limit'] ?? 20,
                         'offset' => $args['offset'] ?? 0,
+                        'hash' => $hash,
                         'total' => $total,
                     ];
                 }
 
             ],
 
+
+
+            'apikeys' => [
+                'type' => Shm::arrayOf(Shm::structure([
+                    "_id" => Shm::ID(),
+                    'apikey' => Shm::string(),
+                    "title" => Shm::string(),
+                    'last_used' => Shm::int(),
+                    "created_at" => Shm::int(),
+                ])),
+                'resolve' => function ($root, $args) {
+
+                    Auth::authenticateOrThrow(...self::$users);
+
+                    $apikeys = mDB::collection(Auth::$apikey_collection)->find(
+                        [
+                            'owner' => Auth::getAuthOwner(),
+                        ],
+                        [
+                            'projection' => [
+                                '_id' => 1,
+                                'apikey' => 1,
+                                'last_used' => 1,
+                                'title' => 1,
+                                'created_at' => 1,
+                            ]
+                        ]
+                    )->toArray();
+
+                    $result = [];
+
+                    foreach ($apikeys as $apikey) {
+
+
+                        $result[] = [
+                            '_id' => (string)$apikey['_id'],
+                            //От APIKEY остаавляем только первые 10 символов
+                            'apikey' =>  substr($apikey['apikey'] ?? '', 0, 10) . '...',
+                            'title' => $apikey['title'] ?? '',
+                            'last_used' => $apikey['last_used'] ?? 0,
+                            'created_at' => $apikey['created_at'] ?? 0,
+                        ];
+                    }
+
+                    return $result;
+                }
+            ],
+
+            'removeApiKey' => [
+                'type' => Shm::boolean(),
+                'args' => [
+                    '_id' => Shm::string(),
+                ],
+                'resolve' => function ($root, $args) {
+
+
+                    Auth::authenticateOrThrow(...self::$users);
+
+                    $apikeyId = $args['_id'] ?? null;
+
+                    if (!$apikeyId) {
+                        Response::validation("Не указан ID ключа");
+                    }
+
+                    $apikey = mDB::collection(Auth::$apikey_collection)->findOne([
+                        '_id' => mDB::id($apikeyId),
+                        'owner' => Auth::getAuthOwner(),
+                    ]);
+
+                    if (!$apikey) {
+                        Response::validation("Ключ не найден или не принадлежит вам");
+                    }
+
+                    mDB::collection(Auth::$apikey_collection)->deleteOne([
+                        '_id' => mDB::id($apikeyId),
+                    ]);
+
+                    return true;
+                }
+            ],
+
+            'newApiKey' => [
+                'type' => Shm::string(),
+                'args' => [
+                    'title' => Shm::string(),
+                ],
+                'resolve' => function ($root, $args) {
+
+                    Auth::authenticateOrThrow(...self::$users);
+
+                    $title = $args['title'] ?? null;
+
+                    if (!$title) {
+                        Response::validation("Не указано название ключа");
+                    }
+
+                    $apikey = Auth::genApiKey($title, Auth::getAuthCollection(), Auth::getAuthOwner());
+
+                    if (!$apikey) {
+                        Response::validation("Ошибка при создании ключа");
+                    }
+
+                    return   $apikey;
+                }
+
+            ],
+
+
+            'moveUpdate' => [
+                'type' => Shm::bool(),
+                'args' => Shm::structure([
+
+                    "_id" => Shm::ID(),
+                    'collection' => Shm::string(),
+                    'aboveId' => Shm::ID(),
+                    'belowId' => Shm::ID()
+                ]),
+                'resolve' => function ($root, $args) {
+
+                    Auth::authenticateOrThrow(...self::$users);
+
+                    if (!isset($args['collection'])) {
+                        Response::validation("Изменения сортировки не доступна");
+                    }
+
+
+                    $structure = self::$schema->findItemByCollection($args['collection']);
+
+
+                    if (!$structure) {
+                        Response::validation("Изменения сортировки не доступна");
+                    }
+
+
+                    $_id = $args['_id'] ?? null;
+                    $aboveId = $args['aboveId'] ?? null;
+                    $belowId = $args['belowId'] ?? null;
+
+
+                    $currentId = mDB::id($_id);
+
+                    return  $structure->moveRow($currentId, $aboveId, $belowId);
+                }
+
+            ],
 
 
 
@@ -699,10 +1149,11 @@ class AdminPanel
                     "_ids" => Shm::IDs()->default(null),
                     "collection" => Shm::nonNull(Shm::string()),
                     'values' => Shm::mixed(),
+
                 ]),
                 'resolve' => function ($root, $args) {
 
-                    //  Auth::authenticateOrThrow(...self::$users);
+                    Auth::authenticateOrThrow(...self::$users);
 
                     if (!isset($args['collection'])) {
                         Response::validation("Данные не доступны для просмотра");
@@ -793,7 +1244,7 @@ class AdminPanel
                 ]),
                 'resolve' => function ($root, $args) {
 
-                    //  Auth::authenticateOrThrow(...self::$users);
+                    Auth::authenticateOrThrow(...self::$users);
 
                     if (!isset($args['collection'])) {
                         Response::validation("Данные не доступны для просмотра");
@@ -881,111 +1332,147 @@ class AdminPanel
 
             ],
 
-
-            'itemDescription' => [
-                "type" => Shm::string(),
-                "args" =>  Shm::structure([
-                    "collection" =>  Shm::nonNull(Shm::string()),
-                    "type" => Shm::enum(['fields', 'groups', 'tabs', 'menu']),
-                    "path" => Shm::nonNull(Shm::string()),
-                ]),
-                'resolve' => function ($root, $args) {
-                    Auth::authenticateOrThrow(...self::$users);
-
-                    $fieldDescription = mDB::collection("_collectionDescriptions")->findOne([
-                        "key" => $args['collection'],
-                    ]);
-
-
-                    return $fieldDescription[$args['type']][Auth::getAuthCollection()][$args['path']] ?? null;
-                }
-
-            ],
-            "dataDescription" => [
+            'descriptions' => [
                 "type" => Shm::structure([
-                    'fields' => Shm::listOf(Shm::structure([
-                        'key' => Shm::string(),
-                        'description' => Shm::string(),
-                    ])),
-                    'groups' => Shm::listOf(Shm::structure([
-                        'key' => Shm::string(),
-                        'description' => Shm::string(),
-                    ])),
-                    'tabs' => Shm::listOf(Shm::structure([
-                        'key' => Shm::string(),
-                        'description' => Shm::string(),
-                    ])),
-                    "menu" => Shm::listOf(Shm::structure([
-                        'key' => Shm::string(),
-                        'description' => Shm::string(),
-                    ])),
-                ]),
-
-                'args' => Shm::structure([
-                    "collection" => Shm::nonNull(Shm::string()),
+                    '*' => Shm::string()
                 ]),
                 'resolve' => function ($root, $args) {
                     Auth::authenticateOrThrow(...self::$users);
 
-
-                    $result = [];
-
-                    $fields = DescriptionsUtils::fields($args['collection'], Auth::getAuthCollection());
-
-                    foreach ($fields as $key => $val) {
-                        $result['fields'][] = [
-                            "key" => $key,
-                            "description" => $val
-                        ];
-                    }
-
-                    $groups = DescriptionsUtils::groups($args['collection'], Auth::getAuthCollection());
-
-                    foreach ($groups  as $key => $val) {
-                        $result['groups'][] = [
-                            "key" => $key,
-                            "description" => $val
-                        ];
-                    }
-                    $tabs = DescriptionsUtils::tabs($args['collection'], Auth::getAuthCollection());
-                    foreach ($tabs as $key => $val) {
-                        $result['tabs'][] = [
-                            "key" => $key,
-                            "description" => $val
-                        ];
-                    }
-
-                    $menu = DescriptionsUtils::menu($args['collection'], Auth::getAuthCollection());
-                    foreach ($menu as $key => $val) {
-                        $result['menu'][] = [
-                            "key" => $key,
-                            "description" => $val
-                        ];
-                    }
-
-                    return $result;
-                }
-            ],
-            "blockDescription" => [
-                "type" => Shm::string(),
-                'args' => Shm::structure([
-                    "key" => Shm::nonNull(Shm::string()),
-                    "block" =>  Shm::nonNull(Shm::string()),
-                ]),
-                'resolve' => function ($root, $args) {
-                    Auth::authenticateOrThrow(...self::$users);
-
-                    $fieldDescription = mDB::collection("_collectionDescriptions")->findOne([
-
-                        "key" => $args['key'],
+                    $fieldDescription = mDB::collection("_adminDescriptions")->findOne([
+                        "ownerCollection" => Auth::getAuthCollection()
                     ]);
 
 
-
-                    return $fieldDescription['fields'][Auth::getAuthStructure()->collection][$args['block']] ?? null;
+                    return $fieldDescription;
                 }
-
             ],
+
+            'payments' => [
+                'type' => Shm::structure([
+
+                    'balances' => Shm::structure([
+                        "*" => Shm::float()
+                    ])->staticBaseTypeName("PaymentsBalances"),
+                    'data' => Shm::arrayOf(Shm::structure(
+                        [
+
+                            "amount" => Shm::float(),
+                            "currency" => Shm::string(),
+                            "description" => Shm::string(),
+                            "created_at" => Shm::float(),
+                        ]
+                    )->staticBaseTypeName("PaymentsData")),
+
+                ])->staticBaseTypeName("Payments"),
+                'resolve' => function ($root, $args) {
+                    Auth::authenticateOrThrow(...self::$users);
+
+
+                    $paymentCollection = Auth::getAuthCollection() . "_payments";
+
+
+                    $key = Inflect::singularize(Auth::getAuthCollection());
+                    $filter = [
+                        '$or' => [
+                            ['manager' => Auth::getAuthOwner()],
+                            [$key => Auth::getAuthOwner()],
+                        ],
+                    ];
+
+                    $data = mDB::collection($paymentCollection)->find($filter, [
+                        'sort' => [
+                            "_id" => -1,
+                        ],
+                        'limit' => 1000,
+
+                    ]);
+
+                    $balancesData = mDB::collection($paymentCollection)->aggregate([
+                        ['$match' => $filter],
+                        ['$match' => ['deleted_at' => ['$exists' => false]]],
+
+                        [
+                            '$group' => [
+                                '_id' => '$currency',
+                                'value' => [
+                                    '$sum' => '$amount'
+                                ]
+                            ]
+                        ]
+                    ])->toArray();
+
+
+                    $balances = [];
+                    foreach ($balancesData as $balance) {
+                        $balances[$balance['_id']] = $balance['value'];
+                    }
+
+
+                    return [
+                        'balances' =>        $balances,
+                        'data' => $data
+                    ];
+                }
+            ],
+
+            'updateDescriptions' => [
+                "type" => Shm::structure([
+                    '*' => Shm::string()
+                ]),
+                'args' => [
+                    "descriptions" => Shm::nonNull(Shm::structure([
+                        '*' => Shm::string()
+                    ]))
+                ],
+                'resolve' => function ($root, $args) {
+                    Auth::authenticateOrThrow(...self::$users);
+
+
+
+                    $fieldDescription = [];
+
+                    //Добавляем новые значения
+                    foreach ($args['descriptions'] as $key => $val) {
+
+                        if ($key == "ownerCollection") {
+                            continue;
+                        }
+
+                        if ($key == "_id") {
+                            //Если это ID, то пропускаем
+                            continue;
+                        }
+
+                        if ($key == "created_at" || $key == "updated_at") {
+                            //Если это дата, то пропускаем
+                            continue;
+                        }
+
+                        if ($val)
+                            $fieldDescription[$key] = $val;
+                    }
+
+
+                    if (count($fieldDescription) > 0) {
+                        mDB::collection("_adminDescriptions")->updateOne(
+                            [
+                                "ownerCollection" => Auth::getAuthCollection()
+                            ],
+                            [
+                                '$set' => $fieldDescription
+                            ],
+                            [
+                                'upsert' => true
+                            ]
+                        );
+                    }
+
+
+                    return $fieldDescription;
+                }
+            ],
+
 
 
 
@@ -1015,6 +1502,51 @@ class AdminPanel
                     return mDB::collection("_localization")->aggregate($aggregate)->toArray();
                 },
 
+            ],
+
+            'addLocalizationEntry' => [
+                "type" => Shm::boolean(),
+                'args' => Shm::structure([
+                    "data" =>  Shm::nonNull(Shm::listOf(Shm::string())),
+                ]),
+                'resolve' => function ($root, $args) {
+
+
+
+                    $updateData = []; // Создайте массив для хранения данных обновления
+                    foreach ($args['data'] as $item) {
+
+
+                        $key = md5($item);
+
+                        $updateData[] = [
+                            'updateOne' => [
+                                [
+                                    "key" => $key,
+
+                                ],
+                                [
+                                    '$set' => [
+                                        "key" => $key,
+                                        "ru" => $item,
+                                    ],
+                                ],
+                                [
+                                    'upsert' => true,
+                                ],
+                            ],
+                        ];
+                    }
+
+
+                    // Выполните обновление нескольких документов одним запросом
+                    if (count($updateData) > 0) {
+                        mDB::collection('_localization')->bulkWrite($updateData);
+                    }
+
+
+                    return true;
+                },
             ]
         ]);
     }

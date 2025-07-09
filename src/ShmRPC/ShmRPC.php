@@ -8,7 +8,7 @@ use Shm\Shm;
 use Shm\ShmBlueprints\Auth\ShmAuth;
 use Shm\ShmBlueprints\ShmBlueprintMutation;
 use Shm\ShmBlueprints\ShmBlueprintQuery;
-use Shm\ShmCodeGen\ClassGenerator;
+
 use Shm\ShmDB\mDB;
 use Shm\ShmRPC\ShmRPCCodeGen\ShmRPCCodeGen;
 use Shm\ShmUtils\DeepAccess;
@@ -174,9 +174,6 @@ class ShmRPC
 
 
 
-        if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-            ClassGenerator::generateClasses();
-        }
 
         Response::startTime();
 
@@ -187,7 +184,7 @@ class ShmRPC
 
 
         //If GET request, we can return the schema
-        if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+        if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['schema'])) {
 
             foreach ($schemaParams as $key => $field) {
                 $schemaParams[$key] = self::transformSchemaParams($field, $key);

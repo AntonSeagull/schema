@@ -59,6 +59,7 @@ class CollectionEvents
 
         $filter['deleted_at'] = ['$exists' => false];
 
+
         return $this->collection->findOne($filter, $options);
     }
 

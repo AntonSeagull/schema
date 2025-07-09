@@ -14455,7 +14455,9 @@ class MaterialIcons
                     $svg = self::injectSvgAttributes($svg, 'height="' . htmlspecialchars($height) . 'px"');
                 }
                 if ($fill) {
-                    $svg = self::injectSvgAttributes($svg, 'fill="' . htmlspecialchars($fill) . '"');
+
+
+                    $svg = self::injectSvgAttributes($svg, 'fill="#' . $fill . '"');
                 }
 
                 echo  $svg;

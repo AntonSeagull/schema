@@ -122,6 +122,7 @@ class ShmBlueprintQuery
                 'data' => Shm::arrayOf($this->structure),
                 'limit' => Shm::int(),
                 'offset' => Shm::int(),
+                'hash' => Shm::string(),
                 'total' => Shm::int(),
             ])->key($this->structure->key . 'Data');
         }
@@ -132,6 +133,7 @@ class ShmBlueprintQuery
             "_id" => Shm::ID()->default(null),
 
 
+            'onlyHash' => $this->withoutData ? null : Shm::boolean()->default(false),
 
             'limit' => Shm::int()->default(30),
             'sample' => Shm::boolean(),
@@ -165,6 +167,8 @@ class ShmBlueprintQuery
             'args' =>  $argsStructure,
             'resolve' => function ($root, $args, $context, $info) use ($structure, $withoutData, $pipeline, $argsStructure) {
 
+
+                $onlyHash = $args['onlyHash'] ?? false;
 
                 $args =  $argsStructure->normalize($args, true);
 
@@ -232,7 +236,7 @@ class ShmBlueprintQuery
 
 
 
-                if (isset($args['search'])) {
+                if (isset($args['search']) && trim($args['search']) !== '') {
 
                     $pipeline[] = [
                         '$match' => [
@@ -242,8 +246,9 @@ class ShmBlueprintQuery
                 }
 
 
+
                 $total = 0;
-                if (!$withoutData) {
+                if (!$withoutData && !$onlyHash) {
                     $total =  $structure->aggregate([
                         ...$pipeline,
                         [
@@ -291,13 +296,22 @@ class ShmBlueprintQuery
 
                     if (!$hasSort) {
 
+                        if ($structure->manualSort) {
 
-                        $pipeline[] = [
-                            '$sort' => [
-                                "_sortWeight" => -1,
-                                "_id" => -1,
-                            ],
-                        ];
+                            $pipeline[] = [
+                                '$sort' => [
+                                    "_sortWeight" => -1,
+
+                                ],
+                            ];
+                        } else {
+
+                            $pipeline[] = [
+                                '$sort' => [
+                                    "_id" => -1,
+                                ],
+                            ];
+                        }
                     }
                 }
 
@@ -311,16 +325,50 @@ class ShmBlueprintQuery
 
 
 
+                $pipeline[] = [
+                    '$limit' => $args['limit'] ?? 20,
+                ];
+
+
+                if ($onlyHash) {
+
+                    $pipeline[] = [
+                        '$project' => [
+                            '_id' => 1,
+                            'updated_at' => 1,
+                        ],
+                    ];
+                }
+
+
 
                 $result = $structure->aggregate(
                     $pipeline,
-                    [
-                        'limit' => $args['limit'] ?? 20,
-                    ]
+
                 )->toArray();
 
 
+
+
+                if ($onlyHash) {
+
+                    $hash = [];
+
+                    foreach ($result as $val) {
+                        $hash[] = $val['_id'] . $val['updated_at'];
+                    }
+
+                    $hash = md5(implode("", $hash));
+
+                    return [
+                        'hash' => $hash,
+                    ];
+                }
+
+
+
                 $result =  Shm::arrayOf($structure)->normalize($result);
+
 
 
                 if ($withoutData) {
@@ -328,10 +376,26 @@ class ShmBlueprintQuery
                     return $result;
                 } else {
 
+
+
+
+                    $hash = [];
+
+                    foreach ($result as $val) {
+                        $hash[] = $val['_id'] . $val['updated_at'];
+                    }
+
+                    if (count($hash) > 0) {
+                        $hash = md5(implode("", $hash));
+                    } else {
+                        $hash = null;
+                    }
+
                     return [
                         'data' => $result,
                         'limit' => $args['limit'] ?? 20,
                         'offset' => $args['offset'] ?? 0,
+                        'hash' => $hash,
                         'total' => $total,
                     ];
                 }

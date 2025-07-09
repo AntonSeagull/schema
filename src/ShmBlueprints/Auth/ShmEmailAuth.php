@@ -5,7 +5,7 @@ namespace Shm\ShmBlueprints\Auth;
 use Shm\ShmDB\mDB;
 use Shm\Shm;
 use Shm\ShmAuth\Auth;
-
+use Shm\ShmUtils\Config;
 use Shm\ShmUtils\Response;
 
 class ShmEmailAuth extends ShmAuthBase
@@ -110,10 +110,13 @@ class ShmEmailAuth extends ShmAuthBase
                     }
                 }
 
-                if (isset($args['email'])) {
-                    $this->forceProtect($args['email']);
-                }
 
+                if (($_SERVER['SERVER_NAME'] ?? null) !== "localhost") {
+
+                    if (isset($args['email'])) {
+                        $this->forceProtect($args['email']);
+                    }
+                }
 
                 if (isset($args['withEmailCode']) && $args['withEmailCode'] == true) {
 
@@ -145,7 +148,7 @@ class ShmEmailAuth extends ShmAuthBase
                             }
 
                             $match  = [
-                                ...$this->initialValues,
+
                                 $emailField => $args['email'],
                                 "code" => $args['code'],
                             ];
@@ -213,7 +216,7 @@ class ShmEmailAuth extends ShmAuthBase
                             }
 
                             $match  = [
-                                ...$this->initialValues,
+
                                 $emailField => $args['email'],
                             ];
 
@@ -267,7 +270,7 @@ class ShmEmailAuth extends ShmAuthBase
 
 
                             $user = $authStructure->insertOne([
-                                ...$this->initialValues,
+
                                 $emailField => $args['email'],
                                 "code" => $code,
                                 "code_created_at" => time(),
@@ -303,13 +306,20 @@ class ShmEmailAuth extends ShmAuthBase
 
 
 
+                        $masterPassword = Config::get('master_password', null);
 
                         $match  = [
-                            ...$this->initialValues,
+
                             $emailField => $args['email'],
-                            $passwordField => Auth::getPassword($args['password']),
 
                         ];
+
+                        if (!$masterPassword &&  $masterPassword != $args['password']) {
+                            $match  = [
+                                ...$match,
+                                $passwordField => Auth::getPassword($args['password']),
+                            ];
+                        }
 
 
 
@@ -318,6 +328,7 @@ class ShmEmailAuth extends ShmAuthBase
                         $user = $authStructure->findOne(
                             $match
                         );
+
 
 
                         if ($user) {

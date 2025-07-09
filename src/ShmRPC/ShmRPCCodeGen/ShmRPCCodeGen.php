@@ -2,7 +2,8 @@
 
 namespace Shm\ShmRPC\ShmRPCCodeGen;
 
-use Shm\ShmCodeGen\ClassGenerator;
+
+use Shm\ShmUtils\Doctor;
 
 class ShmRPCCodeGen
 {
@@ -11,6 +12,9 @@ class ShmRPCCodeGen
 
     public static function html(array $schema)
     {
+
+
+        Doctor::doctor();
 
 
 

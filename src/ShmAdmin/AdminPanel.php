@@ -259,7 +259,7 @@ class AdminPanel
     <div id="root"></div>
 </body>
 
-<script src="' . $js . '"></script>
+<script url="' . $url . '" src="' . $js . '"></script>
 
 <style>
     .init-loader {

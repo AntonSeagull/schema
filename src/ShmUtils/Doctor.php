@@ -211,8 +211,8 @@ class Doctor
     {
 
         $links = [
-            ShmInit::$rootDir . '/public/static/js/main.js' => ShmInit::$shmDir . '/ShmAdmin/resources/static/js/main.js',
-            ShmInit::$rootDir . '/public/static/css/main.css' => ShmInit::$shmDir . '/ShmAdmin/resources/static/css/main.css',
+            ShmInit::$rootDir . '/public/static/js/main.js' => ShmInit::$shmDir . '/../assets/admin/static/js/main.js',
+            ShmInit::$rootDir . '/public/static/css/main.css' => ShmInit::$shmDir . '/../assets/admin/static/css/main.css',
         ];
 
         $isCli = (php_sapi_name() === 'cli');

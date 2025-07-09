@@ -229,7 +229,7 @@ class AdminPanel
     <meta charset="utf-8" />
     <meta name="viewport"
         content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover" />
-    <script async src="https://unpkg.com/pwacompat" crossorigin="anonymous"></script>
+   
     <meta name="theme-color" content="#000000" />
     <meta name="description" content="" />
     <title>' . $title . '</title>

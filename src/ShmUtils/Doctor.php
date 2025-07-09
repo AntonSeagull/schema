@@ -18,9 +18,29 @@ class Doctor
 
 
 
-        Cmd::command("doctor",  function () {
+        Cmd::command("doctor", function () {
+            echo "Что выполнить? (all / index / fields / links): ";
+            $input = trim(readline()); // читаем ввод из консоли
 
-            self::doctor();
+            switch ($input) {
+                case 'all':
+                    self::ensureSortWeightIndex();
+                    self::fieldClasses();
+                    self::createSymlinks();
+                    break;
+                case 'index':
+                    self::ensureSortWeightIndex();
+                    break;
+                case 'fields':
+                    self::fieldClasses();
+                    break;
+                case 'links':
+                    self::createSymlinks();
+                    break;
+                default:
+                    echo "Неизвестная команда: $input\n";
+                    break;
+            }
         });
     }
 
@@ -86,6 +106,21 @@ class Doctor
 
         $structures = self::structures();
 
+        $dir = ShmInit::$rootDir . '/app/FieldClasses/';
+
+        if (is_dir($dir)) {
+            foreach (scandir($dir) as $item) {
+                if ($item === '.' || $item === '..') {
+                    continue;
+                }
+
+                $path = $dir . DIRECTORY_SEPARATOR . $item;
+
+                if (is_file($path)) {
+                    unlink($path);
+                }
+            }
+        }
 
         foreach ($structures as $structure) {
 

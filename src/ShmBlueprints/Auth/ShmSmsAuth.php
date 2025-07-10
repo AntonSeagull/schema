@@ -218,7 +218,7 @@ class ShmSmsAuth extends ShmAuthBase
 
                     mDB::collection($this->smsAuthCollection)->insertOne([
                         "phone" => (int) $phone,
-                        "code" => (int) $args['code'],
+                        "code" => (int) $code,
                         "ip" => $_SERVER['REMOTE_ADDR'] ?? null,
                     ]);
 

@@ -310,6 +310,12 @@ class AdminPanel
         ShmRPC::init([
 
 
+            'imageUpload' => ShmRPC::fileUpload()->image()->make(),
+            'videoUpload' => ShmRPC::fileUpload()->video()->make(),
+            'audioUpload' => ShmRPC::fileUpload()->audio()->make(),
+            'documentUpload' => ShmRPC::fileUpload()->document()->make(),
+
+
             'authEmail' =>  ShmRPC::auth(...self::$users)->email()->make(),
             'authSoc' =>  ShmRPC::auth(...self::$users)->soc()->make(),
             'authPhone' => ShmRPC::auth(...self::$users)->msg()->make(),

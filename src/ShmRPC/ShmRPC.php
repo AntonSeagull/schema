@@ -16,6 +16,7 @@ use Shm\ShmUtils\ProcessLogs;
 use Shm\ShmUtils\Response;
 use Shm\ShmTypes\StructureType;
 use Shm\ShmUtils\ShmUtils;
+use Shm\ShmBlueprints\FileUpload\ShmFileUpload;
 
 class ShmRPC
 {
@@ -34,6 +35,7 @@ class ShmRPC
     {
 
         $field['type']->updateKeys($key);
+
 
         if (isset($field['args'])) {
 
@@ -202,7 +204,7 @@ class ShmRPC
         $body = file_get_contents('php://input');
         $request = \json_decode($body, true);
 
-        $method = $request['method'] ?? null;
+        $method = $request['method'] ?? $_POST['method'] ?? $_GET['method'] ?? null;
         $params = $request['params'] ?? [];
 
         $context = $request['context'] ?? null;
@@ -272,5 +274,10 @@ class ShmRPC
     public static function auth(StructureType ...$authStructures): ShmAuth
     {
         return (new ShmAuth(...$authStructures));
+    }
+
+    public static function fileUpload(): ShmFileUpload
+    {
+        return new ShmFileUpload();
     }
 }

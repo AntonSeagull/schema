@@ -15,9 +15,6 @@ class ShmInit
 
 
 
-
-
-
     public static $rootDir = null;
 
     public static $shmDir = null;
@@ -28,12 +25,12 @@ class ShmInit
 
 
         if (php_sapi_name() !== 'cli') {
+
             header("Access-Control-Allow-Origin: *");
             header("Access-Control-Allow-Methods: *");
             header("Content-Type: application/json;charset=utf-8");
             header("Access-Control-Allow-Headers: *");
         }
-
 
 
 
@@ -58,7 +55,7 @@ class ShmInit
 
         CmdSchedule::run();
 
-        FileUploader::init();
+
 
 
         self::$inited = true;
@@ -103,8 +100,8 @@ class ShmInit
             }
             $file = $dir . '/config.php';
             if (file_exists($file)) {
-                //   echo "Config file already exists: $file\n";
-                //    return;
+                //  echo "Config file already exists: $file\n";
+                return;
             }
             $content = "<?php
             return [

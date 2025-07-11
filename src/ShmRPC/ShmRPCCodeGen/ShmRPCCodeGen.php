@@ -31,7 +31,7 @@ class ShmRPCCodeGen
             //  }
             //         exit;
 
-            $requests[$key] = (new ShmRPCRequestCode($field['type'], $field['args'] ?? null, $key, 'query'))->initialize();
+            $requests[$key] = (new ShmRPCRequestCode($field['type'], $field['args'] ?? null, $key, $field['formData'] ?? null))->initialize();
         }
 
         //echo json_encode($keysGraph);

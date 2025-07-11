@@ -15,14 +15,18 @@ class ShmRPCRequestCode
     private BaseType | null $args;
     private string $key;
 
+    private $formData = false;
+
     public function __construct(
         BaseType $type,
         BaseType | null $args,
         string $key,
+        $formData = false
     ) {
         $this->type = $type;
         $this->args = $args;
         $this->key = $key;
+        $this->formData = $formData;
     }
 
 
@@ -67,12 +71,20 @@ class ShmRPCRequestCode
     {
 
 
+        if ($this->formData) {
 
+            return "{$this->functionName()}: (formData:FormData) => {
+            return rpcClient.callFormData<{$this->type->tsType()->getTsTypeName()} | null>(
+               '{$this->key}', formData
+            );
+             },";
+        } else {
 
-        return "{$this->functionName()}: ({$this->paramsForFunction()}) => {
+            return "{$this->functionName()}: ({$this->paramsForFunction()}) => {
             return rpcClient.call<{$this->paramsType()}, {$this->type->tsType()->getTsTypeName()} | null>(
                '{$this->key}'{$this->paramsForRequest()}
             );
              },";
+        }
     }
 }

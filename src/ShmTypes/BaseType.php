@@ -4,6 +4,7 @@ namespace Shm\ShmTypes;
 
 
 use Nette\PhpGenerator\Method;
+use Sentry\Util\Arr;
 use Shm\ShmRPC\ShmRPCCodeGen\TSType;
 use Shm\ShmTypes\Utils\JsonLogicBuilder;
 use Shm\ShmUtils\MaterialIcons;
@@ -608,6 +609,8 @@ abstract class BaseType
 
             foreach ($this->items as $key => $item) {
 
+
+
                 if ($item instanceof IDType || $item instanceof IDsType) {
                     $item->documentResolver();
                 }
@@ -615,10 +618,16 @@ abstract class BaseType
                 if ($item instanceof StructureType) {
                     $item->stripNestedIds();
                 }
+
+                if ($item instanceof ArrayOfType) {
+                    $item->stripNestedIds();
+                }
             }
         }
 
         if (isset($this->itemType)) {
+
+
             $this->itemType->stripNestedIds();
         }
 

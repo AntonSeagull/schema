@@ -135,7 +135,7 @@ class IDsType extends BaseType
         if ($eq !== null) {
             $pipeline[] = [
                 '$match' => [
-                    $path => ['$eq' => array_map(fn($id) => mDB::id($id), $eq)]
+                    $path => ['$eq' => array_map(fn($id) => isset($id['_id']) ? mDB::id($id['_id']) : mDB::id($id), $eq)]
                 ]
             ];
         }
@@ -144,21 +144,21 @@ class IDsType extends BaseType
         if ($in !== null && count($in) > 0) {
             $pipeline[] = [
                 '$match' => [
-                    $path => ['$in' => array_map(fn($id) => mDB::id($id), $in)]
+                    $path => ['$in' => array_map(fn($id) => isset($id['_id']) ? mDB::id($id['_id']) : mDB::id($id), $in)]
                 ]
             ];
         }
         if ($nin !== null  && count($nin) > 0) {
             $pipeline[] = [
                 '$match' => [
-                    $path => ['$nin' => array_map(fn($id) => mDB::id($id), $nin)]
+                    $path => ['$nin' => array_map(fn($id) => isset($id['_id']) ? mDB::id($id['_id']) : mDB::id($id), $nin)]
                 ]
             ];
         }
         if ($all !== null  && count($all) > 0) {
             $pipeline[] = [
                 '$match' => [
-                    $path => ['$all' => array_map(fn($id) => mDB::id($id), $all)]
+                    $path => ['$all' => array_map(fn($id) => isset($id['_id']) ? mDB::id($id['_id']) : mDB::id($id), $all)]
                 ]
             ];
         }
@@ -193,11 +193,13 @@ class IDsType extends BaseType
             $pipeline[] = [
                 '$match' => [
                     '$expr' => [
-                        '$setIsSubset' => ['$' . $path, array_map(fn($id) => mDB::id($id), $setIsSubset)]
+                        '$setIsSubset' => ['$' . $path, array_map(fn($id) => isset($id['_id']) ? mDB::id($id['_id']) : mDB::id($id), $setIsSubset)]
                     ]
                 ]
             ];
         }
+
+
 
 
 

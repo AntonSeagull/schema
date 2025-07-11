@@ -202,7 +202,9 @@ class ShmRPC
         $start = microtime(true);
 
         $body = file_get_contents('php://input');
-        $request = \json_decode($body, true);
+        if ($body)
+            $request = \json_decode($body, true);
+        else $request = [];
 
         $method = $request['method'] ?? $_POST['method'] ?? $_GET['method'] ?? null;
         $params = $request['params'] ?? [];

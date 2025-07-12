@@ -77,7 +77,7 @@ class AdminPanel
     public static function json()
     {
 
-        self::$schema->filterType();
+        self::$schema->filterType(true);
 
 
 

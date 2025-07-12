@@ -2,6 +2,7 @@
 
 namespace Shm\ShmUtils;
 
+use Shm\ShmTypes\StructureType;
 
 class ShmUtils
 {
@@ -29,6 +30,8 @@ class ShmUtils
         }
         return ucfirst(implode('', $text));
     }
+
+
 
     public static function isValidKey($key)
     {

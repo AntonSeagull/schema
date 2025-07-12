@@ -140,24 +140,6 @@ class ShmRPC
         return $output;
     }
 
-    private  static function encrypt($text, $key)
-    {
-        $result = '';
-        for ($i = 0; $i < strlen($text); $i++) {
-            $result .= chr(ord($text[$i]) + ord($key[$i % strlen($key)]));
-        }
-        return base64_encode($result);
-    }
-
-    private  static function decrypt($encodedText, $key)
-    {
-        $text = base64_decode($encodedText);
-        $result = '';
-        for ($i = 0; $i < strlen($text); $i++) {
-            $result .= chr(ord($text[$i]) - ord($key[$i % strlen($key)]));
-        }
-        return $result;
-    }
 
 
 
@@ -188,9 +170,12 @@ class ShmRPC
         //If GET request, we can return the schema
         if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['schema'])) {
 
+
             foreach ($schemaParams as $key => $field) {
                 $schemaParams[$key] = self::transformSchemaParams($field, $key);
             }
+
+
 
 
             ShmRPCCodeGen::html($schemaParams);

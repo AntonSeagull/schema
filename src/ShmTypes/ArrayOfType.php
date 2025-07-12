@@ -151,7 +151,7 @@ class ArrayOfType extends BaseType
 
         $this->itemType->key = $this->key;
 
-        $itemTypeFilter = $this->itemType->filterType();
+        $itemTypeFilter = $this->itemType->filterType($safeMode);
         if (!$itemTypeFilter) {
             return null;
         }

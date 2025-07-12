@@ -4,6 +4,7 @@ namespace Shm\ShmRPC\ShmRPCCodeGen;
 
 
 use Shm\ShmUtils\Doctor;
+use Shm\ShmUtils\ShmInit;
 
 class ShmRPCCodeGen
 {
@@ -60,8 +61,29 @@ class ShmRPCCodeGen
 
         $requests = implode("\n", $requests);
 
+        $files = [];
+
+        if (($_SERVER['SERVER_NAME'] ?? null) == "localhost") {
+            $REQUEST_URI = $_SERVER['REQUEST_URI'];
+
+            //Убарем GET параметры
+            $REQUEST_URI = explode('?', $REQUEST_URI)[0];
+            //Все / заменяем на _
+            $REQUEST_URI = str_replace('/', '_', $REQUEST_URI);
 
 
+            $dir =  ShmInit::$rootDir . '/schema_history';
+
+
+            if (!is_dir($dir)) {
+                mkdir($dir, 0777, true);
+            }
+
+
+
+            file_put_contents($dir . '/' . $REQUEST_URI . '-types.txt', $types);
+            file_put_contents($dir . '/' . $REQUEST_URI . '-requests.txt', $requests);
+        }
 
         $types = "export interface RpcError {
   type: 'UNAUTHORIZED' | 'VALIDATION_ERROR' | 'NOT_FOUND' | 'INTERNAL_ERROR' | 'FORBIDDEN' | 'RATE_LIMITED' | string;

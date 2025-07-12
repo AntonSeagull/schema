@@ -70,18 +70,19 @@ class EnumType extends BaseType
 
 
 
+
         $itemTypeFilter =  Shm::structure([
             'eq' => Shm::enum($this->values)->title('Равно'),
-            'in' => Shm::arrayOf(Shm::enum($this->values)->title('Включает значения')),
-            'nin' => Shm::arrayOf(Shm::enum($this->values)->title('Исключает значения')),
-            'all' => Shm::arrayOf(Shm::enum($this->values)->title('Все значения')),
+            'in' => Shm::arrayOf(Shm::enum($this->values))->title('Включает значения'),
+            'nin' => Shm::arrayOf(Shm::enum($this->values))->title('Исключает значения'),
+            'all' => Shm::arrayOf(Shm::enum($this->values))->title('Все значения'),
             'isEmpty' => Shm::enum([
                 'true' => 'Да',
                 'false' => 'Нет'
             ])->title('Не заполнено'),
-        ])->fullEditable();
+        ])->fullEditable()->fullInAdmin(true);
 
-        return $itemTypeFilter->fullEditable()->fullInAdmin($this->inAdmin)->title($this->title);
+        return $itemTypeFilter->inAdmin($this->inAdmin)->title($this->title);
     }
 
 

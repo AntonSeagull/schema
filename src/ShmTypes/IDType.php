@@ -80,10 +80,10 @@ class IDType extends BaseType
 
 
         $itemTypeFilter = Shm::structure([
-            'eq' => Shm::ID()->title('Равно'),
-            'in' => Shm::IDs()->title('Содержит хотя бы одно из'),
-            'nin' => Shm::IDs()->title('Не содержит ни одного из'),
-            'all' => Shm::IDs()->title('Содержит все из списка'),
+            'eq' => Shm::ID($this->document)->title('Равно'),
+            'in' => Shm::IDs($this->document)->title('Содержит хотя бы одно из'),
+            'nin' => Shm::IDs($this->document)->title('Не содержит ни одного из'),
+            'all' => Shm::IDs($this->document)->title('Содержит все из списка'),
             'isEmpty' => Shm::enum([
                 'true' => 'Да',
                 'false' => 'Нет'

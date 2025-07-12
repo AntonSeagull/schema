@@ -347,7 +347,7 @@ class CollectionEvents
             }
 
             if (!isset($document['_sortWeight'])) {
-                $document['_sortWeight'] = time();
+                $document['_sortWeight'] = round(microtime(true) * 1000);
             }
         }
 

@@ -896,6 +896,9 @@ class StructureType extends BaseType
             $newWeight = $belowWeight + 1;
         }
 
+        //Округляем в вверх
+        $newWeight = ceil($newWeight);
+
         if ($newWeight) {
             $this->updateOne([
                 "_id" => mDB::id($currentId)

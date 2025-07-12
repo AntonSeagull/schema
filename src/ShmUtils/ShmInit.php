@@ -24,6 +24,8 @@ class ShmInit
 
 
 
+
+
         if (php_sapi_name() !== 'cli') {
 
             header("Access-Control-Allow-Origin: *");
@@ -43,12 +45,22 @@ class ShmInit
             return;
         }
 
+        if (Config::get('sentry.dsn', '')) {
+            \Sentry\init([
+                'dsn' => Config::get('sentry.dsn', ''),
+                'traces_sample_rate' => 1.0,
+                'attach_stacktrace' => true,
+                'environment' => Config::get('sentry.environment', 'production'),
+            ]);
+        }
+
+
         MaterialIcons::init();
 
 
         self::errorHandler();
         self::updateTimezone();
-        self::makeConfigFile();
+
 
         Doctor::cmdInit();
         SearchStringUpdate::cmdInit();
@@ -89,66 +101,6 @@ class ShmInit
     }
 
 
-    private static function makeConfigFile()
-    {
-
-        Cmd::command("make-config", function () {
-
-            $dir =  self::$rootDir . '/config';
-            if (!is_dir($dir)) {
-                mkdir($dir, 0755, true);
-            }
-            $file = $dir . '/config.php';
-            if (file_exists($file)) {
-                //  echo "Config file already exists: $file\n";
-                return;
-            }
-            $content = "<?php
-            return [
-                'mongodb' => [
-                  'host' => 'localhost',
-                    'port' => 27017,
-                    'username' => '',
-                    'password' => '',
-                    'database' => '',
-                    'authSource' => 'admin',
-                    'poolSize' => 1000,
-                    'ssl' => false,
-                    'connectTimeoutMS' => 360000,
-                    'socketTimeoutMS' => 360000,
-                ],
-                
-                'redis' => [
-                    'host' => 'localhost',
-                    'port' => 6379,
-                    'password' => null,
-                ],
-                'sentry' => [
-                    'dsn' => '',
-                    'environment' => 'production',
-                ],
-                'socket' => [
-                    'domain' => '',
-                    'prefix' => 'test'
-                ],
-                's3' => [
-                    'bucket' => '',
-                    'version' => 'latest',
-                    'region' =>  '',
-                    'endpoint' => '',
-                    'credentials' => [
-                        'key' => '',
-                        'secret' => '',
-                    ],
-                 ]
-                
-            ];
-            ";
-            file_put_contents($file, $content);
-            echo "Config file created: $file\n";
-            echo "Document root: " . $_SERVER['DOCUMENT_ROOT'] . "\n";
-        });
-    }
 
     private static function errorHandler()
     {

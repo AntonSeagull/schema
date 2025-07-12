@@ -19,15 +19,11 @@ class Doctor
 
 
         Cmd::command("doctor", function () {
-            echo "Что выполнить? (all / index / fields / links): ";
+            echo "Что выполнить? (index / fields / links /makeConfig: ";
             $input = trim(readline()); // читаем ввод из консоли
 
             switch ($input) {
-                case 'all':
-                    self::ensureSortWeightIndex();
-                    self::fieldClasses();
-                    self::createSymlinks();
-                    break;
+
                 case 'index':
                     self::ensureSortWeightIndex();
                     break;
@@ -37,11 +33,74 @@ class Doctor
                 case 'links':
                     self::createSymlinks();
                     break;
+                case "makeConfig":
+                    self::makeConfig();
+                    break;
                 default:
                     echo "Неизвестная команда: $input\n";
                     break;
             }
         });
+    }
+
+
+    private static function makeConfig()
+    {
+
+
+        $dir =  ShmInit::$rootDir . '/config';
+        if (!is_dir($dir)) {
+            mkdir($dir, 0755, true);
+        }
+        $file = $dir . '/config.php';
+        if (file_exists($file)) {
+            //  echo "Config file already exists: $file\n";
+            return;
+        }
+        $content = "<?php
+            return [
+                'mongodb' => [
+                  'host' => 'localhost',
+                    'port' => 27017,
+                    'username' => '',
+                    'password' => '',
+                    'database' => '',
+                    'authSource' => 'admin',
+                    'poolSize' => 1000,
+                    'ssl' => false,
+                    'connectTimeoutMS' => 360000,
+                    'socketTimeoutMS' => 360000,
+                ],
+                
+                'redis' => [
+                    'host' => 'localhost',
+                    'port' => 6379,
+                    'password' => null,
+                ],
+                'sentry' => [
+                    'dsn' => '',
+                    'environment' => 'production',
+                ],
+                'socket' => [
+                    'domain' => '',
+                    'prefix' => 'test'
+                ],
+                's3' => [
+                    'bucket' => '',
+                    'version' => 'latest',
+                    'region' =>  '',
+                    'endpoint' => '',
+                    'credentials' => [
+                        'key' => '',
+                        'secret' => '',
+                    ],
+                 ]
+                
+            ];
+            ";
+        file_put_contents($file, $content);
+        echo "Config file created: $file\n";
+        echo "Document root: " . $_SERVER['DOCUMENT_ROOT'] . "\n";
     }
 
 

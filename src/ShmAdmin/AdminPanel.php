@@ -1455,8 +1455,8 @@ class AdminPanel
                             continue;
                         }
 
-                        if ($val)
-                            $fieldDescription[$key] = $val;
+
+                        $fieldDescription[$key] = $val;
                     }
 
 

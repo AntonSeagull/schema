@@ -688,12 +688,9 @@ abstract class BaseType
         if (isset($this->items)) {
 
             foreach ($this->items as $key => $item) {
-
-                if (isset($newValue[$key])) {
-                    if ($item instanceof BaseType) {
-                        if (is_callable($item->onUpdateEvent)) {
-                            return true;
-                        }
+                if ($item instanceof BaseType) {
+                    if (is_callable($item->onUpdateEvent)) {
+                        return true;
                     }
                 }
             }
@@ -706,36 +703,91 @@ abstract class BaseType
         return false;
     }
 
+
+    private  function  groupChangedIdsByNewValue(array $newDocs, array $oldDocs, array $allNewDocs): array
+    {
+        $oldById = [];
+        foreach ($oldDocs as $doc) {
+            $oldById[(string)$doc['_id']] = $doc;
+        }
+
+        $grouped = [];
+
+        $allNewDocsById = [];
+        foreach ($allNewDocs as $doc) {
+            $allNewDocsById[(string)$doc['_id']] = $doc;
+        }
+
+        foreach ($newDocs as $newDoc) {
+            $idStr = (string)$newDoc['_id'];
+            $newValue = $newDoc['_value'] ?? null;
+            $oldValue = $oldById[$idStr]['_value'] ?? null;
+
+            if ($newValue !== $oldValue) {
+                $key = json_encode($newValue); // сериализуем для группировки
+                if (!isset($grouped[$key])) {
+                    $grouped[$key] = [
+                        'new_value' => $newValue,
+                        'ids' => []
+                    ];
+                }
+                $grouped[$key]['ids'][] = $newDoc['_id'];
+                if (isset($allNewDocsById[$idStr]))
+                    $grouped[$key]['all_new_docs'][] = $allNewDocsById[$idStr];
+            }
+        }
+
+        return array_values($grouped); // массив без сериализованных ключей
+    }
+
     /**
      * Вызывает ранее установленный обработчик изменения значения.
-     *
-     * @param array $_ids Идентификаторы объектов/контекста.
-     * @param mixed $newValue Новое значение.
      */
-    public function callUpdateEvent(array $_ids, mixed $newValue): void
+    public function callUpdateEvent($newDocs, $oldDocs, $allNewDocs): void
     {
-        /**
-         * Защита от рекурсивного вызова обработчика обновления,
-         * чтобы избежать бесконечной рекурсии при обновлении значений.
-         */
-        if (ShmInit::$disableUpdateEvents) {
-            return;
-        }
 
         if (isset($this->items)) {
 
             foreach ($this->items as $key => $item) {
 
-                if (isset($newValue[$key])) {
-                    if ($item instanceof BaseType) {
-                        $item->callUpdateEvent($_ids, $newValue[$key]);
+                if (in_array($key, ['_id',  'created_at', 'updated_at'])) {
+                    continue;
+                }
+
+
+                if ($item instanceof BaseType) {
+
+
+                    if ($item->haveUpdateEvent()) {
+
+                        $_newDocs = array_map(function ($item) use ($key) {
+                            return ['_value' => $item['_value'][$key], '_id' => $item['_id']];
+                        }, $newDocs);
+
+                        $_oldDocs = array_map(function ($item) use ($key) {
+                            return ['_value' => $item['_value'][$key], '_id' => $item['_id']];
+                        }, $oldDocs);
+
+
+
+                        $item->callUpdateEvent($_newDocs, $_oldDocs, $allNewDocs);
                     }
                 }
             }
         }
 
         if (is_callable($this->onUpdateEvent)) {
-            call_user_func($this->onUpdateEvent, $_ids, $newValue);
+
+            $groupChangeds = ($this->groupChangedIdsByNewValue($newDocs, $oldDocs, $allNewDocs));
+
+            foreach ($groupChangeds as $groupChanged) {
+                $ids = $groupChanged['ids'];
+                $newValue = $groupChanged['new_value'];
+                $allNewDocs = $groupChanged['all_new_docs'] ?? [];
+
+
+                call_user_func($this->onUpdateEvent, $ids, $newValue, $allNewDocs);
+            }
         }
     }
 }

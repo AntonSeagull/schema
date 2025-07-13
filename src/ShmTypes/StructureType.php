@@ -18,6 +18,7 @@ use Shm\ShmUtils\AutoPostfix;
 use Shm\ShmUtils\DeepAccess;
 use Shm\ShmUtils\Inflect;
 use Shm\ShmUtils\ProcessLogs;
+use Shm\ShmUtils\Response;
 use Shm\ShmUtils\ShmInit;
 use Shm\ShmUtils\ShmUtils;
 use stdClass;
@@ -703,6 +704,107 @@ class StructureType extends BaseType
     }
 
 
+    private function  expand_dot_notation(array $flatArray): array
+    {
+        $result = [];
+
+        foreach ($flatArray as $compositeKey => $value) {
+            $keys = explode('.', $compositeKey);
+            $ref = &$result;
+
+            foreach ($keys as $key) {
+                if (!isset($ref[$key]) || !is_array($ref[$key])) {
+                    $ref[$key] = [];
+                }
+                $ref = &$ref[$key];
+            }
+
+            $ref = $value;
+        }
+
+        return $result;
+    }
+
+    public function updateOneWithEvents(array $filter = [], array $update = [], array $options = []): \MongoDB\UpdateResult
+    {
+
+        $filter = mDB::replaceStringToObjectIds($filter);
+
+        $activeEventLogic =  (!ShmInit::$disableUpdateEvents  && $this->haveUpdateEvent() && isset($update['$set']) && count($update['$set']) > 0);
+
+
+        if ($activeEventLogic) {
+
+            $setFields = $update['$set'] ?? [];
+
+            // 1. Получаем все поля, которые будем сравнивать
+            $fieldsToTrack = array_keys($setFields);
+
+            // 2. Получаем старые документы
+            $oldDoc = mDB::collection($this->collection)
+                ->findOne($filter, ['projection' => array_fill_keys($fieldsToTrack, 1) + ['_id' => 1]]);
+        }
+
+
+
+        if (isset($update['$set'])) {
+
+            if (array_key_exists("_id", (array) $update['$set'])) {
+                unset($update['$set']['_id']);
+            }
+            $update['$set']["_needRecalculateSearch"] = true;
+            $update['$set'] = $this->normalize($update['$set']);
+        }
+
+        if (isset($update['$unset'])) {
+            if (array_key_exists("_id", (array) $update['$unset'])) {
+                unset($update['$unset']['_id']);
+            }
+            $update['$set']["_needRecalculateSearch"] = true;
+            $update['$unset'] = $update['$unset'];
+        }
+
+
+
+        $result =  mDB::collection($this->collection)->updateOne($filter, $update, [
+            ...$options,
+        ]);
+
+
+
+        if ($activeEventLogic) {
+
+            $newDoc = mDB::collection($this->collection)
+                ->findOne($filter, ['projection' => array_fill_keys(array_keys($setFields), 1) + ['_id' => 1]]);
+
+
+
+
+
+            $ids = $this->distinct('_id', $filter);
+
+            if (count($ids) > 0) {
+                Response::startTraceTiming("callUpdateEvent-" . $this->collection);
+                ShmInit::$disableUpdateEvents = true;
+                $this->callUpdateEvent([[
+                    '_id' => $newDoc['_id'],
+                    '_value' => $newDoc
+                ]], [[
+                    '_id' => $oldDoc['_id'],
+                    '_value' => $oldDoc
+                ]], [$newDoc]);
+                ShmInit::$disableUpdateEvents = false;
+                Response::endTraceTiming("callUpdateEvent-" . $this->collection);
+            }
+        }
+
+
+
+        return    $result;
+    }
+
+
+
     public function updateOne(array $filter = [], array $update = [], array $options = []): \MongoDB\UpdateResult
     {
 
@@ -723,11 +825,14 @@ class StructureType extends BaseType
             $update['$unset'] = $update['$unset'];
         }
 
-        $update =  mDB::collection($this->collection)->updateOne($filter, $update, [
+        $result =  mDB::collection($this->collection)->updateOne($filter, $update, [
             ...$options,
         ]);
 
-        return $update;
+
+
+
+        return    $result;
     }
 
     public function _updateOne(array $filter = [], array $update = [], array $options = []): \MongoDB\UpdateResult
@@ -740,19 +845,98 @@ class StructureType extends BaseType
 
 
 
-        if (!ShmInit::$disableUpdateEvents  && $this->haveUpdateEvent() && isset($update['$set']) && count($update['$set']) > 0) {
+
+
+        return $update;
+    }
+
+
+
+    public function updateManyWithEvents(array $filter = [], array $update = [], array $options = []): \MongoDB\UpdateResult
+    {
+
+
+        $activeEventLogic =  (!ShmInit::$disableUpdateEvents  && $this->haveUpdateEvent() && isset($update['$set']) && count($update['$set']) > 0);
+
+
+        $filter = mDB::replaceStringToObjectIds($filter);
+
+        if ($activeEventLogic) {
+
+            $setFields = $update['$set'] ?? [];
+
+            // 1. Получаем все поля, которые будем сравнивать
+            $fieldsToTrack = array_keys($setFields);
+
+            // 2. Получаем старые документы
+            $oldDocs = mDB::collection($this->collection)
+                ->find($filter, ['projection' => array_fill_keys($fieldsToTrack, 1) + ['_id' => 1]])
+                ->toArray();
+        }
+
+
+
+        if (isset($update['$set'])) {
+
+            if (array_key_exists("_id", (array) $update['$set'])) {
+                unset($update['$set']['_id']);
+            }
+            $update['$set']["_needRecalculateSearch"] = true;
+            $update['$set'] = $this->normalize($update['$set']);
+        }
+
+        if (isset($update['$unset'])) {
+            if (array_key_exists("_id", (array) $update['$unset'])) {
+                unset($update['$unset']['_id']);
+            }
+            $update['$set']["_needRecalculateSearch"] = true;
+            $update['$unset'] = $update['$unset'];
+        }
+
+        $result =  mDB::collection($this->collection)->updateMany($filter, $update, [
+            ...$options,
+        ]);
+
+
+        if ($activeEventLogic) {
+
+
+            $newDocs = mDB::collection($this->collection)
+                ->find($filter, ['projection' => array_fill_keys(array_keys($setFields), 1) + ['_id' => 1]])
+                ->toArray();
+
+
+
 
             $ids = $this->distinct('_id', $filter);
 
             if (count($ids) > 0) {
-                ShmInit::$disableUpdateEvents = false;
-                $this->callUpdateEvent($ids, $update['$set'] ?? []);
+                Response::startTraceTiming("callUpdateEvent" . $this->collection);
                 ShmInit::$disableUpdateEvents = true;
+                $this->callUpdateEvent(
+                    array_map(function ($e) {
+
+                        return [
+                            '_id' => $e['_id'],
+                            '_value' => $e
+                        ];
+                    }, $newDocs),
+                    array_map(function ($e) {
+
+                        return [
+                            '_id' => $e['_id'],
+                            '_value' => $e
+                        ];
+                    }, $oldDocs),
+                    $newDocs
+                );
+                ShmInit::$disableUpdateEvents = false;
+                Response::endTraceTiming("callUpdateEvent" . $this->collection);
             }
         }
 
 
-        return $update;
+        return   $result;
     }
 
     public function updateMany(array $filter = [], array $update = [], array $options = []): \MongoDB\UpdateResult
@@ -777,25 +961,16 @@ class StructureType extends BaseType
             $update['$unset'] = $update['$unset'];
         }
 
-        $update =  mDB::collection($this->collection)->updateMany($filter, $update, [
+        $result =  mDB::collection($this->collection)->updateMany($filter, $update, [
             ...$options,
         ]);
 
 
 
-        if (!ShmInit::$disableUpdateEvents  && $this->haveUpdateEvent() && isset($update['$set']) && count($update['$set']) > 0) {
-
-            $ids = $this->distinct('_id', $filter);
-
-            if (count($ids) > 0) {
-                ShmInit::$disableUpdateEvents = false;
-                $this->callUpdateEvent($ids, $update['$set'] ?? []);
-                ShmInit::$disableUpdateEvents = true;
-            }
-        }
 
 
-        return $update;
+
+        return   $result;
     }
 
     public function deleteOne(array $filter = [], array $options = [])

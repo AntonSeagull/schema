@@ -1202,7 +1202,7 @@ class AdminPanel
 
 
 
-                        $structure->updateMany(
+                        $structure->updateManyWithEvents(
                             [
                                 "_id" => ['$in' => $ids],
                             ],

@@ -906,9 +906,12 @@ class StructureType extends BaseType
                 ->toArray();
 
 
+            $ids = [];
 
+            foreach ($newDocs as $doc) {
+                $ids[] =  $doc['_id'];
+            }
 
-            $ids = $this->distinct('_id', $filter);
 
             if (count($ids) > 0) {
                 Response::startTraceTiming("callUpdateEvent" . $this->collection);
@@ -1054,9 +1057,57 @@ class StructureType extends BaseType
     }
 
 
+    public function insertOneWithEvents($document, array $options = []): \MongoDB\InsertOneResult
+    {
+
+
+        $activeEventLogic =  !ShmInit::$disableInsertEvents  && $this->haveInsertEvent();
+
+
+
+        $document = [
+            ...$document,
+            ...$this->getInsertValues()
+        ];
+
+
+        $document = $this->normalize($document, true);
+
+
+
+        $result = mDB::collection($this->collection)->insertOne($document, $options);
+
+
+
+        if ($activeEventLogic) {
+
+            $newDoc = mDB::collection($this->collection)
+                ->findOne([
+                    "_id" => $result->getInsertedId()
+                ]);
+
+
+
+            Response::startTraceTiming("callInsertEvent-" . $this->collection);
+            ShmInit::$disableInsertEvents = true;
+            $this->callInsertEvent([[
+                '_id' => $newDoc['_id'],
+                '_value' => $newDoc
+            ]], [$newDoc]);
+            ShmInit::$disableInsertEvents = false;
+            Response::endTraceTiming("callInsertEvent-" . $this->collection);
+        }
+
+
+
+
+
+        return  $result;
+    }
 
     public function insertOne($document, array $options = []): \MongoDB\InsertOneResult
     {
+
 
         $document = [
             ...$document,
@@ -1069,6 +1120,68 @@ class StructureType extends BaseType
 
 
         return mDB::collection($this->collection)->insertOne($document, $options);
+    }
+
+
+    public function insertManyWithEvents(array $documents, array $options = []): \MongoDB\InsertManyResult
+    {
+        $activeEventLogic =  !ShmInit::$disableInsertEvents  && $this->haveInsertEvent();
+
+        foreach ($documents as &$document) {
+            $document = [
+                ...$document,
+                ...$this->getInsertValues()
+            ];
+        }
+
+        $documents = Shm::arrayOf($this)->normalize($documents, true);
+
+        $result = mDB::collection($this->collection)->insertMany($$documents, $options);
+
+
+
+        if ($activeEventLogic) {
+
+            $newDocs = mDB::collection($this->collection)
+                ->find([
+                    "_id" => ['$in' => $result->getInsertedIds()]
+                ])->toArray();
+
+
+            Response::startTraceTiming("callInsertEvent-" . $this->collection);
+            ShmInit::$disableInsertEvents = true;
+            $this->callInsertEvent(array_map(function ($e) {
+
+                return [
+                    '_id' => $e['_id'],
+                    '_value' => $e
+                ];
+            }, $newDocs), $newDocs);
+            ShmInit::$disableInsertEvents = false;
+            Response::endTraceTiming("callInsertEvent-" . $this->collection);
+        }
+
+
+
+
+        return $result;
+    }
+
+
+
+    public function insertMany(array $documents, array $options = []): \MongoDB\InsertManyResult
+    {
+
+        foreach ($documents as &$document) {
+            $document = [
+                ...$document,
+                ...$this->getInsertValues()
+            ];
+        }
+
+        $documents = Shm::arrayOf($this)->normalize($documents, true);
+
+        return mDB::collection($this->collection)->insertMany($$documents, $options);
     }
 
 

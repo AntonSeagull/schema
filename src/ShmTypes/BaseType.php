@@ -669,19 +669,55 @@ abstract class BaseType
     }
 
 
+    private $onInsertEvent = null;
+
 
     private $onUpdateEvent = null;
 
     /**
      * Устанавливает обработчик события изменения значения.
      *
-     * @param callable $handler Функция с сигнатурой function(array $_ids, mixed $newValue)
+     * @param callable $handler Функция с сигнатурой function(array $_ids, mixed $newValue, array $docs)
      */
     public function updateEvent(callable $handler): static
     {
         $this->onUpdateEvent = $handler;
         return $this;
     }
+
+
+    /**
+     * Устанавливает обработчик события вставки значения.
+     *
+     * @param callable $handler Функция с сигнатурой function(array $_ids, mixed $newValue, array $docs)
+     */
+    public function insertEvent(callable $handler): static
+    {
+        $this->onInsertEvent = $handler;
+        return $this;
+    }
+
+
+    public function haveInsertEvent(): bool
+    {
+        if (isset($this->items)) {
+
+            foreach ($this->items as $key => $item) {
+                if ($item instanceof BaseType) {
+                    if (is_callable($item->onInsertEvent)) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        if (is_callable($this->onInsertEvent)) {
+            return true;
+        }
+
+        return false;
+    }
+
 
     public function haveUpdateEvent(): bool
     {
@@ -787,6 +823,38 @@ abstract class BaseType
 
 
                 call_user_func($this->onUpdateEvent, $ids, $newValue, $allNewDocs);
+            }
+        }
+    }
+
+
+    public function callInsertEvent($newDocs, $allNewDocs): void
+    {
+
+        if (isset($this->items)) {
+
+            foreach ($this->items as $key => $item) {
+
+                if (in_array($key, ['_id',  'created_at', 'updated_at'])) {
+                    continue;
+                }
+
+                if ($item instanceof BaseType) {
+
+                    if ($item->haveInsertEvent()) {
+                        $_newDocs = array_map(function ($item) use ($key) {
+                            return ['_value' => $item['_value'][$key], '_id' => $item['_id']];
+                        }, $newDocs);
+
+                        $item->callInsertEvent($_newDocs, $allNewDocs);
+                    }
+                }
+            }
+        }
+
+        if (is_callable($this->onInsertEvent)) {
+            foreach ($newDocs as $doc) {
+                call_user_func($this->onInsertEvent, [$doc['_id']], $doc['_value'], $allNewDocs);
             }
         }
     }

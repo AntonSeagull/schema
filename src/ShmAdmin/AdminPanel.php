@@ -1217,7 +1217,7 @@ class AdminPanel
                             ]),
                         ];
                     } else {
-                        $insert =  $structure->insertOne($values);
+                        $insert =  $structure->insertOneWithEvents($values);
 
                         if (!$insert) {
                             Response::validation("Ошибка при добавлении данных");

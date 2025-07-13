@@ -14,6 +14,7 @@ class ShmInit
     private static $inited = false;
 
 
+    public static $disableUpdateEvents = false;
 
     public static $rootDir = null;
 

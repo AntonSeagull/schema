@@ -18,6 +18,7 @@ use Shm\ShmUtils\AutoPostfix;
 use Shm\ShmUtils\DeepAccess;
 use Shm\ShmUtils\Inflect;
 use Shm\ShmUtils\ProcessLogs;
+use Shm\ShmUtils\ShmInit;
 use Shm\ShmUtils\ShmUtils;
 use stdClass;
 use Traversable;
@@ -737,6 +738,20 @@ class StructureType extends BaseType
             ...$options,
         ]);
 
+
+
+        if (!ShmInit::$disableUpdateEvents  && $this->haveUpdateEvent() && isset($update['$set']) && count($update['$set']) > 0) {
+
+            $ids = $this->distinct('_id', $filter);
+
+            if (count($ids) > 0) {
+                ShmInit::$disableUpdateEvents = false;
+                $this->callUpdateEvent($ids, $update['$set'] ?? []);
+                ShmInit::$disableUpdateEvents = true;
+            }
+        }
+
+
         return $update;
     }
 
@@ -765,6 +780,20 @@ class StructureType extends BaseType
         $update =  mDB::collection($this->collection)->updateMany($filter, $update, [
             ...$options,
         ]);
+
+
+
+        if (!ShmInit::$disableUpdateEvents  && $this->haveUpdateEvent() && isset($update['$set']) && count($update['$set']) > 0) {
+
+            $ids = $this->distinct('_id', $filter);
+
+            if (count($ids) > 0) {
+                ShmInit::$disableUpdateEvents = false;
+                $this->callUpdateEvent($ids, $update['$set'] ?? []);
+                ShmInit::$disableUpdateEvents = true;
+            }
+        }
+
 
         return $update;
     }

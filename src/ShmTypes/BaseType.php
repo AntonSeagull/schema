@@ -8,6 +8,7 @@ use Sentry\Util\Arr;
 use Shm\ShmRPC\ShmRPCCodeGen\TSType;
 use Shm\ShmTypes\Utils\JsonLogicBuilder;
 use Shm\ShmUtils\MaterialIcons;
+use Shm\ShmUtils\ShmInit;
 use Shm\ShmUtils\ShmUtils;
 
 abstract class BaseType
@@ -665,5 +666,76 @@ abstract class BaseType
 
 
         return [$this->key];
+    }
+
+
+
+    private $onUpdateEvent = null;
+
+    /**
+     * Устанавливает обработчик события изменения значения.
+     *
+     * @param callable $handler Функция с сигнатурой function(array $_ids, mixed $newValue)
+     */
+    public function updateEvent(callable $handler): static
+    {
+        $this->onUpdateEvent = $handler;
+        return $this;
+    }
+
+    public function haveUpdateEvent(): bool
+    {
+        if (isset($this->items)) {
+
+            foreach ($this->items as $key => $item) {
+
+                if (isset($newValue[$key])) {
+                    if ($item instanceof BaseType) {
+                        if (is_callable($item->onUpdateEvent)) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (is_callable($this->onUpdateEvent)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Вызывает ранее установленный обработчик изменения значения.
+     *
+     * @param array $_ids Идентификаторы объектов/контекста.
+     * @param mixed $newValue Новое значение.
+     */
+    public function callUpdateEvent(array $_ids, mixed $newValue): void
+    {
+        /**
+         * Защита от рекурсивного вызова обработчика обновления,
+         * чтобы избежать бесконечной рекурсии при обновлении значений.
+         */
+        if (ShmInit::$disableUpdateEvents) {
+            return;
+        }
+
+        if (isset($this->items)) {
+
+            foreach ($this->items as $key => $item) {
+
+                if (isset($newValue[$key])) {
+                    if ($item instanceof BaseType) {
+                        $item->callUpdateEvent($_ids, $newValue[$key]);
+                    }
+                }
+            }
+        }
+
+        if (is_callable($this->onUpdateEvent)) {
+            call_user_func($this->onUpdateEvent, $_ids, $newValue);
+        }
     }
 }

@@ -18,7 +18,7 @@ class MongoPolygonType extends StructureType
     public function __construct()
     {
         parent::__construct([
-            'type' => Shm::string()->default("Polygon"),
+            'type' => Shm::static('Polygon'),
             'coordinates' => Shm::arrayOf(Shm::arrayOf(Shm::float())),
         ]);
     }

@@ -18,6 +18,15 @@ abstract class BaseType
 
 
 
+    public $display = false;
+
+
+    public function display(bool $display = true): static
+    {
+        $this->display = $display;
+        return $this;
+    }
+
 
     public $notNull = false;
 
@@ -796,15 +805,25 @@ abstract class BaseType
 
                     if ($item->haveUpdateEvent()) {
 
+
+
                         $_newDocs = array_map(function ($item) use ($key) {
                             return ['_value' => $item['_value'][$key], '_id' => $item['_id']];
-                        }, $newDocs);
+                        }, array_filter($newDocs, function ($doc) use ($key) {
+                            return isset($doc['_value'][$key]);
+                        }));
 
                         $_oldDocs = array_map(function ($item) use ($key) {
                             return ['_value' => $item['_value'][$key], '_id' => $item['_id']];
-                        }, $oldDocs);
+                        }, array_filter($oldDocs, function ($doc) use ($key) {
+                            return isset($doc['_value'][$key]);
+                        }));
 
 
+
+                        if (count($_newDocs) == 0) {
+                            continue;
+                        }
 
                         $item->callUpdateEvent($_newDocs, $_oldDocs, $allNewDocs);
                     }
@@ -857,5 +876,31 @@ abstract class BaseType
                 call_user_func($this->onInsertEvent, [$doc['_id']], $doc['_value'], $allNewDocs);
             }
         }
+    }
+
+
+
+    public function createIndex($absolutePath = null): array
+    {
+
+
+        $result = [];
+
+        if (isset($this->items)) {
+            foreach ($this->items as $key => $item) {
+                if ($item instanceof BaseType) {
+                    $result = [...$result,   ...$item->createIndex([...($absolutePath ?? []), $key])];
+                }
+            }
+        }
+
+        if (isset($this->itemType)) {
+            $result = [
+                ...$result,
+                ...$this->itemType->createIndex([...($absolutePath ?? [])])
+            ];
+        }
+
+        return $result;
     }
 }

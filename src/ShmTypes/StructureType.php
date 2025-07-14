@@ -444,7 +444,8 @@ class StructureType extends BaseType
 
         foreach ($this->items as $key => $field) {
 
-            if ($key == "_id") {
+
+            if ($this->type == "structure" && $key == "_id") {
                 continue;
             }
             $field->fullEditable($editable);
@@ -651,6 +652,12 @@ class StructureType extends BaseType
                 $separate = ': ';
             }
 
+            if ($item instanceof StaticType) {
+
+                $value[] = $key .  $separate . $item->getStaticValueTS();
+                continue;
+            }
+
 
             if ($item instanceof SelfRefType) {
 
@@ -680,6 +687,10 @@ class StructureType extends BaseType
 
         foreach ($this->items as $key => $item) {
             if (!$item->editable) {
+                continue;
+            }
+
+            if ($item instanceof StaticType) {
                 continue;
             }
 
@@ -778,6 +789,9 @@ class StructureType extends BaseType
                 ->findOne($filter, ['projection' => array_fill_keys(array_keys($setFields), 1) + ['_id' => 1]]);
 
 
+            $allNewDoc = mDB::collection($this->collection)
+                ->findOne($filter);
+
 
 
 
@@ -792,7 +806,7 @@ class StructureType extends BaseType
                 ]], [[
                     '_id' => $oldDoc['_id'],
                     '_value' => $oldDoc
-                ]], [$newDoc]);
+                ]], [$allNewDoc]);
                 ShmInit::$disableUpdateEvents = false;
                 Response::endTraceTiming("callUpdateEvent-" . $this->collection);
             }
@@ -906,6 +920,11 @@ class StructureType extends BaseType
                 ->toArray();
 
 
+            $allNewDocs = mDB::collection($this->collection)
+                ->find($filter)
+                ->toArray();
+
+
             $ids = [];
 
             foreach ($newDocs as $doc) {
@@ -931,7 +950,7 @@ class StructureType extends BaseType
                             '_value' => $e
                         ];
                     }, $oldDocs),
-                    $newDocs
+                    $allNewDocs
                 );
                 ShmInit::$disableUpdateEvents = false;
                 Response::endTraceTiming("callUpdateEvent" . $this->collection);
@@ -1136,7 +1155,7 @@ class StructureType extends BaseType
 
         $documents = Shm::arrayOf($this)->normalize($documents, true);
 
-        $result = mDB::collection($this->collection)->insertMany($$documents, $options);
+        $result = mDB::collection($this->collection)->insertMany($documents, $options);
 
 
 
@@ -1181,7 +1200,7 @@ class StructureType extends BaseType
 
         $documents = Shm::arrayOf($this)->normalize($documents, true);
 
-        return mDB::collection($this->collection)->insertMany($$documents, $options);
+        return mDB::collection($this->collection)->insertMany($documents, $options);
     }
 
 

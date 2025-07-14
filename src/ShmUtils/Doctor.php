@@ -132,30 +132,76 @@ class Doctor
     private static function ensureSortWeightIndex()
     {
 
+        $isCli = (php_sapi_name() === 'cli');
+
         $structures = self::structures();
+
 
 
 
         foreach ($structures as $structure) {
 
 
-            if ($structure->collection && $structure::structure()->manualSort) {
+
+
+            $indexes = $structure::structure()->createIndex();
+
+            if (count($indexes) > 0) {
+
 
                 $collection = mDB::_collection($structure->collection);
 
 
-                // Получаем все индексы коллекции
+                foreach ($indexes as $indexKey => $type) {
+
+
+
+
+
+
+                    $hasIndex = false;
+
+                    foreach ($collection->listIndexes() as $index) {
+                        if (isset($index['key'][$indexKey]) && $index['key'][$indexKey] === $type) {
+                            $hasIndex = true;
+                            break;
+                        }
+                    }
+
+                    if (!$hasIndex) {
+                        $collection->createIndex([$indexKey =>  $type]);
+                        if ($isCli)
+                            echo "Index created: {$indexKey} => {$type} in {$structure->collection}" . PHP_EOL;
+                    }
+                }
+            }
+
+
+            if ($structure->collection && $structure::structure()->manualSort) {
+
+
+                if ($isCli)
+                    echo "Creating index for _sortWeight in {$structure->collection}" . PHP_EOL;
+
+                $collection = mDB::_collection($structure->collection);
+
+
                 $indexes = $collection->listIndexes();
 
-                // Ищем индекс по полю "_sortWeight"
+                $findIndex = false;
+
                 foreach ($indexes as $index) {
-                    if (!empty($index['key']['_sortWeight'])) {
-                        return;
+
+
+                    if (isset($index['key']['_sortWeight'])) {
+                        $findIndex = true;
+                        break;
                     }
                 }
 
-                // Если не найден — создаём индекс
-                $collection->createIndex(['_sortWeight' => 1]);
+
+                if (!$findIndex)
+                    $collection->createIndex(['_sortWeight' => 1]);
             }
         }
     }
@@ -242,6 +288,18 @@ class Doctor
                     } catch (\Throwable $error) {
                         // логировать по желанию
                     }
+                }
+
+
+                $enumConstName = strtoupper(str_replace('.', '__', $prefix . $key . '_ENUM_ALL_KEYS'));
+                $enumConstValue = array_keys($values);
+
+                try {
+                    $class->addConstant($enumConstName, $enumConstValue)
+                        ->setVisibility('public')
+                        ->setComment("Enum {$key}: {$enumValue}");
+                } catch (\Throwable $error) {
+                    // логировать по желанию
                 }
             }
 

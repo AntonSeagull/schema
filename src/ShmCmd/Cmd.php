@@ -44,13 +44,15 @@ class Cmd
             if ($command === $this->cmd) {
 
 
+
+
                 ini_set('log_errors', 1);
 
                 // Настройка глобального обработчика ошибок
                 set_error_handler(function ($errno, $errstr, $errfile, $errline): void {
                     $message = "Error [$errno]: $errstr in $errfile on line $errline";
 
-                    echo $message . PHP_EOL;
+                    fwrite(STDERR, $message . PHP_EOL);
                     // Отправляем ошибку как исключение в Sentry
                     $exception = new \ErrorException($errstr, 0, $errno, $errfile, $errline);
                     \Sentry\captureException($exception);
@@ -58,7 +60,7 @@ class Cmd
 
                 set_exception_handler(function ($exception): void {
                     $message = "Uncaught exception: " . $exception->getMessage();
-                    echo $message . PHP_EOL;
+                    fwrite(STDERR, $message . PHP_EOL);
                     // Отправляем исключение в Sentry
                     \Sentry\captureException($exception);
                 });
@@ -67,7 +69,7 @@ class Cmd
                     $error = error_get_last();
                     if ($error !== NULL) {
                         $message = "[SHUTDOWN] file: {$error['file']} | ln: {$error['line']} | msg: {$error['message']}";
-                        echo $message . PHP_EOL;
+                        fwrite(STDERR, $message . PHP_EOL);
                         // Отправляем в Sentry
                         \Sentry\captureMessage($message, \Sentry\Severity::fatal());
                     }

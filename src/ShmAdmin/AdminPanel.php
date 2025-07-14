@@ -157,6 +157,7 @@ class AdminPanel
                 "*" => Shm::string()
             ]),
 
+            'display' => Shm::bool(),
             'canUpdate' => Shm::boolean(),
             'canDelete' => Shm::boolean(),
             'canCreate' => Shm::boolean(),
@@ -824,6 +825,36 @@ class AdminPanel
                     $pipeline = $structure->getPipeline();
 
 
+
+                    if ($structure->single) {
+
+
+
+                        $pipeline = [
+                            ...$pipeline,
+                            [
+                                '$limit' => 1
+                            ],
+                        ];
+
+                        $result = $structure->aggregate($pipeline)->toArray() ?? null;
+
+
+                        if (!$result) {
+
+                            return [
+                                'data' =>  [$structure->normalize([], true)]
+                            ];
+                        } else {
+
+                            return  [
+                                'data' => $result
+                            ];
+                        }
+                    }
+
+
+
                     if (isset($args['stage'])) {
 
                         $stage = $structure->findStage($args['stage']);
@@ -839,6 +870,10 @@ class AdminPanel
 
 
                     if (isset($args['_id'])) {
+
+
+
+
 
                         $pipeline = [
                             ...$pipeline,
@@ -1197,6 +1232,63 @@ class AdminPanel
                     }
 
                     $ids = $args['_ids'] ?? null;
+
+
+
+                    if ($structure->single) {
+
+                        $pipeline = $structure->getPipeline();
+
+                        $pipeline = [
+                            ...$pipeline,
+                            [
+                                '$limit' => 1
+                            ],
+                        ];
+
+                        $result = $structure->aggregate($pipeline)->toArray() ?? null;
+
+                        $id = $result[0]['_id'] ?? null;
+
+
+
+                        if (!$id) {
+
+                            $insert = $structure->insertOneWithEvents($values);
+
+                            if (!$insert) {
+                                Response::validation("Ошибка при добавлении данных");
+                            }
+
+
+                            return [
+                                'data' => $structure->find([
+                                    '_id' => $insert->getInsertedId(),
+                                ])
+                            ];
+                        } else {
+
+                            $structure->updateManyWithEvents(
+                                [
+                                    "_id" => $id,
+                                ],
+                                [
+                                    '$set' => $values
+                                ]
+                            );
+
+
+                            return [
+                                'data' => $structure->find([
+                                    '_id' => $id
+                                ]),
+                            ];
+                        }
+                    }
+
+
+
+
 
                     if ($ids) {
 

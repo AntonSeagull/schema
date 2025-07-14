@@ -20,6 +20,17 @@ class StaticType extends BaseType
         $this->staticValue = $staticValue;
     }
 
+    public function getStaticValueTS(): mixed
+    {
+
+        if (is_string($this->staticValue)) {
+
+            return json_encode($this->staticValue);
+        }
+
+        return $this->staticValue;
+    }
+
     public function normalize(mixed $value, $addDefaultValues = false, string | null $processId = null): mixed
     {
 

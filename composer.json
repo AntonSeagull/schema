@@ -35,7 +35,8 @@
         "gumlet/php-image-resize": "^2.0",
         "php-ffmpeg/php-ffmpeg": "*",
         "maximal/audio-waveform": "*",
-        "kornrunner/blurhash": "*"
+        "kornrunner/blurhash": "*",
+        "predis/predis": "^3.0"
     },
     "prefer-stable": true
 }

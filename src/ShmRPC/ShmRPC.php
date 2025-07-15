@@ -2,8 +2,7 @@
 
 namespace Shm\ShmRPC;
 
-
-
+use Sentry\Util\JSON;
 use Shm\Shm;
 use Shm\ShmBlueprints\Auth\ShmAuth;
 use Shm\ShmBlueprints\ShmBlueprintMutation;
@@ -17,6 +16,7 @@ use Shm\ShmUtils\Response;
 use Shm\ShmTypes\StructureType;
 use Shm\ShmUtils\ShmUtils;
 use Shm\ShmBlueprints\FileUpload\ShmFileUpload;
+use Shm\ShmUtils\RedisCache;
 
 class ShmRPC
 {
@@ -225,6 +225,24 @@ class ShmRPC
             Response::notFound("Method '{$method}' not found.");
         }
 
+        if (($schemaMethod['cache'] ?? 0) > 0) {
+            $cache = RedisCache::get($method . json_encode($params));
+            if ($cache) {
+                if ($cache !== null) {
+
+                    $result = json_decode($cache, true);
+
+                    if ($context) {
+                        $result = json_encode($result);
+                        $result = self::xor_encrypt($result, $context);
+                    }
+
+
+                    Response::success($result);
+                }
+            }
+        }
+
         self::callRpcMethod($schemaMethod, $method);
     }
 
@@ -291,10 +309,20 @@ class ShmRPC
 
 
 
+
+        if (($schemaMethod['cache'] ?? 0) > 0) {
+            RedisCache::set($method . json_encode($params), json_encode($result), $schemaMethod['cache']);
+        }
+
+
+
         if ($context) {
             $result = json_encode($result);
             $result = self::xor_encrypt($result, $context);
         }
+
+
+
 
         Response::success($result);
     }

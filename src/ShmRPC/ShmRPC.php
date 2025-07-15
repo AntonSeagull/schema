@@ -237,6 +237,7 @@ class ShmRPC
                         $result = self::xor_encrypt($result, $context);
                     }
 
+                    Response::cache();
 
                     Response::success($result);
                 }
@@ -306,6 +307,7 @@ class ShmRPC
             $result = mDB::replaceObjectIdsToString($result);
 
         $end = microtime(true);
+
 
 
 

@@ -11,6 +11,14 @@ class Response
 
     private static $startTime = 0;
 
+
+    private static $cache = false;
+
+    public static function cache(bool $cache = true): void
+    {
+        self::$cache = $cache;
+    }
+
     public static function startTime(): void
     {
         self::$startTime = microtime(true);
@@ -68,6 +76,7 @@ class Response
             'result' => $result,
             'executionTime' => self::$startTime ? round((microtime(true) - self::$startTime) * 1000) : null,
             'traceTimings' => self::$traceTimingsResult,
+            'cache' => self::$cache,
             'memoryUsage' => [
                 'used' => memory_get_usage(),
                 'peak' => memory_get_peak_usage(),
@@ -175,6 +184,7 @@ class Response
         echo json_encode([
             ...self::$baseResponse,
             'error' => $error,
+
             'executionTime' => self::$startTime ? round((microtime(true) - self::$startTime) * 1000) : null,
         ]);
         exit(0);

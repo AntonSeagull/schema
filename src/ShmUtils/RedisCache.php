@@ -9,22 +9,28 @@ use Predis\Response\ServerException;
 class RedisCache
 {
     protected static ?Client $client = null;
-    protected static bool $available = false;
+
     protected const PREFIX = '_cache_';
+
+    protected static bool $errorConnection = false;
 
     /**
      * Инициализирует соединение с Redis через Predis
      */
     protected static function init(): void
     {
-        if (self::$client !== null || self::$available) {
+
+
+        if (self::$errorConnection) {
             return;
         }
 
-        // Проверка на наличие класса
-        if (!class_exists(Client::class)) {
+        if (self::$client !== null) {
             return;
         }
+
+
+
 
         try {
             self::$client = new Client([
@@ -34,26 +40,33 @@ class RedisCache
                 'timeout' => Config::get('redis.timeout', 0.5)
             ]);
 
+
             // Проверка соединения
             self::$client->ping();
-            self::$available = true;
         } catch (ConnectionException | ServerException $e) {
+            self::$errorConnection = true;
             error_log('[RedisCache] Redis connection failed: ' . $e->getMessage());
-            self::$available = false;
         }
     }
 
     public static function set(string $key, string $value, int $ttl = 300): bool
     {
+
+
         self::init();
-        if (!self::$available) return false;
+
+
+        if (self::$errorConnection) {
+            return false;
+        }
+
 
         try {
             $prefixedKey =  self::PREFIX . md5($key);
             self::$client->setex($prefixedKey, $ttl, $value);
             return true;
         } catch (\Exception $e) {
-            error_log('[RedisCache] SET error: ' . $e->getMessage());
+
             return false;
         }
     }
@@ -61,7 +74,12 @@ class RedisCache
     public static function get(string $key): ?string
     {
         self::init();
-        if (!self::$available) return null;
+
+
+        if (self::$errorConnection) {
+            return null;
+        }
+
 
         try {
             $prefixedKey = self::PREFIX . md5($key);
@@ -76,8 +94,11 @@ class RedisCache
     public static function delete(string $key): bool
     {
         self::init();
-        if (!self::$available) return false;
 
+
+        if (self::$errorConnection) {
+            return false;
+        }
         try {
             $prefixedKey = self::PREFIX . md5($key);
             self::$client->del([$prefixedKey]);
@@ -91,7 +112,10 @@ class RedisCache
     public static function clearAll(): void
     {
         self::init();
-        if (!self::$available) return;
+
+        if (self::$errorConnection) {
+            return;
+        }
 
         try {
             $keys = self::$client->keys(self::PREFIX . '*');

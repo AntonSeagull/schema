@@ -21,6 +21,7 @@ use Shm\ShmTypes\CompositeTypes\RangeType;
 
 use Shm\ShmTypes\CompositeTypes\SocialType;
 use Shm\ShmTypes\CompositeTypes\TimeType;
+use Shm\ShmTypes\ComputedType;
 use Shm\ShmTypes\StructureType;
 use Shm\ShmTypes\UnixDateType;
 use Shm\ShmTypes\EnumType;
@@ -31,6 +32,7 @@ use Shm\ShmTypes\PasswordType;
 use Shm\ShmTypes\PhoneType;
 use Shm\ShmTypes\SelfRefType;
 use Shm\ShmTypes\StaticType;
+
 use Shm\ShmTypes\SupportTypes\StageType;
 use Shm\ShmTypes\UnixDateTimeType;
 use Shm\ShmTypes\Utils\JsonLogicBuilder;
@@ -241,6 +243,22 @@ class Shm
     public static function stage(): StageType
     {
         return new StageType();
+    }
+
+    /**
+     * ComputedType constructor.
+     *
+     * @param array{
+     *     resolve: callable,           // Функция, вычисляющая значение: function ($root, $args)
+     *     args?: array|BaseType|null, // Аргументы для вычисления
+     *     type: BaseType              // Ожидаемый тип возвращаемого значения
+     * } $computedParams Параметры вычисляемого типа
+     *
+     * @throws \InvalidArgumentException Если параметры некорректны
+     */
+    public static function computed($computedParams): ComputedType
+    {
+        return new ComputedType($computedParams);
     }
 
     public static function static(mixed $staticValue): StaticType

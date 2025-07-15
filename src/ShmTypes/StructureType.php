@@ -88,12 +88,28 @@ class StructureType extends BaseType
 
     private null | StructureType $stages = null;
 
+    public null | StructureType $buttonActions = null;
+
+
 
     public $publicStages = [];
 
     public function getStages(): ?StructureType
     {
         return $this->stages;
+    }
+
+
+    public function buttonActions(StructureType $buttonActions): self
+    {
+        foreach ($buttonActions->items as $key => $action) {
+            if (!($action instanceof ComputedType)) {
+                throw new \InvalidArgumentException("Button action '{$key}' must be an instance of ComputedType.");
+            }
+        }
+
+        $this->buttonActions = $buttonActions;
+        return $this;
     }
 
     public function stages(StructureType $stages): self
@@ -115,6 +131,16 @@ class StructureType extends BaseType
     {
         if ($this->stages && isset($this->stages->items[$key])) {
             return $this->stages->items[$key];
+        }
+
+        return null;
+    }
+
+
+    public function findButtonAction(string $key): ?ComputedType
+    {
+        if ($this->buttonActions && isset($this->buttonActions->items[$key])) {
+            return $this->buttonActions->items[$key];
         }
 
         return null;
@@ -1014,11 +1040,19 @@ class StructureType extends BaseType
     public function find(array $filter = [], array $options = [])
     {
         $filter = mDB::replaceStringToObjectIds($filter);
+        $pipeline = [];
+
+        if (count($filter) > 0) {
+
+            $pipeline = [
+                [
+                    '$match' => $filter
+                ]
+            ];
+        }
 
         $pipeline = [
-            [
-                '$match' => $filter
-            ],
+            ...$pipeline,
             ...$this->getPipeline(),
 
         ];
@@ -1064,15 +1098,24 @@ class StructureType extends BaseType
 
         $filter = mDB::replaceStringToObjectIds($filter);
 
-        return   mDB::collection($this->collection)->aggregate([
-            [
+        $pipeline = [];
+
+        if (count($filter) > 0) {
+            $pipeline[] = [
                 '$match' => $filter
-            ],
+            ];
+        }
+
+
+        $pipeline = [
+            ...$pipeline,
             ...$this->getPipeline(),
             [
                 '$limit' => 1
             ]
-        ])->toArray()[0] ?? null;
+        ];
+
+        return   mDB::collection($this->collection)->aggregate($pipeline)->toArray()[0] ?? null;
     }
 
 

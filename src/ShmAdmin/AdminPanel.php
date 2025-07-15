@@ -140,6 +140,22 @@ class AdminPanel
             'publicStages' => Shm::structure([
                 "*" => Shm::string()
             ]),
+
+            'buttonActions' => Shm::selfRef(function () use (&$type) {
+                return $type;
+            }),
+
+            'computedArgs' => Shm::selfRef(function () use (&$type) {
+                return $type;
+            }),
+
+
+
+            'computedReturnType' => Shm::selfRef(function () use (&$type) {
+                return $type;
+            }),
+
+
             'filterType' => Shm::selfRef(function () use (&$type) {
                 return $type;
             }),
@@ -1327,6 +1343,39 @@ class AdminPanel
 
             ],
 
+            'runAction' => [
+                'type' => Shm::structure([
+                    'payload' => Shm::mixed(),
+                ]),
+                'args' => [
+                    '_ids' => Shm::IDs(),
+                    'collection' => Shm::nonNull(Shm::string()),
+                    'action' => Shm::nonNull(Shm::string()),
+                    '*' => Shm::mixed()
+                ],
+
+                'resolve' => function ($root, $args) {
+
+                    Auth::authenticateOrThrow(...self::$users);
+
+                    $structure = self::$schema->findItemByCollection($args['collection']);
+
+                    if (!$structure) {
+                        Response::validation("Данные не доступны");
+                    }
+
+                    $buttonAction = $structure->findButtonAction($args['action']);
+
+                    if (!$buttonAction) {
+                        Response::validation("Действие не найдено");
+                    }
+
+                    $payload =  $buttonAction->computed($args);
+                    return [
+                        'payload' => $payload
+                    ];
+                }
+            ],
 
             'stagesTotal' => [
                 'type' => Shm::structure([

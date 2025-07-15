@@ -31,7 +31,7 @@ class ShmRPC
     }
 
 
-    private static function transformSchemaParams(array $field, string $key): array
+    public static function transformSchemaParams(array $field, string $key): array
     {
 
         $field['type']->updateKeys($key);
@@ -167,7 +167,7 @@ class ShmRPC
 
 
 
-        //If GET request, we can return the schema
+
         if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['schema'])) {
 
 
@@ -192,6 +192,8 @@ class ShmRPC
         else $request = [];
 
         $method = $request['method'] ?? $_POST['method'] ?? $_GET['method'] ?? null;
+
+
         $params = $request['params'] ?? [];
 
         $context = $request['context'] ?? null;
@@ -212,7 +214,46 @@ class ShmRPC
             throw new \InvalidArgumentException("Method is required.");
         }
 
+
+        if ($method === null) {
+            throw new \InvalidArgumentException("Method is required.");
+        }
+
         $schemaMethod = $schemaParams[$method] ?? null;
+
+        if ($schemaMethod === null) {
+            Response::notFound("Method '{$method}' not found.");
+        }
+
+        self::callRpcMethod($schemaMethod, $method);
+    }
+
+    public static function callRpcMethod($schemaMethod, $method)
+    {
+
+        $body = file_get_contents('php://input');
+        if ($body)
+            $request = \json_decode($body, true);
+        else $request = [];
+
+
+        $params = $request['params'] ?? [];
+
+        $context = $request['context'] ?? null;
+
+        if ($context && is_string($params)) {
+
+            $params = self::xor_decrypt($params, $context);
+
+            try {
+                $params = \json_decode($params, true);
+            } catch (\Exception $e) {
+                Response::validation("Ошибка выполнения запроса");
+            }
+        }
+
+
+
 
         Response::startTraceTiming('transformSchemaParams');
         $schemaMethod = self::transformSchemaParams($schemaMethod, $method);
@@ -247,7 +288,7 @@ class ShmRPC
             $result = mDB::replaceObjectIdsToString($result);
 
         $end = microtime(true);
-        $duration = round(($end - $start) * 1000);
+
 
 
         if ($context) {

@@ -184,7 +184,7 @@ class IDType extends BaseType
     {
 
 
-        if ($this->document && !$this->document->hide) {
+        if (!$this->isFlatted() && $this->document && !$this->document->hide) {
             return $this->document->tsType();
         } else {
 

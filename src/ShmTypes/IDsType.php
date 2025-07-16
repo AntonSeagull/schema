@@ -218,7 +218,7 @@ class IDsType extends BaseType
     {
 
 
-        if ($this->document && !$this->document->hide) {
+        if (!$this->isFlatted() &&  $this->document && !$this->document->hide) {
 
             $documentTsType = $this->document->tsType();
 

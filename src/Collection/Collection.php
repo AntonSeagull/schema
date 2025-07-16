@@ -162,7 +162,7 @@ class Collection
 
 
 
-        $schema =  $this->schema()
+        $schema =   $this->schema()
             ->key($this->collection)
             ->collection($this->collection);
 

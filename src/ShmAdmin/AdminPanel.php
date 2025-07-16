@@ -16,7 +16,7 @@ use Shm\ShmTypes\StructureType;
 use Shm\ShmUtils\Config;
 use Shm\ShmUtils\Inflect;
 use Shm\ShmUtils\Response;
-
+use Shm\ShmUtils\ShmInit;
 
 class AdminPanel
 {
@@ -214,8 +214,8 @@ class AdminPanel
         $color = self::$schema->assets['color'] ?? "#000000";
         $url = (string) self::url();
 
-        $js =  $url . "/static/js/main.js";
-        $css = $url . "/static/css/main.css";
+        $js =  $url . "/static/js/main.js?shm=" . ShmInit::$shmVersionHash;
+        $css = $url . "/static/css/main.css?shm=" . ShmInit::$shmVersionHash;
 
         $html = '<!DOCTYPE html>
 <html lang="en">

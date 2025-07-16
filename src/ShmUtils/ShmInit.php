@@ -19,6 +19,9 @@ class ShmInit
 
     public static $rootDir = null;
 
+
+    public static $shmVersionHash = 'none';
+
     public static $shmDir = null;
 
     public static function init(string $bootstrapAppDir): void
@@ -26,6 +29,7 @@ class ShmInit
 
 
 
+        self::$shmVersionHash =   \Composer\InstalledVersions::getReference("shm/schema") ?? "none";
 
 
         if (php_sapi_name() !== 'cli') {

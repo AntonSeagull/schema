@@ -16,7 +16,7 @@ class RedisCache
     private static function getPrefix()
     {
 
-        $hash = \Composer\InstalledVersions::getReference("shm/schema") ?? "none";
+        $hash = ShmInit::$shmVersionHash;
 
         return self::PREFIX . $hash . '_';
     }

@@ -19,6 +19,10 @@ class IDType extends BaseType
     private $documentResolver = null;
 
 
+
+
+
+
     public function documentResolver()
     {
 
@@ -213,7 +217,15 @@ class IDType extends BaseType
     public function getIDsPaths(array $path): array
     {
 
+
+
+        if ($this->isFlatted()) {
+            return [];
+        }
+
         if ($this->document && !$this->document->hide) {
+
+
             return [
                 [
                     'path' => [...$path],

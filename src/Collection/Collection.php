@@ -82,7 +82,12 @@ class Collection
 
 
         if (method_exists($_this, 'expect')) {
-            return self::$flattenCache[$_this->collection] = $_this->expect()->baseTypePrefix("Flat");
+
+            $schema = clone $_this->expect();
+
+            $schema->flatted(true);
+
+            return self::$flattenCache[$_this->collection] = $schema;
         }
 
         return null;
@@ -173,7 +178,9 @@ class Collection
 
 
 
-        return $schema;
+
+
+        return  $schema;
     }
 
 

@@ -184,6 +184,7 @@ class ArrayOfType extends BaseType
     {
 
 
+
         if (!($this->itemType instanceof StructureType)) {
             return $data;
         }
@@ -193,6 +194,7 @@ class ArrayOfType extends BaseType
         $structureType->updateKeys();
         $structureType->updatePath();
         $paths =  $structureType->getIDsPaths([]);
+
 
 
 

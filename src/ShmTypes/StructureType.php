@@ -36,6 +36,8 @@ class StructureType extends BaseType
     private $insertValues = [];
 
 
+
+
     public bool $manualSort = false;
 
 
@@ -334,15 +336,7 @@ class StructureType extends BaseType
         return $this;
     }
 
-    private  $baseTypePrefix = null;
 
-
-    public  function baseTypePrefix(string $prefix): self
-    {
-        $this->baseTypePrefix = ShmUtils::onlyLetters($prefix);
-
-        return $this;
-    }
 
     public function baseTypeName()
     {
@@ -367,7 +361,12 @@ class StructureType extends BaseType
             $typeName = Inflect::singularize(ShmUtils::onlyLetters($this->key)) .  AutoPostfix::get($keys);
         }
 
-        return $this->baseTypePrefix ? $this->baseTypePrefix . $typeName : $typeName;
+        $baseTypePrefix = null;
+        if ($this->isFlatted()) {
+            $baseTypePrefix = 'Flat';
+        }
+
+        return $baseTypePrefix ? $baseTypePrefix . $typeName : $typeName;
     }
 
 

@@ -225,12 +225,19 @@ class ShmRPC
             Response::notFound("Method '{$method}' not found.");
         }
 
-        if (($schemaMethod['cache'] ?? 0) > 0) {
+
+        $cache = isset($request['cache']) ? $request['cache'] : true;
+
+
+
+        if ($cache && ($schemaMethod['cache'] ?? 0) > 0) {
             $cache = RedisCache::get($method . json_encode($params));
             if ($cache) {
                 if ($cache !== null) {
 
                     $result = json_decode($cache, true);
+
+
 
                     if ($context) {
                         $result = json_encode($result);
@@ -238,7 +245,7 @@ class ShmRPC
                     }
 
                     Response::cache();
-
+                    $result = mDB::replaceObjectIdsToString($result);
                     Response::success($result);
                 }
             }
@@ -293,7 +300,11 @@ class ShmRPC
         Response::endTraceTiming("normalize");
 
 
+
+
         if ($result) {
+
+
 
 
             if ($schemaMethod['type'] instanceof StructureType || $schemaMethod['type'] instanceof \Shm\ShmTypes\ArrayOfType) {
@@ -312,7 +323,7 @@ class ShmRPC
 
 
 
-        if (($schemaMethod['cache'] ?? 0) > 0) {
+        if ($result && ($schemaMethod['cache'] ?? 0) > 0) {
             RedisCache::set($method . json_encode($params), json_encode($result), $schemaMethod['cache']);
         }
 

@@ -54,25 +54,6 @@ class AdminPanel
     }
 
 
-    private static function removeNullValues($data)
-    {
-
-        foreach ($data as $key => $val) {
-
-            if ($val === null || $val === false || $val == []) {
-                unset($data[$key]);
-                continue;
-            }
-            if (is_array($val) || is_object($val)) {
-                $data[$key] = self::removeNullValues($val);
-                if ($val === null || $val === false) {
-                    unset($data[$key]);
-                }
-            }
-        }
-
-        return $data;
-    }
 
     public static function json()
     {
@@ -81,10 +62,7 @@ class AdminPanel
 
 
 
-        $data = json_decode(json_encode(get_object_vars(self::$schema)), true);
-        $data = self::removeNullValues($data);
-
-        return $data;
+        return self::$schema->json();
     }
 
     private static $allTypes = [

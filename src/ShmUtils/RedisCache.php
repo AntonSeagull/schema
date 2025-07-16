@@ -12,6 +12,15 @@ class RedisCache
 
     protected const PREFIX = '_cache_';
 
+
+    private static function getPrefix()
+    {
+
+        $hash = \Composer\InstalledVersions::getReference("shm/schema") ?? "none";
+
+        return self::PREFIX . $hash . '_';
+    }
+
     protected static bool $errorConnection = false;
 
     /**
@@ -62,7 +71,7 @@ class RedisCache
 
 
         try {
-            $prefixedKey =  self::PREFIX . md5($key);
+            $prefixedKey =  self::getPrefix() . md5($key);
             self::$client->setex($prefixedKey, $ttl, $value);
             return true;
         } catch (\Exception $e) {
@@ -82,7 +91,7 @@ class RedisCache
 
 
         try {
-            $prefixedKey = self::PREFIX . md5($key);
+            $prefixedKey = self::getPrefix() . md5($key);
             $value = self::$client->get($prefixedKey);
             return $value !== null ? $value : null;
         } catch (\Exception $e) {
@@ -100,7 +109,7 @@ class RedisCache
             return false;
         }
         try {
-            $prefixedKey = self::PREFIX . md5($key);
+            $prefixedKey = self::getPrefix() . md5($key);
             self::$client->del([$prefixedKey]);
             return true;
         } catch (\Exception $e) {

@@ -114,6 +114,8 @@ class ShmBlueprintQuery
     {
 
 
+
+
         if ($this->withoutData) {
             $dataType = Shm::arrayOf($this->structure);
         } else {
@@ -162,10 +164,16 @@ class ShmBlueprintQuery
         $structure = $this->structure;
         $pipeline = $this->pipeline;
 
+
+
         $result = [
             'type' => $dataType,
             'args' =>  $argsStructure,
             'resolve' => function ($root, $args, $context, $info) use ($structure, $withoutData, $pipeline, $argsStructure) {
+
+
+
+
 
 
                 $onlyHash = $args['onlyHash'] ?? false;

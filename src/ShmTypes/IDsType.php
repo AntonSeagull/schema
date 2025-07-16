@@ -257,6 +257,12 @@ class IDsType extends BaseType
 
     public function getIDsPaths(array $path): array
     {
+
+        if ($this->isFlatted()) {
+            return [];
+        }
+
+
         if ($this->document && !$this->document->hide) {
             return [
                 [

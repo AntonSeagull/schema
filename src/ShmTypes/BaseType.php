@@ -17,6 +17,33 @@ abstract class BaseType
     public $hide = false;
 
 
+    private bool $flatted = false;
+
+
+    public function flatted(bool $flatted = true): static
+    {
+        $this->flatted = $flatted;
+
+        if (isset($this->items)) {
+            foreach ($this->items as $key => $item) {
+                $item->flatted($flatted);
+            }
+        }
+
+        if (isset($this->itemType)) {
+            $this->itemType->flatted($flatted);
+        }
+
+
+
+        return $this;
+    }
+
+    public function isFlatted(): bool
+    {
+        return $this->flatted;
+    }
+
 
     public $display = false;
 
@@ -316,6 +343,27 @@ abstract class BaseType
         $this->required = $isRequired;
         return $this;
     }
+
+
+    public function hideDocuments(): void
+    {
+
+        if ($this instanceof IDsType || $this instanceof IDType) {
+            if ($this->document)
+                $this->document->hide = true;
+        }
+
+        if (isset($this->items)) {
+            foreach ($this->items as $key => $item) {
+                $item->hideDocuments();
+            }
+        }
+
+        if (isset($this->itemType)) {
+            $this->itemType->hideDocuments();
+        }
+    }
+
 
     public function fullRequired(bool $required = true): static
     {
@@ -902,5 +950,38 @@ abstract class BaseType
         }
 
         return $result;
+    }
+
+    private  function removeNullValues($data)
+    {
+
+        foreach ($data as $key => $val) {
+
+            if ($val === null || $val === false || $val == []) {
+                unset($data[$key]);
+                continue;
+            }
+            if (is_array($val) || is_object($val)) {
+                $data[$key] = $this->removeNullValues($val);
+                if ($val === null || $val === false) {
+                    unset($data[$key]);
+                }
+            }
+        }
+
+        return $data;
+    }
+
+
+
+    public function json()
+    {
+
+
+
+        $data = json_decode(json_encode(get_object_vars($this)), true);
+        $data = $this->removeNullValues($data);
+
+        return $data;
     }
 }

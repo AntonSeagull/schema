@@ -142,6 +142,18 @@ class ShmRPC
 
 
 
+    private static function getRequestData(): array
+    {
+        $body = file_get_contents('php://input');
+        if ($body) {
+            $request = \json_decode($body, true);
+        } else {
+            $request = [];
+        }
+
+        return [...$request, ...$_GET, ...$_POST];
+    }
+
 
     /**
      * Инициализация
@@ -186,13 +198,9 @@ class ShmRPC
 
         $start = microtime(true);
 
-        $body = file_get_contents('php://input');
-        if ($body)
-            $request = \json_decode($body, true);
-        else $request = [];
+        $request = self::getRequestData();
 
-        $method = $request['method'] ?? $_POST['method'] ?? $_GET['method'] ?? null;
-
+        $method = $request['method'] ?? null;
 
         $params = $request['params'] ?? [];
 
@@ -257,11 +265,7 @@ class ShmRPC
     public static function callRpcMethod($schemaMethod, $method)
     {
 
-        $body = file_get_contents('php://input');
-        if ($body)
-            $request = \json_decode($body, true);
-        else $request = [];
-
+        $request = self::getRequestData();
 
         $params = $request['params'] ?? [];
 

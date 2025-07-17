@@ -145,15 +145,17 @@ class ShmRPC
     private static function getRequestData(): array
     {
         $body = file_get_contents('php://input');
+        $request = [];
+
         if ($body) {
-            $request = \json_decode($body, true);
-        } else {
-            $request = [];
+            $decoded = \json_decode($body, true);
+            if (is_array($decoded)) {
+                $request = $decoded;
+            }
         }
 
         return [...$request, ...$_GET, ...$_POST];
     }
-
 
     /**
      * Инициализация
@@ -298,6 +300,11 @@ class ShmRPC
 
 
         Response::startTraceTiming("normalize");
+
+
+
+
+
         $result = $schemaMethod['type']->normalize($result, false);
 
         $result = $schemaMethod['type']->removeOtherItems($result);

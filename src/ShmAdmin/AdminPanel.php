@@ -1309,7 +1309,7 @@ class AdminPanel
                             Response::validation("Ошибка при добавлении данных");
                         }
 
-                        $result = $structure->find([
+                        $result = $structure->findOne([
                             '_id' => $insert->getInsertedId(),
                         ]);
 

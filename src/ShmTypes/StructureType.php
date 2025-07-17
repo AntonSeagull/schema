@@ -1077,7 +1077,7 @@ class StructureType extends BaseType
             ];
         }
 
-        return   mDB::collection($this->collection)->aggregate($pipeline);
+        return   mDB::collection($this->collection)->aggregate($pipeline)->toArray();
     }
 
     public function distinct(string $field, array $filter = [])

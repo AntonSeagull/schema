@@ -3,10 +3,11 @@
 
 namespace Shm\ShmDB;
 
-
+use InvalidArgumentException;
 use \MongoDB\Client;
 use \MongoDB\Collection;
 use \MongoDB\Driver\WriteConcern;
+use Shm\ShmAuth\Auth;
 use Shm\ShmUtils\Config;
 use Traversable;
 
@@ -78,12 +79,25 @@ class CollectionEvents
             $type = key($operation);
             $data = $operation[$type];
 
-            // Ensure timestamps are set for inserts and updates
-            if ($type === 'insert' || $type === 'updateOne' || $type === 'updateMany') {
+
+            if ($type === 'insert') {
+
                 if (!isset($data['created_at'])) {
                     $data['created_at'] = time();
                 }
 
+                if (!isset($data['created_by'])) {
+                    $data['created_by'] = [
+                        'owner' => Auth::getAuthOwner(),
+                        'collection' => Auth::getAuthCollection(),
+                        'subAccount' => Auth::getSubAccountID(),
+                        'apikeyOwner' => Auth::getApiKeyOwner(),
+                    ];
+                }
+            }
+
+            // Ensure timestamps are set for inserts and updates
+            if ($type === 'updateOne' || $type === 'updateMany') {
                 if (!isset($data['updated_at'])) {
                     $data['updated_at'] = time();
                 }
@@ -136,6 +150,7 @@ class CollectionEvents
     public function aggregate(array $pipeline = [], array $options = [])
     {
 
+        mDB::validatePipeline($pipeline);
 
         $pipeline = array_merge([
 
@@ -313,6 +328,15 @@ class CollectionEvents
             $document['created_at'] = time();
         }
 
+        if (!isset($document['created_by'])) {
+            $document['created_by'] = [
+                'owner' => Auth::getAuthOwner(),
+                'collection' => Auth::getAuthCollection(),
+                'subAccount' => Auth::getSubAccountID(),
+                'apikeyOwner' => Auth::getApiKeyOwner(),
+            ];
+        }
+
         if (!isset($document['updated_at']) || !$document['updated_at']) {
             $document['updated_at'] = time();
         }
@@ -340,6 +364,16 @@ class CollectionEvents
         foreach ($documents as &$document) {
             if (!isset($document['created_at']) || !$document['created_at']) {
                 $document['created_at'] = time();
+
+
+                if (!isset($document['created_by'])) {
+                    $document['created_by'] = [
+                        'owner' => Auth::getAuthOwner(),
+                        'collection' => Auth::getAuthCollection(),
+                        'subAccount' => Auth::getSubAccountID(),
+                        'apikeyOwner' => Auth::getApiKeyOwner(),
+                    ];
+                }
             }
 
             if (!isset($document['updated_at']) || !$document['updated_at']) {
@@ -375,6 +409,15 @@ class CollectionEvents
             $document['created_at'] = time();
         }
 
+        if (!isset($document['created_by']) || !$document['created_by']) {
+            $document['created_by'] = [
+                'owner' => Auth::getAuthOwner(),
+                'collection' => Auth::getAuthCollection(),
+                'subAccount' => Auth::getSubAccountID(),
+                'apikeyOwner' => Auth::getApiKeyOwner(),
+            ];
+        }
+
         if (!isset($document['updated_at']) || !$document['updated_at']) {
             $document['updated_at'] = time();
         }
@@ -406,6 +449,15 @@ class CollectionEvents
         foreach ($documents as &$document) {
             if (!isset($document['created_at']) || !$document['created_at']) {
                 $document['created_at'] = time();
+            }
+
+            if (!isset($document['created_by']) || !$document['created_by']) {
+                $document['created_by'] = [
+                    'owner' => Auth::getAuthOwner(),
+                    'collection' => Auth::getAuthCollection(),
+                    'subAccount' => Auth::getSubAccountID(),
+                    'apikeyOwner' => Auth::getApiKeyOwner(),
+                ];
             }
 
             if (!isset($document['updated_at']) || !$document['updated_at']) {
@@ -447,6 +499,29 @@ class mDB
     }
 */
 
+
+    public static  function validatePipeline(array $pipeline): void
+    {
+        if (count($pipeline) === 0) {
+            return; // пустой pipeline допустим
+        }
+
+        foreach ($pipeline as $i => $stage) {
+            if (!is_array($stage)) {
+                throw new InvalidArgumentException("Pipeline stage at index $i must be an array. " . json_encode($stage) . json_encode($pipeline));
+            }
+
+            if (count($stage) !== 1) {
+                throw new InvalidArgumentException("Pipeline stage at index $i must have exactly one operator." . " Found " . count($stage) . " operators." . json_encode($stage) . json_encode($pipeline));
+            }
+
+            $operator = array_key_first($stage);
+            if (strpos($operator, '$') !== 0) {
+                throw new InvalidArgumentException("Pipeline stage at index $i must start with \$ (got '$operator'). " . json_encode($stage) . json_encode($pipeline));
+            }
+        }
+    }
+
     /**
      * @var array массив слушателей, где ключи - это имена коллекций,
      * а значения - массивы с обратными вызовами
@@ -465,7 +540,7 @@ class mDB
         $validOperations = ['insert', 'update'];
 
         if (!in_array($operation, $validOperations)) {
-            throw new \InvalidArgumentException("Invalid operation type. Allowed values are: " . implode(', ', $validOperations));
+            throw new \Exception("Invalid operation type. Allowed values are: " . implode(', ', $validOperations));
         }
 
         if (!isset(self::$listeners[$collectionName][$operation])) {
@@ -541,7 +616,7 @@ class mDB
         $validOperations = ['insert', 'update'];
 
         if (!in_array($operation, $validOperations)) {
-            throw new \InvalidArgumentException("Invalid operation type. Allowed values are: " . implode(', ', $validOperations));
+            throw new \Exception("Invalid operation type. Allowed values are: " . implode(', ', $validOperations));
         }
 
         if (isset(self::$listeners[$collectionName][$operation])) {

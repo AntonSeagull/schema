@@ -26,7 +26,7 @@ class PasswordType extends BaseType
 
         if ($value) {
             if (Auth::isPasswordHash($value)) {
-                return "";
+                return $value;
             } else {
 
                 return Auth::getPassword($value);
@@ -47,7 +47,7 @@ class PasswordType extends BaseType
 
         if (!is_string($value)) {
             $field = $this->title ?? 'Value';
-            throw new \InvalidArgumentException("{$field} must be a string.");
+            throw new \Exception("{$field} must be a string.");
         }
     }
 

@@ -105,7 +105,7 @@ class IDsType extends BaseType
                 'false' => 'Нет'
             ])->title('Не заполнено'),
             'children' =>  !$safeMode && $this->document ? $this->document->filterType(true)->title($this->title . ' — дополнительные фильтры') : null,
-        ])->fullEditable();
+        ])->editable();
 
 
         if (!$safeMode && !$this->document) {
@@ -114,7 +114,7 @@ class IDsType extends BaseType
 
 
 
-        return $itemTypeFilter->fullEditable()->fullInAdmin($this->inAdmin)->title($this->title)->title($this->title);
+        return $itemTypeFilter->editable()->inAdmin($this->inAdmin)->title($this->title)->title($this->title);
     }
 
 

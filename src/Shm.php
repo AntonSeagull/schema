@@ -11,12 +11,17 @@ use Shm\ShmTypes\BoolType;
 use Shm\ShmTypes\BaseType;
 use Shm\ShmTypes\ColorType;
 use Shm\ShmTypes\CompositeTypes\FileTypes\FileAnyType;
+use Shm\ShmTypes\CompositeTypes\FileTypes\FileAudioType;
+use Shm\ShmTypes\CompositeTypes\FileTypes\FileDocumentType;
+use Shm\ShmTypes\CompositeTypes\FileTypes\FileIDType;
 use Shm\ShmTypes\CompositeTypes\FileTypes\FileImageLinkType;
 use Shm\ShmTypes\CompositeTypes\FileTypes\FileImageType;
+use Shm\ShmTypes\CompositeTypes\FileTypes\FileVideoType;
 use Shm\ShmTypes\CompositeTypes\GeoTypes\GeoPointType;
 use Shm\ShmTypes\CompositeTypes\GeoTypes\MongoPointType;
 use Shm\ShmTypes\CompositeTypes\GeoTypes\MongoPolygonType;
 use Shm\ShmTypes\CompositeTypes\GeoTypes\MonogPointType;
+use Shm\ShmTypes\CompositeTypes\GradientType;
 use Shm\ShmTypes\CompositeTypes\RangeType;
 
 use Shm\ShmTypes\CompositeTypes\SocialType;
@@ -42,6 +47,12 @@ class Shm
 {
 
 
+    public static function json(): StructureType
+    {
+        return Shm::structure([
+            '*' => Shm::mixed()
+        ])->type('json');
+    }
 
     public static function structure(array $fields): StructureType
     {
@@ -51,6 +62,11 @@ class Shm
     public static function html(): StringType
     {
         return (new StringType())->type('html');
+    }
+
+    public static function url(): StringType
+    {
+        return (new StringType())->type('url');
     }
 
     public static function text(): StringType
@@ -65,17 +81,17 @@ class Shm
 
     public static function email(): StringType
     {
-        return (new StringType())->type('email');
+        return (new StringType())->type('email')->globalUnique();
     }
 
     public static function login(): StringType
     {
-        return (new StringType())->type('login');
+        return (new StringType())->type('login')->globalUnique();
     }
 
     public static function password(): PasswordType
     {
-        return (new PasswordType());
+        return (new PasswordType())->private();
     }
 
     public static function arrayOf(BaseType $itemType): ArrayOfType
@@ -146,6 +162,11 @@ class Shm
         return new UnixDateType();
     }
 
+    public static function timestamp(): UnixDateTimeType
+    {
+        return new UnixDateTimeType();
+    }
+
     public static function unixdatetime(): UnixDateTimeType
     {
         return new UnixDateTimeType();
@@ -175,9 +196,42 @@ class Shm
     {
         return new FileImageType();
     }
-    public static function file(): FileAnyType
+
+    public static function fileIDImage(): FileIDType
     {
-        return new FileAnyType();
+        return new FileIDType('image');
+    }
+
+
+    public static function fileAudio(): FileAudioType
+    {
+        return new FileAudioType();
+    }
+
+    public static function fileIDAudio(): FileIDType
+    {
+        return new FileIDType('audio');
+    }
+
+
+    public static function fileVideo(): FileVideoType
+    {
+        return new FileVideoType();
+    }
+
+    public static function fileIDVideo(): FileIDType
+    {
+        return new FileIDType('video');
+    }
+
+    public static function fileDocument(): FileDocumentType
+    {
+        return new FileDocumentType();
+    }
+
+    public static function fileIDDocument(): FileIDType
+    {
+        return new FileIDType('document');
     }
 
     public static function time(): TimeType
@@ -189,13 +243,13 @@ class Shm
     {
         return new GeoPointType();
     }
-    public static function monogoPoint(): MongoPointType
+    public static function mongoPoint(): MongoPointType
     {
         return new MongoPointType();
     }
 
 
-    public static function monogoPolygon(): MongoPolygonType
+    public static function mongoPolygon(): MongoPolygonType
     {
         return new MongoPolygonType();
     }
@@ -208,6 +262,8 @@ class Shm
     {
         return new JsonLogicBuilder();
     }
+
+
 
     public static function uuid(): UUIDType
     {
@@ -240,6 +296,23 @@ class Shm
         return new VisualGroupType($fields);
     }
 
+
+    //@deprecated
+    //Use Shm::mongoPolygon() instead
+    public static function geoRegion(): StructureType
+    {
+        return  Shm::structure([
+            "geometry" => Shm::mongoPolygon(),
+        ])->type('geoRegion');
+    }
+
+
+
+    public static function gradient(): GradientType
+    {
+        return new GradientType();
+    }
+
     public static function stage(): StageType
     {
         return new StageType();
@@ -254,7 +327,7 @@ class Shm
      *     type: BaseType              // Ожидаемый тип возвращаемого значения
      * } $computedParams Параметры вычисляемого типа
      *
-     * @throws \InvalidArgumentException Если параметры некорректны
+     * @throws \Exception Если параметры некорректны
      */
     public static function computed($computedParams): ComputedType
     {

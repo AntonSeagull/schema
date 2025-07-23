@@ -37,14 +37,14 @@ class MongoPointType extends StructureType
         }
         if (!is_array($value)) {
             $field = $this->title ?? 'Value';
-            throw new \InvalidArgumentException("{$field} must be an object/structure (associative array).");
+            throw new \Exception("{$field} must be an object/structure (associative array).");
         }
         foreach ($this->items as $name => $type) {
             try {
                 $type->validate($value[$name] ?? null);
-            } catch (\InvalidArgumentException $e) {
+            } catch (\Exception $e) {
                 $field = $this->title ?? $name;
-                throw new \InvalidArgumentException("{$field}.{$name}: " . $e->getMessage());
+                throw new \Exception("{$field}.{$name}: " . $e->getMessage());
             }
         }
     }
@@ -88,7 +88,7 @@ class MongoPointType extends StructureType
             'geoWithinPolygon' => Shm::arrayOf(Shm::arrayOf(Shm::arrayOf(Shm::float()))),
 
 
-        ])->fullEditable()->staticBaseTypeName("GeoPointFilterType");
+        ])->editable()->staticBaseTypeName("GeoPointFilterType");
 
         $this->filterType = $itemTypeFilter->title($this->title);
         return  $this->filterType;

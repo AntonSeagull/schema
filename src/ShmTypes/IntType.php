@@ -39,7 +39,7 @@ class IntType extends BaseType
         }
         if (!is_int($value)) {
             $field = $this->title ?? 'Value';
-            throw new \InvalidArgumentException("{$field} must be an integer.");
+            throw new \Exception("{$field} must be an integer.");
         }
     }
 
@@ -54,9 +54,9 @@ class IntType extends BaseType
             'gte' => Shm::int()->title('Больше')->col(8),
             'eq' => Shm::int()->title('Равно')->col(8),
             'lte' => Shm::int()->title('Меньше')->col(8),
-        ])->fullEditable()->staticBaseTypeName("IntFilterType");
+        ])->editable()->staticBaseTypeName("IntFilterType");
 
-        return $itemTypeFilter->fullEditable()->fullInAdmin($this->inAdmin)->title($this->title);
+        return $itemTypeFilter->editable()->inAdmin($this->inAdmin)->title($this->title);
     }
 
 

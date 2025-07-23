@@ -59,6 +59,12 @@ class ShmBlueprintQuery
 
     public function pipeline($pipeline = []): self
     {
+
+        if (count($pipeline) > 0) {
+            mDB::validatePipeline($pipeline);
+        }
+
+
         $this->pipeline = $pipeline;
         return $this;
     }
@@ -159,7 +165,7 @@ class ShmBlueprintQuery
             $args['filter'] = $filter;
         }
 
-        $argsStructure = Shm::structure($args)->fullEditable();
+        $argsStructure = Shm::structure($args);
         $withoutData = $this->withoutData;
         $structure = $this->structure;
         $pipeline = $this->pipeline;

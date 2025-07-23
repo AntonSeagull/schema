@@ -2,6 +2,8 @@
 
 namespace Shm\ShmCmd;
 
+use Shm\Shm;
+use Shm\ShmUtils\ShmInit;
 
 class Cmd
 {
@@ -60,8 +62,33 @@ class Cmd
 
                 set_exception_handler(function ($exception): void {
                     $message = "Uncaught exception: " . $exception->getMessage();
-                    fwrite(STDERR, $message . PHP_EOL);
-                    // Отправляем исключение в Sentry
+                    $location = " in " . $exception->getFile() . " on line " . $exception->getLine();
+
+                    fwrite(STDERR, $message . $location . PHP_EOL);
+
+                    $trace = $exception->getTrace();
+
+                    fwrite(STDERR, "Stack trace:" . PHP_EOL);
+
+                    foreach ($trace as $index => $frame) {
+                        $file = $frame['file'] ?? '[internal function]';
+                        $line = $frame['line'] ?? '';
+                        $function = $frame['function'] ?? '';
+                        $class = $frame['class'] ?? '';
+                        $type = $frame['type'] ?? '';
+
+                        fwrite(STDERR, sprintf(
+                            "#%d %s(%s): %s%s%s()\n",
+                            $index,
+                            $file,
+                            $line,
+                            $class,
+                            $type,
+                            $function
+                        ));
+                    }
+
+                    // Отправляем в Sentry
                     \Sentry\captureException($exception);
                 });
 
@@ -160,5 +187,77 @@ class Cmd
 
         CmdSchedule::dailyNoon($this->cmd);
         return $this;
+    }
+
+
+
+    public static function asyncRunBase64Data(string $commandName, array $data, int $delay = 0, int $priority = 1, string $queue = '', bool $runAsync = false)
+    {
+
+
+        if (count($data) == 0) {
+            return;
+        }
+
+
+        $base64 = base64_encode(json_encode($data, JSON_UNESCAPED_UNICODE));
+
+        $payload = json_encode([
+            "command" =>  ShmInit::$rootDir . '/public/index.php ' . $commandName . ' --base64=' . $base64,
+            "delay" => $delay,
+            "priority" => $priority,
+            "queue"     =>  $queue,
+            "run_async" => $runAsync,   // запускается в фоне без ожидания
+        ]);
+
+
+
+        $ch = curl_init('http://localhost:8434/enqueue');
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
+
+        $response = curl_exec($ch);
+
+
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+        $curlError = curl_error($ch);
+        curl_close($ch);
+    }
+
+
+    public static function asyncRun(string $commandName, int $delay = 0, int $priority = 1, string $queue = '', bool $runAsync = false)
+    {
+
+        $payload = json_encode([
+            "command" => ShmInit::$rootDir . '/public/index.php ' . $commandName,
+            "delay" => $delay,
+            "priority" => $priority,
+            "queue"     => $queue,      // передаём имя очереди (если пусто — будет default)
+            "run_async" => $runAsync,   // запускается в фоне без ожидания
+        ]);
+
+
+        $ch = curl_init('http://localhost:8434/enqueue');
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
+
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlError = curl_error($ch);
+        curl_close($ch);
+
+        // Проверка ошибки
+        if ($response === false || $httpCode >= 400) {
+            $message = "Failed to enqueue command '$commandName'. HTTP code: $httpCode. Curl error: $curlError";
+            error_log($message);
+
+
+            \Sentry\captureMessage($message, \Sentry\Severity::error());
+        }
     }
 }

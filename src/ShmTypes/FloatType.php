@@ -37,7 +37,7 @@ class FloatType extends BaseType
         }
         if (!is_float($value) && !is_int($value)) {
             $field = $this->title ?? 'Value';
-            throw new \InvalidArgumentException("{$field} must be a float.");
+            throw new \Exception("{$field} must be a float.");
         }
     }
 
@@ -51,9 +51,9 @@ class FloatType extends BaseType
             'gte' => Shm::float()->title('Больше')->col(8),
             'eq' => Shm::float()->title('Равно')->col(8),
             'lte' => Shm::float()->title('Меньше')->col(8),
-        ])->fullEditable()->staticBaseTypeName("FloatFilterType");
+        ])->staticBaseTypeName("FloatFilterType");
 
-        return  $itemTypeFilter->fullEditable()->fullInAdmin($this->inAdmin)->title($this->title);
+        return  $itemTypeFilter->editable()->inAdmin($this->inAdmin)->title($this->title);
     }
 
 

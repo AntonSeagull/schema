@@ -7,9 +7,11 @@ use GraphQL\Type\Definition\ObjectType;
 use Shm\CachedType\CachedInputObjectType;
 use Shm\CachedType\CachedObjectType;
 use Shm\Shm;
+use Shm\ShmDB\mDB;
 use Shm\ShmTypes\BaseType;
 use Shm\ShmTypes\StructureType;
 use Shm\ShmUtils\ShmUtils;
+use Traversable;
 
 class FileImageType extends StructureType
 {
@@ -36,22 +38,54 @@ class FileImageType extends StructureType
     }
 
 
-    public function __construct()
+    public static function items(): array
     {
-
-        $this->items = [
-            "_id" => Shm::string(),
-            'url' => Shm::string(),
-            'url_medium' => Shm::string(),
-            'url_small' => Shm::string(),
-            "blurhash" => Shm::string(),
+        return [
+            "_id" => Shm::ID()->editable(true),
+            "fileType" => Shm::string(),
             "name" => Shm::string(),
+            "url" => Shm::string(),
+            "url_medium" => Shm::string(),
+            "url_small" => Shm::string(),
+            "source" => Shm::string(),
+            "blurhash" => Shm::string(),
+            "width" => Shm::float(),
+            "height" => Shm::float(),
+            "type" => Shm::string(),
+            "created_at" => Shm::number(),
+
         ];
     }
 
+
+
+    public function __construct()
+    {
+
+        $this->items = self::items();
+
+        $this->childrenEditable(false);
+    }
+
+    public function normalize(mixed $value, $addDefaultValues = false, string | null $processId = null): mixed
+    {
+
+        if ((is_array($value) || $value instanceof Traversable)) {
+
+            if (!isset($value['url']) || !$value['url']) {
+                if (isset($value['_id']) && $value['_id']) {
+                    $value = mDB::collection("_files")->findOne(['_id' => mDB::id($value['_id'])]);
+                }
+            }
+        }
+
+        return parent::normalize($value, $addDefaultValues, $processId);
+    }
+
+
     public function baseTypeName()
     {
-        return  ShmUtils::onlyLetters($this->type);
+        return  ShmUtils::onlyLetters($this->type) . 'File';
     }
 
 

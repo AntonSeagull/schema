@@ -37,7 +37,7 @@ class BoolType extends BaseType
         }
         if (!is_bool($value)) {
             $field = $this->title ?? 'Value';
-            throw new \InvalidArgumentException("{$field} must be a boolean.");
+            throw new \Exception("{$field} must be a boolean.");
         }
     }
 
@@ -88,7 +88,7 @@ class BoolType extends BaseType
             "false" => "Нет",
         ])->editable();
 
-        return $itemTypeFilter->fullEditable()->inAdmin($this->inAdmin)->title($this->title);
+        return $itemTypeFilter->inAdmin($this->inAdmin)->title($this->title);
     }
 
     public function tsType(): TSType

@@ -7,6 +7,7 @@ use Shm\Shm;
 use Shm\ShmDB\mDB;
 use Shm\ShmRPC\ShmRPCCodeGen\TSType;
 use Shm\ShmUtils\DeepAccess;
+use Shm\ShmUtils\Response;
 use Traversable;
 
 class ArrayOfType extends BaseType
@@ -23,10 +24,16 @@ class ArrayOfType extends BaseType
         }
 
 
+        //If it's a structure and without collection then add uuid field if it doesn't exist
+        if ($itemType instanceof StructureType && !$itemType->collection) {
+            $itemType->addField('uuid', Shm::uuid());
+        }
+
+
         $this->itemType = $itemType;
     }
 
-    public function normalize(mixed $value, $addDefaultValues = false, string | null $processId = null): mixed
+    public function normalize(mixed $value, $addDefaultValues = false, string|null $processId = null): mixed
     {
 
         if (!(is_array($value) || $value instanceof Traversable)) {
@@ -50,7 +57,7 @@ class ArrayOfType extends BaseType
                 continue;
             }
 
-            $newValue[] =  $this->itemType->normalize($valueItem, $addDefaultValues, $processId);
+            $newValue[] = $this->itemType->normalize($valueItem, $addDefaultValues, $processId);
         }
 
 
@@ -71,7 +78,7 @@ class ArrayOfType extends BaseType
                 continue;
             }
 
-            $newValue[] =  $this->itemType->removeOtherItems($valueItem);
+            $newValue[] = $this->itemType->removeOtherItems($valueItem);
         }
 
         return $newValue;
@@ -92,15 +99,15 @@ class ArrayOfType extends BaseType
 
         if (!is_array($value)) {
             $field = $this->title ?? 'Value';
-            throw new \InvalidArgumentException("{$field} must be an array.");
+            throw new \Exception("{$field} must be an array.");
         }
 
         foreach ($value as $k => $item) {
             try {
                 $this->itemType->validate($item);
-            } catch (\InvalidArgumentException $e) {
+            } catch (\Exception $e) {
                 $field = $this->title ?? "Element {$k}";
-                throw new \InvalidArgumentException("{$field}[{$k}]: " . $e->getMessage());
+                throw new \Exception("{$field}[{$k}]: " . $e->getMessage());
             }
         }
     }
@@ -118,29 +125,8 @@ class ArrayOfType extends BaseType
     }
 
 
-    public function editable(bool $isEditable = true): static
-    {
-        $this->editable = $isEditable;
-        $this->itemType->editable($isEditable);
-        return $this;
-    }
 
 
-    public function fullEditable(bool $editable = true): static
-    {
-
-        $this->editable = $editable;
-
-        $this->itemType->fullEditable($editable);
-
-        return $this;
-    }
-
-
-    public function safeFullEditable(bool $editable = true): static
-    {
-        return $this->fullEditable($editable);
-    }
 
 
 
@@ -157,7 +143,7 @@ class ArrayOfType extends BaseType
         }
         $itemTypeFilter->editable();
 
-        return $itemTypeFilter->fullEditable()->fullInAdmin($this->inAdmin)->title($this->title);
+        return $itemTypeFilter->inAdmin($this->inAdmin)->title($this->title);
     }
 
     public function tsType(): TSType
@@ -189,34 +175,62 @@ class ArrayOfType extends BaseType
             return $data;
         }
 
+
+
         $structureType = $this->itemType;
 
         $structureType->updateKeys();
         $structureType->updatePath();
-        $paths =  $structureType->getIDsPaths([]);
+        $paths = $structureType->getIDsPaths([]);
 
 
+        $pathsByCollections = [];
 
 
         foreach ($paths as $pathItem) {
 
-            $val = [];
-
-
-            foreach ($data as $item) {
-                $val = [...$val,  ...DeepAccess::getByPath($item, $pathItem['path'])];
+            if (!isset($pathsByCollections[$pathItem['document']->collection])) {
+                $pathsByCollections[$pathItem['document']->collection] = [];
             }
 
+            $pathsByCollections[$pathItem['document']->collection][] = $pathItem;
+        }
 
-            if (!$val || !is_array($val) || count($val) == 0) {
+        //  var_dump($pathsByCollections);
+        //  exit;
+
+
+
+
+        foreach ($pathsByCollections as $collection => $collectionPaths) {
+
+            Response::startTraceTiming("externalData-" . $collection);
+
+            $allIds = [];
+            foreach ($collectionPaths as $pathItem) {
+
+                $val = [];
+
+
+                foreach ($data as $item) {
+                    $val = [...$val, ...DeepAccess::getByPath($item, $pathItem['path'])];
+                }
+
+
+                if (!$val || !is_array($val) || count($val) == 0) {
+                    continue;
+                }
+
+                $allIds = [...$allIds, ...$val];
+            }
+
+            if (count($allIds) == 0) {
                 continue;
             }
 
+            $pathItem = $collectionPaths[0];
 
-            $many = $pathItem['many'] ?? false;
-
-
-            $mongoDocs =  mDB::collection($pathItem['document']->collection)->aggregate([
+            $mongoDocs = mDB::collection($pathItem['document']->collection)->aggregate([
 
                 ...$pathItem['document']->getPipeline(),
                 [
@@ -228,11 +242,11 @@ class ArrayOfType extends BaseType
             ])->toArray();
 
 
-
+            if (count($mongoDocs) == 0) {
+                continue;
+            }
 
             $mongoDocs = Shm::arrayOf($pathItem['document'])->removeOtherItems($mongoDocs);
-
-
 
 
 
@@ -244,38 +258,50 @@ class ArrayOfType extends BaseType
             }
 
 
+            foreach ($collectionPaths as $pathItem) {
 
+                $many = $pathItem['many'] ?? false;
 
+                foreach ($data as &$item) {
 
-            foreach ($data as &$item) {
+                    DeepAccess::applyRecursive($item, $pathItem['path'], function ($node) use ($many, $documentsById) {
 
-                DeepAccess::applyRecursive($item, $pathItem['path'], function ($node) use ($many, $documentsById) {
+                        if ($many) {
 
-                    if ($many) {
+                            $result = [];
 
-                        $result = [];
+                            if (is_object($node) || is_array($node) || $node instanceof \Traversable) {
 
-                        if (is_object($node) || is_array($node) || $node instanceof \Traversable) {
-
-                            foreach ($node as $id) {
-                                if (isset($documentsById[(string) $id])) {
-                                    $result[] = $documentsById[(string) $id];
+                                foreach ($node as $id) {
+                                    if (isset($documentsById[(string) $id])) {
+                                        $result[] = $documentsById[(string) $id];
+                                    }
                                 }
+                            }
+
+                            return $result;
+                        } else {
+
+
+
+                            if (isset($documentsById[(string) $node])) {
+                                return $documentsById[(string) $node];
                             }
                         }
 
-                        return $result;
-                    } else {
-
-                        if (isset($documentsById[(string) $node])) {
-                            return $documentsById[(string) $node];
-                        }
-                    }
-
-                    return null;
-                });
+                        return null;
+                    });
+                }
             }
+
+
+
+
+            Response::endTraceTiming("externalData-" . $collection);
         }
+
+
+
 
         return $data;
     }

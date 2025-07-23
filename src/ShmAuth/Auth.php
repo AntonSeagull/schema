@@ -2,6 +2,7 @@
 
 namespace Shm\ShmAuth;
 
+use Shm\ShmAdmin\SchemaCollections\SubAccountsSchema;
 use Shm\ShmDB\mDB;
 use Shm\ShmTypes\StructureType;
 use Shm\ShmUtils\Response;
@@ -58,6 +59,7 @@ class Auth
     public static $apikey_collection = "_apikeys";
 
 
+    public static $subAccount = null;
 
 
     private static $initialized = false;
@@ -88,8 +90,19 @@ class Auth
             );
 
             if ($findToken && isset($findToken->collection) && isset($findToken->owner)) {
-                self::$authCollection = $findToken->collection;
-                self::$authOwner = $findToken->owner;
+
+                if ($findToken->collection === SubAccountsSchema::$collection) {
+
+                    self::$subAccount = mDB::collection(SubAccountsSchema::$collection)->findOne([
+                        "_id" => $findToken->owner
+                    ]);
+
+                    self::$authCollection = self::$subAccount->collection;
+                    self::$authOwner = self::$subAccount->owner;
+                } else {
+                    self::$authCollection = $findToken->collection;
+                    self::$authOwner = $findToken->owner;
+                }
             }
         }
 
@@ -113,6 +126,16 @@ class Auth
         }
         self::$initialized = true;
     }
+
+    public static function isAuthenticated(): bool
+    {
+        if (!self::$initialized) {
+            self::init();
+        }
+
+        return self::$authOwner !== null;
+    }
+
 
 
 
@@ -139,6 +162,27 @@ class Auth
     }
 
 
+    public static function getAuthOwnerAllField($default = null): mixed
+    {
+        if (!self::$initialized) {
+            self::init();
+        }
+
+        if (self::$authOwner && self::$authCollection && !self::$authOwnerDataLoad) {
+
+
+            self::$authOwnerDataLoad = true;
+
+            self::$authOwnerData = mDB::collection(self::$authCollection)->findOne([
+                "_id" => self::$authOwner
+            ]);
+        }
+
+
+
+        return self::$authOwnerData ? self::$authOwnerData : $default;
+    }
+
     public static function getAuthOwnerField(string $key, $default = null): mixed
     {
         if (!self::$initialized) {
@@ -164,6 +208,8 @@ class Auth
     }
 
 
+
+
     public static function getApiKeyOwnerField(string $key, $default = null): mixed
     {
         if (!self::$initialized) {
@@ -183,6 +229,25 @@ class Auth
             return $default;
         }
         return self::$apikeyOwnerData && isset(self::$apikeyOwnerData->{$key}) ? self::$apikeyOwnerData->{$key} : $default;
+    }
+
+    public static function subAccountAuth(): bool
+    {
+        if (!self::$initialized) {
+            self::init();
+        }
+
+        return self::$subAccount !== null;
+    }
+
+
+    public static function getSubAccountID()
+    {
+        if (!self::$initialized) {
+            self::init();
+        }
+
+        return self::$subAccount ? self::$subAccount->_id : null;
     }
 
 
@@ -275,6 +340,6 @@ class Auth
     public static function isPasswordHash($password): bool
     {
         // Проверяем, является ли строка хешем SHA-512
-        return strlen($password) === 128;
+        return strlen($password) === 128 && ctype_xdigit($password);
     }
 }

@@ -36,31 +36,31 @@ class ComputedType extends BaseType
      *     type: BaseType              // Ожидаемый тип возвращаемого значения
      * } $computedParams Параметры вычисляемого типа
      *
-     * @throws \InvalidArgumentException Если параметры некорректны
+     * @throws \Exception Если параметры некорректны
      */
     public function __construct($computedParams)
     {
         if (!is_array($computedParams)) {
-            throw new \InvalidArgumentException('Parameter $computedParams must be an array.');
+            throw new \Exception('Parameter $computedParams must be an array.');
         }
 
         if (!isset($computedParams['resolve']) || !is_callable($computedParams['resolve'])) {
-            throw new \InvalidArgumentException('Missing or invalid "resolve" key in $computedParams. It must be a callable.');
+            throw new \Exception('Missing or invalid "resolve" key in $computedParams. It must be a callable.');
         }
 
         if (!isset($computedParams['type']) || !$computedParams['type'] instanceof BaseType) {
-            throw new \InvalidArgumentException('Missing or invalid "type" key in $computedParams. It must be an instance of BaseType.');
+            throw new \Exception('Missing or invalid "type" key in $computedParams. It must be an instance of BaseType.');
         }
 
         if (isset($computedParams['args']) && !$computedParams['args'] instanceof BaseType) {
-            throw new \InvalidArgumentException('"args" must be an instance of BaseType or null.');
+            throw new \Exception('"args" must be an instance of BaseType or null.');
         }
 
         $this->computedResolve = $computedParams['resolve'];
         $this->computedArgs = $computedParams['args'] ?? null;
 
         if ($this->computedArgs) {
-            $this->computedArgs->fullEditable()->fullInAdmin();
+            $this->computedArgs->editable()->inAdmin();
         }
 
         $this->computedReturnType = $computedParams['type'];

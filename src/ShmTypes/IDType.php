@@ -93,14 +93,14 @@ class IDType extends BaseType
                 'false' => 'Нет'
             ])->title('Не заполнено'),
             'children' => !$safeMode && $this->document ? $this->document->filterType(true)->title($this->title . ' — дополнительные фильтры') : null,
-        ])->fullEditable();
+        ])->editable();
 
 
         if (!$safeMode && !$this->document) {
             $itemTypeFilter->staticBaseTypeName("IDFilterType");
         }
 
-        return $itemTypeFilter->fullEditable()->fullInAdmin($this->inAdmin)->title($this->title);
+        return $itemTypeFilter->editable()->inAdmin($this->inAdmin)->title($this->title);
     }
 
 
@@ -220,6 +220,8 @@ class IDType extends BaseType
 
 
         if ($this->isFlatted()) {
+
+
             return [];
         }
 

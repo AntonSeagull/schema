@@ -3,7 +3,10 @@
 namespace Shm\Collection;
 
 use Error;
+use MongoDB\InsertOneResult;
+use MongoDB\UpdateResult;
 use Shm\Shm;
+use Shm\ShmAdmin\SchemaCollections\SubAccountsSchema;
 use Shm\ShmAuth\Auth;
 use Shm\ShmTypes\IDsType;
 use Shm\ShmTypes\IDType;
@@ -34,6 +37,25 @@ class Collection
         return true;
     }
 
+
+
+    public static function token($_id): string
+    {
+
+        return Auth::genToken(self::structure(), $_id);
+    }
+
+    public static function isApiKeyAuthenticated(): bool
+    {
+        $_this = new static();
+
+        if (Auth::getApiKeyCollection() != $_this->collection) {
+            return false;
+        }
+
+        return true;
+    }
+
     public static function authenticateOrThrow()
     {
         $_this = new static();
@@ -46,7 +68,19 @@ class Collection
     }
 
 
-    public $key;
+    public static function apiKeyAuthenticateOrThrow()
+    {
+        $_this = new static();
+
+
+
+        if (Auth::getApiKeyCollection() != $_this->collection) {
+            Response::unauthorized();
+        }
+    }
+
+
+
     public $collection;
 
 
@@ -81,9 +115,9 @@ class Collection
         }
 
 
-        if (method_exists($_this, 'expect')) {
+        if (method_exists($_this, 'expectSchema')) {
 
-            $schema = clone $_this->expect();
+            $schema = clone $_this->expectSchema();
 
             $schema->flatted(true);
 
@@ -127,8 +161,8 @@ class Collection
         }
 
 
-        if (method_exists($_this, 'expect')) {
-            return self::$structureCache[$_this->collection] = $_this->expect()->stripNestedIds();
+        if (method_exists($_this, 'expectSchema')) {
+            return self::$structureCache[$_this->collection] = $_this->expectSchema()->stripNestedIds();
         }
 
 
@@ -152,7 +186,7 @@ class Collection
         return lcfirst($shortName);
     }
 
-    final public function expect(): StructureType | null
+    final public function expectSchema(): StructureType | null
     {
 
 
@@ -166,16 +200,21 @@ class Collection
             ->key($this->collection)
             ->collection($this->collection);
 
-        $schema->addField("_id", Shm::ID());
+        $schema->addField("_id", Shm::ID()->editable(false));
 
         if ($schema->manualSort) {
-            $schema->addField("_sortWeight", Shm::int());
+            $schema->addField("_sortWeight", Shm::int()->editable(false));
         }
 
-        $schema->addField("created_at", Shm::int());
-        $schema->addField("updated_at", Shm::int());
+        $schema->addField("created_at", Shm::int()->editable(false));
+        $schema->addField("updated_at", Shm::int()->editable(false));
 
 
+
+        if (Auth::subAccountAuth()) {
+
+            SubAccountsSchema::updateSchema($schema);
+        }
 
 
 
@@ -185,8 +224,46 @@ class Collection
 
 
 
-    public static function create(): static
+    public static function insertOne($document, array $options = []): InsertOneResult
+    {
+        return self::structure()->insertOne($document, $options);
+    }
+
+    public static function updateMany(array $filter, array $update, array $options = []): UpdateResult
+    {
+        return self::structure()->updateMany($filter, $update, $options);
+    }
+
+    public static function updateOne(array $filter = [], array $update = [], array $options = []): UpdateResult
+    {
+        return self::structure()->updateOne($filter, $update, $options);
+    }
+
+    public static function findOne(array $filter = [], array $options = [])
+    {
+        return self::structure()->findOne($filter, $options);
+    }
+
+    public static function find(array $filter = [], array $options = [])
+    {
+        return self::structure()->find($filter, $options);
+    }
+
+    public static function distinct(string $field, array $filter = [], array $options = []): array
+    {
+        return self::structure()->distinct($field, $filter, $options);
+    }
+
+
+
+
+    public static function create(): self
     {
         return new static();
+    }
+
+    public static function count(array $filter = []): int
+    {
+        return self::structure()->count($filter);
     }
 }

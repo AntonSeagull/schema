@@ -6,10 +6,12 @@ namespace Shm\ShmBlueprints\FileUpload;
 use Shm\Shm;
 use Shm\ShmAuth\Auth;
 use Shm\ShmDB\mDB;
-
+use FFMpeg\FFMpeg;
+use FFMpeg\Format\Audio\Mp3;
+use FFMpeg\FFProbe;
 use Shm\ShmUtils\Response;
 
-use maximal\audio\Waveform;
+
 
 class ShmAudioUpload
 {
@@ -22,16 +24,7 @@ class ShmAudioUpload
 
 
         return [
-            'type' => Shm::structure([
-                "fileType" =>  Shm::string(),
-                'name' =>  Shm::string(),
-                'url' => Shm::string(),
-                'source' =>  Shm::string(),
-                "type" => Shm::string(),
-                'created_at' => Shm::string(),
-                "_id" => Shm::ID()
-            ])->staticBaseTypeName("AudioFileUpload"),
-
+            'type' => Shm::fileAudio(),
             'formData' => true,
 
             'resolve' => function ($root, $args) {
@@ -46,29 +39,52 @@ class ShmAudioUpload
 
                 $filename = $name . '.' . pathinfo($file['name'], PATHINFO_EXTENSION) ?: 'mp3';
 
+
+
+
                 ShmFileUploadUtils::move($file,  $path, $filename);
 
-                $waveform = new Waveform($path . '/' . $filename);
-                $data = $waveform->getWaveformData(10, true);
-                $wave = $data['lines1'];
-                $duration = (float) $waveform->getDuration();
+
+
+                // Пути
+                $sourceFile = $path . '/' . $filename;
+                $convertedMp3 = $path . '/' . $name . '.mp3';
+
+                // Конвертация
+                $ffmpeg = FFMpeg::create();
+                $audio = $ffmpeg->open($sourceFile);
+
+                $format = new Mp3();
+                $format->setAudioKiloBitrate(32);
+                $format->setAudioChannels(1);
+
+                $audio->save($format, $convertedMp3);
+
+                // Получение длительности через ffprobe
+                $ffprobe = FFProbe::create();
+                $duration = (float) $ffprobe->format($convertedMp3)->get('duration');
 
 
 
-                $url = ShmFileUploadUtils::saveToS3($path . '/' . $filename, $filename, "audios");
-                unlink($path . '/' . $filename);
+
+
+                $url = ShmFileUploadUtils::saveToS3($convertedMp3, $name . '.mp3', "audios");
 
 
                 $fields = [
                     "fileType" => "audio",
-                    'name' => $file['name'],
+                    'name' => $name . '.mp3',
                     'url' =>  $url,
-                    "type" => ShmFileUploadUtils::getMimeType($path . '/' . $filename),
-                    "wave" => $wave,
+                    "type" => ShmFileUploadUtils::getMimeType($convertedMp3),
+
+                    "size" => filesize($convertedMp3),
                     "duration" => $duration,
-                    'user' => Auth::getAuthOwner(),
+                    'owner' => Auth::getAuthOwner(),
                     'created_at' => time(),
                 ];
+
+                unlink($sourceFile);
+                unlink($convertedMp3);
 
                 $file = mDB::collection("_files")->insertOne($fields);
                 $id = $file->getInsertedId();

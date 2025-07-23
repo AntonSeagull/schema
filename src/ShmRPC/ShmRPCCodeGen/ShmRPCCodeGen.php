@@ -11,7 +11,7 @@ class ShmRPCCodeGen
 
     public static array $tsTypes = [];
 
-    public static function html(array $schema)
+    public static function html(array $schema, $json = false)
     {
 
 
@@ -21,6 +21,8 @@ class ShmRPCCodeGen
 
 
         $requests = [];
+
+        $linkRequest = [];
 
         $keysGraph = [];
         foreach ($schema  as $key => $field) {
@@ -33,10 +35,14 @@ class ShmRPCCodeGen
             //         exit;
 
             $requests[$key] = (new ShmRPCRequestCode($field['type'], $field['args'] ?? null, $key, $field['formData'] ?? null))->initialize();
+
+            $linkRequest[$key] = "export const " . $key . " = rpc." . $key . ";";
         }
 
         //echo json_encode($keysGraph);
         // exit;
+
+
 
 
 
@@ -47,16 +53,19 @@ class ShmRPCCodeGen
         $allTypesKeys = array_keys(TSType::$tsTypes);
 
         $types = implode("\n", array_values(TSType::$tsTypes));
-        $requests =   array_values($requests);
 
+        $requests =   array_values($requests);
+        $linkRequest = array_values($linkRequest);
 
 
         $requests = [
+            "import { rpcClient } from './rpcClient';",
             "import { RpcResponse, " . implode(',', $allTypesKeys) . " } from './types';",
 
             'export const rpc = {',
             ...$requests,
-            '};'
+            '};',
+            ...$linkRequest,
         ];
 
         $requests = implode("\n", $requests);
@@ -97,6 +106,16 @@ export interface RpcResponse<T = unknown> {
   error: RpcError | null;
 }" . "\n\n" . $types;
 
+
+
+        if ($json) {
+
+            echo json_encode([
+                'types' => $types,
+                'requests' => $requests
+            ]);
+            exit;
+        }
 
 
         header('Content-Type: text/html; charset=utf-8');

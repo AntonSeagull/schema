@@ -9,6 +9,7 @@ use Shm\ShmDB\mDB;
 use Shm\ShmTypes\ArrayOfType;
 use Shm\ShmTypes\EnumType;
 use Shm\ShmTypes\StructureType;
+use PhpSchool\CliMenu\Builder\CliMenuBuilder;
 
 class Doctor
 {
@@ -19,27 +20,32 @@ class Doctor
 
 
         Cmd::command("doctor", function () {
-            echo "Что выполнить? (index / fields / links /makeConfig: ";
-            $input = trim(readline()); // читаем ввод из консоли
 
-            switch ($input) {
-
-                case 'index':
-                    self::ensureSortWeightIndex();
-                    break;
-                case 'fields':
+            $menu = (new CliMenuBuilder)
+                ->setTitle('Select an action')
+                ->addItem('Update FieldClasses', function () {
                     self::fieldClasses();
-                    break;
-                case 'links':
+                    exit;
+                })
+
+                ->addItem('Update MongoDB Indexes', function () {
+                    self::ensureSortWeightIndex();
+                    exit;
+                })
+
+                ->addItem('Create Admin Symlinks', function () {
                     self::createSymlinks();
-                    break;
-                case "makeConfig":
+                    exit;
+                })
+                ->addItem('Create Config.php', function () {
                     self::makeConfig();
-                    break;
-                default:
-                    echo "Неизвестная команда: $input\n";
-                    break;
-            }
+                    exit;
+                })
+
+
+                ->build();
+
+            $menu->open();
         });
     }
 
@@ -246,6 +252,10 @@ class Doctor
 
         foreach ($structure->items as $key => $item) {
 
+            if ($key == '*') {
+                continue;
+            }
+
             $constName = strtoupper(str_replace('.', '__', self::toSnakeCase($prefix) . self::toSnakeCase($key)));
 
             try {
@@ -278,7 +288,7 @@ class Doctor
                 $values = $item->values ?? [];
 
                 foreach ($values as $enumKey => $enumValue) {
-                    $enumConstName = strtoupper(str_replace('.', '__', $prefix . $key . '_ENUM_' . self::toSnakeCase($enumKey)));
+                    $enumConstName = strtoupper(str_replace('.', '__', self::toSnakeCase($prefix) . $key . '_ENUM_' . self::toSnakeCase($enumKey)));
                     $enumConstValue = $enumKey;
 
                     try {
@@ -291,7 +301,7 @@ class Doctor
                 }
 
 
-                $enumConstName = strtoupper(str_replace('.', '__', $prefix . $key . '_ENUM_ALL_KEYS'));
+                $enumConstName = strtoupper(str_replace('.', '__', self::toSnakeCase($prefix) . $key . '_ENUM_ALL_KEYS'));
                 $enumConstValue = array_keys($values);
 
                 try {

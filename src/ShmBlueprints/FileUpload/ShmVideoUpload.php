@@ -35,19 +35,7 @@ class ShmVideoUpload
 
 
         return [
-            'type' => Shm::structure([
-
-                "fileType" => Shm::string(),
-                'name' => Shm::string(),
-                'url' => Shm::string(),
-                'cover' => Shm::string(),
-                'duration' => Shm::number(),
-                'width' => Shm::number(),
-                'height' =>  Shm::number(),
-                "type" => Shm::string(),
-                'created_at' => Shm::number(),
-                "_id" => Shm::ID(),
-            ])->staticBaseTypeName("VideoFileUpload"),
+            'type' => Shm::fileVideo(),
 
 
             'formData' => true,
@@ -107,7 +95,7 @@ class ShmVideoUpload
                 $fields = [
 
                     "fileType" => "video",
-                    'user' => Auth::getAuthOwner(),
+                    'owner' => Auth::getAuthOwner(),
                     'name' => $video_file['name'],
                     'url' => $url,
                     'cover' => $url_cover,

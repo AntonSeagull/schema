@@ -14,21 +14,15 @@ class RangeType extends StructureType
     {
         parent::__construct(
             [
-                'from' => $type->setCol(12),
-                'to' => $type->setCol(12),
+                'from' => (clone $type)->setCol(12)->title("От"),
+                'to' => (clone $type)->setCol(12)->title("До"),
             ]
         );
     }
 
-    public function inAdmin(bool $isAdmin = true): static
-    {
-        return $this->fullInAdmin($isAdmin);
-    }
 
-    public function editable(bool $isEditable = true): static
-    {
-        return $this->fullEditable($isEditable);
-    }
+
+
 
     public function required(bool $isRequired = true): static
     {

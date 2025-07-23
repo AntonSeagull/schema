@@ -36,7 +36,7 @@ class UnixDateTimeType extends BaseType
         }
         if (!is_int($value)) {
             $field = $this->title ?? 'Value';
-            throw new \InvalidArgumentException("{$field} must be a Unix timestamp (integer).");
+            throw new \Exception("{$field} must be a Unix timestamp (integer).");
         }
     }
 
@@ -53,11 +53,11 @@ class UnixDateTimeType extends BaseType
             'gte' => Shm::unixdatetime()->title('Больше')->setCol(12),
             'lte' => Shm::unixdatetime()->title('Меньше')->setCol(12),
             'eq' => Shm::unixdatetime()->title('Равно'),
-        ])->fullEditable()->staticBaseTypeName("UnixDateFilterType");
+        ])->editable()->staticBaseTypeName("UnixDateFilterType");
 
 
 
-        return $itemTypeFilter->fullEditable()->fullInAdmin($this->inAdmin)->title($this->title);
+        return $itemTypeFilter->editable()->inAdmin($this->inAdmin)->title($this->title);
     }
 
 

@@ -35,7 +35,7 @@ class PhoneType extends BaseType
         }
         if (!is_int($value)) {
             $field = $this->title ?? 'Value';
-            throw new \InvalidArgumentException("{$field} must be an integer.");
+            throw new \Exception("{$field} must be an integer.");
         }
     }
 

@@ -21,15 +21,7 @@ class ShmDocumentUpload
 
 
         return [
-            'type' => Shm::structure([
-                "fileType" =>  Shm::string(),
-                'name' =>  Shm::string(),
-                'url' => Shm::string(),
-                'source' =>  Shm::string(),
-                "type" => Shm::string(),
-                'created_at' => Shm::string(),
-                "_id" => Shm::ID()
-            ])->staticBaseTypeName("DocumentFileUpload"),
+            'type' => Shm::fileDocument(),
 
             'formData' => true,
 
@@ -46,23 +38,28 @@ class ShmDocumentUpload
 
                 ShmFileUploadUtils::move($document, $path, $filename);
 
-                $url = ShmFileUploadUtils::saveToS3(ShmInit::$rootDir . '/' . $path . '/' . $filename, $filename, "files");
+
+
+
+
+                $url = ShmFileUploadUtils::saveToS3($path . '/' . $filename, $filename, "files");
+
+
+
 
 
 
                 $fields = [
                     "fileType" => "document",
-                    'user' => Auth::getAuthOwner(),
+                    'owner' => Auth::getAuthOwner(),
                     'name' => $document['name'],
                     'url' => $url,
                     'source' => "local",
                     "type" => ShmFileUploadUtils::getMimeType($path . '/' . $filename),
                     'created_at' => time(),
                 ];
+                unlink($path . '/' . $filename);
 
-                if (file_exists(ShmInit::$rootDir . '/' . $path . '/' . $filename)) {
-                    unlink(ShmInit::$rootDir . '/' . $path . '/' . $filename);
-                }
 
                 $file = mDB::collection("_files")->insertOne($fields);
                 $id = $file->getInsertedId();

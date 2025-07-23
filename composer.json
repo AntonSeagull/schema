@@ -20,7 +20,8 @@
     ],
     "autoload": {
         "psr-4": {
-            "Shm\\": "src/"
+            "Shm\\": "src/",
+            "Lumus\\": "src/Lumus/"
         }
     },
     "require": {
@@ -36,7 +37,8 @@
         "php-ffmpeg/php-ffmpeg": "*",
         "maximal/audio-waveform": "*",
         "kornrunner/blurhash": "*",
-        "predis/predis": "^3.0"
+        "predis/predis": "^3.0",
+        "php-school/cli-menu": "^4.3"
     },
     "prefer-stable": true
 }

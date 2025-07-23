@@ -22,6 +22,12 @@ class ShmSmsAuth extends ShmAuthBase
 
     private $smsCodeFunctionHandler = null;
 
+    /**
+     * Устанавливает функцию для отправки SMS
+     * @param callable $handler Функция, которая принимает номер телефона и код, и возвращает true/false
+     * fuction($phone, $code): bool
+     * @return self
+     */
 
     public function setSmsSendFunctionHandler($handler): self
     {

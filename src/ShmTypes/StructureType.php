@@ -2,6 +2,9 @@
 
 namespace Shm\ShmTypes;
 
+use Error;
+
+use Sentry\Util\Str;
 use Shm\ShmDB\mDB;
 
 
@@ -14,6 +17,7 @@ use Shm\Shm;
 use Shm\ShmAdmin\Types\VisualGroupType;
 use Shm\ShmRPC\ShmRPCCodeGen\TSType;
 use Shm\ShmTypes\SupportTypes\StageType;
+use Shm\ShmTypes\Utils\JsonLogicBuilder;
 use Shm\ShmUtils\AutoPostfix;
 use Shm\ShmUtils\DeepAccess;
 use Shm\ShmUtils\Inflect;
@@ -38,6 +42,9 @@ class StructureType extends BaseType
 
 
 
+
+
+
     public bool $manualSort = false;
 
 
@@ -55,14 +62,38 @@ class StructureType extends BaseType
 
 
 
+    public function update(array $update): self
+    {
+
+
+        foreach ($update as $key => $value) {
+            $this->items[$key] = $value;
+        }
+
+        $this->rebuild($this->items);
+
+
+        return $this;
+    }
+
+
+    public function hideFields(array $hideFields): self
+    {
+        foreach ($hideFields as $key) {
+            if (isset($this->items[$key])) {
+                $this->items[$key]->hide = true;
+            }
+        }
+
+        return $this;
+    }
+
     public function addField(string $key, BaseType $type): self
     {
 
 
-        if (!isset(
-            $this->items[$key]
-        ))
-            $this->items[$key] = $type;
+
+        $this->items[$key] = $type;
 
 
         return $this;
@@ -75,9 +106,21 @@ class StructureType extends BaseType
         return $this;
     }
 
+    public $canUpdateCond = null;
 
-    public function canUpdate(bool $canUpdate = true): self
+
+
+
+    public function canUpdate(JsonLogicBuilder | bool $canUpdate = true): self
     {
+
+        if ($canUpdate instanceof JsonLogicBuilder) {
+            $this->canUpdateCond = $canUpdate->build();
+            $this->canUpdate = true;
+            return $this;
+        }
+
+
         $this->canUpdate = $canUpdate;
         return $this;
     }
@@ -106,7 +149,7 @@ class StructureType extends BaseType
     {
         foreach ($buttonActions->items as $key => $action) {
             if (!($action instanceof ComputedType)) {
-                throw new \InvalidArgumentException("Button action '{$key}' must be an instance of ComputedType.");
+                throw new \Exception("Button action '{$key}' must be an instance of ComputedType.");
             }
         }
 
@@ -119,7 +162,7 @@ class StructureType extends BaseType
 
         foreach ($stages->items as $key => $stage) {
             if (!($stage instanceof StageType)) {
-                throw new \InvalidArgumentException("Stage '{$key}' must be an instance of StageType.");
+                throw new \Exception("Stage '{$key}' must be an instance of StageType.");
             }
 
             $this->publicStages[$key] = $stage->title ?? $stage->key;
@@ -161,14 +204,38 @@ class StructureType extends BaseType
     }
 
 
+
+    public function addPipeline(array $pipeline): self
+    {
+
+        if (count($pipeline) > 0) {
+            mDB::validatePipeline($pipeline);
+        }
+
+        $this->pipeline = [...$this->pipeline, ...$pipeline];
+
+
+
+        return $this;
+    }
+
     public function pipeline(array $pipeline): self
     {
+
+        if (count($pipeline) > 0) {
+            mDB::validatePipeline($pipeline);
+        }
+
         $this->pipeline = $pipeline;
+
         return $this;
     }
 
     public function getPipeline(): array
     {
+        mDB::validatePipeline($this->pipeline);
+
+
         return $this->pipeline;
     }
 
@@ -179,13 +246,9 @@ class StructureType extends BaseType
         return $this;
     }
 
-    /**
-     * @param array<string, BaseType> $items
-     */
-    public function __construct(array $items)
+
+    public function rebuild(array $items): void
     {
-
-
 
         foreach ($items as $key => $field) {
 
@@ -199,7 +262,9 @@ class StructureType extends BaseType
             }
 
             if (!$field instanceof BaseType) {
-                throw new \InvalidArgumentException("Field '{$key}' must be an instance of BaseType.");
+
+                throw new \Exception("Field '{$key}' must be an instance of BaseType." .
+                    json_encode(array_keys($items)) . " - " . gettype($field) . " given.");
             }
 
             if ($field->type == 'visualGroup') {
@@ -224,6 +289,16 @@ class StructureType extends BaseType
 
 
         $this->items =  $_items;
+    }
+
+
+    /**
+     * @param array<string, BaseType> $items
+     */
+    public function __construct(array $items)
+    {
+
+        $this->rebuild($items);
     }
 
 
@@ -286,6 +361,8 @@ class StructureType extends BaseType
     }
 
 
+
+
     public function removeOtherItems(mixed $value): mixed
     {
         if (!(is_array($value) || $value instanceof Traversable)) {
@@ -316,14 +393,14 @@ class StructureType extends BaseType
         }
         if (!is_array($value)) {
             $field = $this->title ?? 'Value';
-            throw new \InvalidArgumentException("{$field} must be an object/structure (associative array).");
+            throw new \Exception("{$field} must be an object/structure (associative array).");
         }
         foreach ($this->items as $name => $type) {
             try {
                 $type->validate($value[$name] ?? null);
-            } catch (\InvalidArgumentException $e) {
+            } catch (\Exception $e) {
                 $field = $this->title ?? $name;
-                throw new \InvalidArgumentException("{$field}.{$name}: " . $e->getMessage());
+                throw new \Exception("{$field}.{$name}: " . $e->getMessage());
             }
         }
     }
@@ -346,15 +423,19 @@ class StructureType extends BaseType
         }
 
 
-        if (!$this->key) {
-            throw new \InvalidArgumentException("baseTypeName -> Key is not set for StructureType." . print_r($this, true));
-        }
+
 
         $typeName = '';
 
         if ($this->collection) {
             $typeName = Inflect::singularize(ShmUtils::onlyLetters($this->collection));
         } else {
+
+            if (!$this->key) {
+
+
+                throw new \Exception("baseTypeName -> Key is not set for StructureType." . print_r($this, true));
+            }
 
             $keys = array_keys($this->items);
             $keys = array_map(fn($type) => $type === '*' ? 'mixed' : $type, $keys);
@@ -414,6 +495,8 @@ class StructureType extends BaseType
             }
         }
 
+
+
         return null;
     }
 
@@ -462,82 +545,71 @@ class StructureType extends BaseType
         return $this;
     }
 
-    public function fullEditable(bool $editable = true): static
-    {
-
-        $this->editable = $editable;
-
-        foreach ($this->items as $key => $field) {
 
 
-            if ($this->type == "structure" && $key == "_id") {
-                continue;
-            }
-            $field->fullEditable($editable);
-        }
-
-        return $this;
-    }
-
-    public function safeFullEditable(bool $editable = true): static
-    {
-        $this->editable = $editable;
-
-
-        if ($this->collection) return $this;
-
-
-        foreach ($this->items as $key => $field) {
-
-            $field->fullEditable($editable);
-        }
-
-        return $this;
-    }
 
 
 
     public function externalData($data)
     {
 
+
         $this->updateKeys();
         $this->updatePath();
         $paths = $this->getIDsPaths([]);
 
-
-
+        $pathsByCollections = [];
 
 
         foreach ($paths as $pathItem) {
 
+            if (!isset($pathsByCollections[$pathItem['document']->collection])) {
+                $pathsByCollections[$pathItem['document']->collection] = [];
+            }
 
-            $val =  DeepAccess::getByPath($data, $pathItem['path']);
+            $pathsByCollections[$pathItem['document']->collection][] = $pathItem;
+        }
 
 
-            if (!$val || !is_array($val) || count($val) == 0) {
+
+
+        foreach ($pathsByCollections as $collection => $collectionPaths) {
+
+            Response::startTraceTiming("externalData-" .  $collection);
+
+            $allIds = [];
+            foreach ($collectionPaths as $pathItem) {
+
+                $val =  DeepAccess::getByPath($data, $pathItem['path']);
+                if (!$val || !is_array($val) || count($val) == 0) {
+                    continue;
+                }
+
+                $allIds = array_merge($allIds, $val);
+            }
+
+            if (count($allIds) == 0) {
                 continue;
             }
 
-            $many = $pathItem['many'] ?? false;
-
+            $pathItem = $collectionPaths[0];
 
             $mongoDocs =  mDB::collection($pathItem['document']->collection)->aggregate([
 
                 ...$pathItem['document']->getPipeline(),
                 [
                     '$match' => [
-                        '_id' => ['$in' => $val]
+                        '_id' => ['$in' => $allIds]
                     ]
                 ],
 
             ])->toArray();
 
-
-
+            if (count($mongoDocs) == 0) {
+                continue;
+            }
 
             $mongoDocs = Shm::arrayOf($pathItem['document'])->removeOtherItems($mongoDocs);
-
-
 
 
 
@@ -551,32 +623,41 @@ class StructureType extends BaseType
 
 
 
-            DeepAccess::applyRecursive($data, $pathItem['path'], function ($node) use ($many, $documentsById) {
+            foreach ($collectionPaths as $pathItem) {
 
-                if ($many) {
+                $many = $pathItem['many'] ?? false;
 
-                    $result = [];
+                DeepAccess::applyRecursive($data, $pathItem['path'], function ($node) use ($many, $documentsById) {
 
-                    if (is_object($node) || is_array($node) || $node instanceof \Traversable) {
+                    if ($many) {
 
-                        foreach ($node as $id) {
-                            if (isset($documentsById[(string) $id])) {
-                                $result[] = $documentsById[(string) $id];
+                        $result = [];
+
+                        if (is_object($node) || is_array($node) || $node instanceof \Traversable) {
+
+                            foreach ($node as $id) {
+                                if (isset($documentsById[(string) $id])) {
+                                    $result[] = $documentsById[(string) $id];
+                                }
                             }
+                        }
+
+                        return $result;
+                    } else {
+
+                        if (isset($documentsById[(string) $node])) {
+                            return $documentsById[(string) $node];
                         }
                     }
 
-                    return $result;
-                } else {
+                    return null;
+                });
+            }
 
-                    if (isset($documentsById[(string) $node])) {
-                        return $documentsById[(string) $node];
-                    }
-                }
-
-                return null;
-            });
+            Response::endTraceTiming("externalData-" .  $collection);
         }
+
+
 
         return $data;
     }
@@ -647,7 +728,7 @@ class StructureType extends BaseType
         if (count($fields) == 0) {
             return null;
         }
-        $itemTypeFilter = Shm::structure($fields)->fullEditable()->title($this->title)->staticBaseTypeName($this->key . 'FilterArgs');
+        $itemTypeFilter = Shm::structure($fields)->editable()->title($this->title)->staticBaseTypeName($this->key . 'FilterArgs');
 
         if ($this->type == "structure") {
             $this->filterType =  $itemTypeFilter;
@@ -686,7 +767,14 @@ class StructureType extends BaseType
 
             if ($item instanceof SelfRefType) {
 
-                $value[] = $key .  $separate . $item->resolveType()->typeName();
+                $_type = $item->resolveType();
+
+                if ($_type instanceof StructureType) {
+
+                    $value[] = $key .  $separate . $_type->typeName();
+                } else {
+                    throw new \Exception("SelfRefType must resolve to a StructureType, got " . get_class($_type));
+                }
                 continue;
             }
 
@@ -761,12 +849,23 @@ class StructureType extends BaseType
         return $result;
     }
 
+
+
+
+
     public function updateOneWithEvents(array $filter = [], array $update = [], array $options = []): \MongoDB\UpdateResult
     {
 
         $filter = mDB::replaceStringToObjectIds($filter);
 
         $activeEventLogic =  (!ShmInit::$disableUpdateEvents  && $this->haveUpdateEvent() && isset($update['$set']) && count($update['$set']) > 0);
+
+
+        if ($this->haveBeforeUpdateEvent() && isset($update['$set'])) {
+            ShmInit::$disableUpdateEvents = true;
+            $update['$set'] = $this->callBeforeUpdateEvent($update['$set']);
+            ShmInit::$disableUpdateEvents = false;
+        }
 
 
         if ($activeEventLogic) {
@@ -847,6 +946,63 @@ class StructureType extends BaseType
     public function updateOne(array $filter = [], array $update = [], array $options = []): \MongoDB\UpdateResult
     {
 
+
+
+        $filter = mDB::replaceStringToObjectIds($filter);
+
+        $arrayFields = [];
+
+        foreach (['$pull', '$addToSet', '$push'] as $op) {
+            if (isset($update[$op]) && is_array($update[$op])) {
+                foreach ($update[$op] as $field => $value) {
+                    $arrayFields[$field] = true;
+                }
+            }
+        }
+
+
+        if (count($arrayFields) > 0) {
+            $orConditions = [];
+
+            foreach (array_keys($arrayFields) as $field) {
+                $orConditions[] = [$field => ['$exists' => false]];
+                $orConditions[] = [$field => ['$not' => ['$type' => 'array']]];
+            }
+
+            if (count($orConditions) > 0) {
+                // Найти документ и привести нужные поля к массивам
+                $setData = [];
+                foreach (array_keys($arrayFields) as $field) {
+                    $setData[$field] = [];
+                }
+
+                $finalFilter = $filter;
+
+                if (isset($finalFilter['$or'])) {
+                    $finalFilter = [
+                        '$and' => [
+                            $filter,
+                            ['$or' => $orConditions]
+                        ]
+                    ];
+                } else {
+                    $finalFilter['$or'] = $orConditions;
+                }
+
+
+
+
+                mDB::_collection($this->collection)->updateOne(
+
+                    $finalFilter,
+                    [
+                        '$set' => $setData
+                    ]
+                );
+            }
+        }
+
+
         if (isset($update['$set'])) {
 
             if (array_key_exists("_id", (array) $update['$set'])) {
@@ -895,10 +1051,18 @@ class StructureType extends BaseType
     {
 
 
+
         $activeEventLogic =  (!ShmInit::$disableUpdateEvents  && $this->haveUpdateEvent() && isset($update['$set']) && count($update['$set']) > 0);
 
 
         $filter = mDB::replaceStringToObjectIds($filter);
+
+
+        if ($this->haveBeforeUpdateEvent() && isset($update['$set'])) {
+            ShmInit::$disableUpdateEvents = true;
+            $update['$set'] = $this->callBeforeUpdateEvent($update['$set']);
+            ShmInit::$disableUpdateEvents = false;
+        }
 
         if ($activeEventLogic) {
 
@@ -912,6 +1076,7 @@ class StructureType extends BaseType
                 ->find($filter, ['projection' => array_fill_keys($fieldsToTrack, 1) + ['_id' => 1]])
                 ->toArray();
         }
+
 
 
 
@@ -991,6 +1156,57 @@ class StructureType extends BaseType
 
         $filter = mDB::replaceStringToObjectIds($filter);
 
+
+        $arrayFields = [];
+
+        foreach (['$pull', '$addToSet', '$push'] as $op) {
+            if (isset($update[$op]) && is_array($update[$op])) {
+                foreach ($update[$op] as $field => $value) {
+                    $arrayFields[$field] = true;
+                }
+            }
+        }
+
+        if (count($arrayFields) > 0) {
+            $orConditions = [];
+
+            foreach (array_keys($arrayFields) as $field) {
+                $orConditions[] = [$field => ['$exists' => false]];
+                $orConditions[] = [$field => ['$not' => ['$type' => 'array']]];
+            }
+
+            if (count($orConditions) > 0) {
+                // Найти документ и привести нужные поля к массивам
+                $setData = [];
+                foreach (array_keys($arrayFields) as $field) {
+                    $setData[$field] = [];
+                }
+
+                $finalFilter = $filter;
+
+                if (isset($finalFilter['$or'])) {
+                    $finalFilter = [
+                        '$and' => [
+                            $filter,
+                            ['$or' => $orConditions]
+                        ]
+                    ];
+                } else {
+                    $finalFilter['$or'] = $orConditions;
+                }
+
+
+                mDB::_collection($this->collection)->updateMany(
+
+                    $finalFilter,
+                    [
+                        '$set' => $setData
+                    ]
+                );
+            }
+        }
+
+
         if (isset($update['$set'])) {
 
             if (array_key_exists("_id", (array) $update['$set'])) {
@@ -1033,6 +1249,10 @@ class StructureType extends BaseType
 
         return   mDB::collection($this->collection)->deleteMany($filter, $options);
     }
+
+
+
+
 
 
 
@@ -1135,6 +1355,15 @@ class StructureType extends BaseType
         $document = $this->normalize($document, true);
 
 
+        if ($this->haveBeforeInsertEvent()) {
+            ShmInit::$disableInsertEvents = true;
+            $document = $this->callBeforeInsertEvent($document);
+            ShmInit::$disableInsertEvents = false;
+
+            $document = $this->normalize($document, true);
+        }
+
+
 
         $result = mDB::collection($this->collection)->insertOne($document, $options);
 
@@ -1196,6 +1425,20 @@ class StructureType extends BaseType
         }
 
         $documents = Shm::arrayOf($this)->normalize($documents, true);
+
+
+
+        if ($this->haveBeforeInsertEvent()) {
+            ShmInit::$disableInsertEvents = true;
+
+            foreach ($documents as &$document) {
+                $document = $this->callBeforeInsertEvent($document);
+            }
+
+            ShmInit::$disableInsertEvents = false;
+
+            $documents = Shm::arrayOf($this)->normalize($documents, true);
+        }
 
         $result = mDB::collection($this->collection)->insertMany($documents, $options);
 

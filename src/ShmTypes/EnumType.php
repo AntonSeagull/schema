@@ -26,7 +26,7 @@ class EnumType extends BaseType
 
             $values = array_combine($values, $values);
             if ($values === false) {
-                throw new \InvalidArgumentException("Values must be an associative array or a simple array.");
+                throw new \Exception("Values must be an associative array or a simple array.");
             }
         }
 
@@ -60,7 +60,7 @@ class EnumType extends BaseType
         }
         if (!isset($this->values[$value])) {
             $field = $this->title ?? 'Value';
-            throw new \InvalidArgumentException("{$field} must be one of the allowed values: " . implode(', ', array_keys($this->values)));
+            throw new \Exception("{$field} must be one of the allowed values: " . implode(', ', array_keys($this->values)));
         }
     }
 
@@ -80,7 +80,7 @@ class EnumType extends BaseType
                 'true' => 'Да',
                 'false' => 'Нет'
             ])->title('Не заполнено'),
-        ])->fullEditable()->fullInAdmin(true);
+        ])->editable()->inAdmin(true);
 
         return $itemTypeFilter->inAdmin($this->inAdmin)->title($this->title);
     }
@@ -165,7 +165,7 @@ class EnumType extends BaseType
     private function getEnumTypeName(): string
     {
         if (!$this->key) {
-            throw new \InvalidArgumentException("getEnumTypeName -> Key is not set for EnumType" . ' ' . print_r($this->path) . ' ' .  print_r($this->values, true));
+            throw new \Exception("getEnumTypeName -> Key is not set for EnumType" . ' ' . print_r($this->path) . ' ' .  print_r($this->values, true));
         }
 
         return ShmUtils::onlyLetters($this->key) . AutoPostfix::get(array_keys($this->values)) . 'Enum';

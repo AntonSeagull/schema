@@ -2,17 +2,22 @@
 
 namespace Shm\ShmAdmin;
 
+use GraphQL\Type\Schema;
 use GuzzleHttp\Client;
 use GuzzleHttp\Psr7\Request;
 use Shm\ShmDB\mDB;
 use Shm\Shm;
+use Shm\ShmAdmin\SchemaCollections\SubAccountsSchema;
 use Shm\ShmAdmin\Types\AdminType;
 use Shm\ShmAdmin\Types\GroupType;
 use Shm\ShmAdmin\Utils\DescriptionsUtils;
 use Shm\ShmAuth\Auth;
 
 use Shm\ShmRPC\ShmRPC;
+use Shm\ShmRPC\ShmRPCClient\ShmRPCClient;
+use Shm\ShmSupport\ShmSupport;
 use Shm\ShmTypes\StructureType;
+use Shm\ShmTypes\SupportTypes\StageType;
 use Shm\ShmUtils\Config;
 use Shm\ShmUtils\Inflect;
 use Shm\ShmUtils\Response;
@@ -33,6 +38,7 @@ class AdminPanel
 
 
 
+
     public static AdminType $schema;
 
     /**
@@ -45,24 +51,42 @@ class AdminPanel
      */
     public static function setSchema(AdminType $schema)
     {
-        self::$schema = $schema;
+        self::$schema = $schema->type("admin");
     }
 
     public static function setUsers(StructureType  ...$users): void
     {
-        self::$users = $users;
+        self::$users = [
+            ...$users,
+            SubAccountsSchema::baseStructure()
+        ];
     }
 
+    private static function fullSchema(): StructureType
+    {
+
+        $schema = self::$schema;
+
+
+        if (!Auth::subAccountAuth()) {
+            $schema->addField("subAccounts", SubAccountsSchema::structure(self::$schema));
+        } else {
+
+            $schema = SubAccountsSchema::removeLockItemInSchema($schema);
+        }
+
+        return $schema;
+    }
 
 
     public static function json()
     {
+        $schema = self::fullSchema();
 
-        self::$schema->filterType(true);
+        // $schema->filterType(true);
 
-
-
-        return self::$schema->json();
+        // return null;
+        return $schema->json();
     }
 
     private static $allTypes = [
@@ -101,7 +125,10 @@ class AdminPanel
         "password",
         "email",
         "mongoPoint",
-        "mongoPolygon"
+        "mongoPolygon",
+        "url",
+        "rate",
+        "gradient"
     ];
 
     private static function baseStructure(): StructureType
@@ -151,7 +178,13 @@ class AdminPanel
                 "*" => Shm::string()
             ]),
 
+            'tablePriority' => Shm::int(),
+            'unique' => Shm::boolean(),
+            'globalUnique' => Shm::boolean(),
+            'canUpdateCond' => Shm::mixed(),
             'display' => Shm::bool(),
+            'trim' => Shm::boolean(),
+            'uppercase' => Shm::boolean(),
             'canUpdate' => Shm::boolean(),
             'canDelete' => Shm::boolean(),
             'canCreate' => Shm::boolean(),
@@ -169,6 +202,7 @@ class AdminPanel
             "title" => Shm::string(),
             "type" => Shm::enum(self::$allTypes),
             "cond" => Shm::mixed(),
+            "localCond" => Shm::mixed(),
             "defaultIsSet" => Shm::boolean(),
             "collection" => Shm::string(),
             'assets' => Shm::structure([
@@ -201,6 +235,22 @@ class AdminPanel
         $currentURL = $scheme . '://' . $host;
 
         return $currentURL . $path;
+    }
+
+
+    private static function getUID()
+    {
+
+
+        if (! Auth::isAuthenticated()) return null;
+
+
+
+        if (Auth::subAccountAuth()) {
+            return SubAccountsSchema::$collection . ':' . Auth::getSubAccountID();
+        }
+
+        return Auth::getAuthCollection() . ':' . Auth::getAuthOwner();
     }
 
 
@@ -289,6 +339,7 @@ class AdminPanel
     public static function rpc()
     {
 
+        ShmInit::$isAdmin = true;
 
         if (!isset($_GET['schema']) && $_SERVER['REQUEST_METHOD'] === 'GET') {
             header_remove("X-Frame-Options");
@@ -321,6 +372,7 @@ class AdminPanel
                     'structure' => self::baseStructure(),
                     'data' => Shm::mixed(),
                     'changePassword' => Shm::boolean(),
+                    'subAccount' => Shm::boolean(),
                 ]),
 
                 'resolve' => function ($root, $args) {
@@ -329,16 +381,22 @@ class AdminPanel
                     Auth::authenticateOrThrow(...self::$users);
 
 
-                    $findStructure = null;
+                    if (Auth::subAccountAuth()) {
 
-                    foreach (self::$users as $user) {
+                        $findStructure = SubAccountsSchema::baseStructure();
+                    } else {
 
-                        if ($user->collection == Auth::getAuthCollection()) {
-                            $findStructure = $user;
-                            break;
+                        $findStructure = null;
+
+
+                        foreach (self::$users as $user) {
+
+                            if ($user->collection == Auth::getAuthCollection()) {
+                                $findStructure = $user;
+                                break;
+                            }
                         }
                     }
-
                     if (!$findStructure) {
                         Response::validation("Ошибка доступа");
                     }
@@ -349,13 +407,111 @@ class AdminPanel
                     if ($passwordField)
                         $findStructure->items[$passwordField->key]->inAdmin(false);
 
+
+                    $emailField = $findStructure->findItemByType(Shm::email());
+                    $loginField = $findStructure->findItemByType(Shm::login());
+                    $phoneField = $findStructure->findItemByType(Shm::phone());
+
+
+                    if ($emailField) {
+                        $findStructure->items[$emailField->key]->editable(false)->setCol(24);
+                    }
+                    if ($loginField) {
+                        $findStructure->items[$loginField->key]->editable(false)->setCol(24);
+                    }
+                    if ($phoneField) {
+                        $findStructure->items[$phoneField->key]->editable(false)->setCol(24);
+                    }
+
+
+
                     return [
-                        'structure' => json_decode(json_encode(get_object_vars($findStructure)), true),
-                        'data' => $findStructure->normalize($findStructure->findOne([
-                            '_id' => Auth::getAuthOwner()
-                        ])),
+                        'structure' => $findStructure->json(),
+                        'data' => $findStructure->removeOtherItems($findStructure->normalize($findStructure->findOne([
+                            '_id' => Auth::subAccountAuth() ? Auth::getSubAccountID() :  Auth::getAuthOwner()
+                        ]))),
+                        'subAccount' => Auth::subAccountAuth(),
                         'changePassword' => $passwordField ? true : false,
                     ];
+                }
+
+            ],
+
+            'updateProfile' => [
+                'type' => Shm::structure([
+                    "_id" => Shm::ID(),
+                    "*" => Shm::mixed(),
+                ]),
+
+
+                'args' => Shm::structure([
+
+                    'values' => Shm::mixed(),
+
+                ]),
+                'resolve' => function ($root, $args) {
+
+
+
+                    Auth::authenticateOrThrow(...self::$users);
+
+
+                    if (Auth::subAccountAuth()) {
+
+                        $structure = SubAccountsSchema::baseStructure();
+                    } else {
+
+                        $structure = null;
+
+
+                        foreach (self::$users as $user) {
+
+                            if ($user->collection == Auth::getAuthCollection()) {
+                                $structure = $user;
+                                break;
+                            }
+                        }
+                    }
+                    if (!$structure) {
+                        Response::validation("Ошибка доступа");
+                    }
+
+
+
+
+                    $root['type']  = $structure;
+
+
+
+                    $values = $args['values'] ?? null;
+
+                    if (!$values) {
+                        Response::validation("Нет данных для обновления");
+                    }
+
+                    $values = $structure->normalize($values);
+                    $values = $structure->removeOtherItems($values);
+
+                    //remove _id
+                    if (isset($values['_id'])) {
+                        unset($values['_id']);
+                    }
+
+
+
+
+                    $structure->updateOneWithEvents(
+                        [
+                            "_id" => Auth::subAccountAuth() ? Auth::getSubAccountID() : Auth::getAuthOwner()
+                        ],
+                        [
+                            '$set' => $values
+                        ]
+                    );
+
+                    return  $structure->findOne([
+                        '_id' => Auth::subAccountAuth() ? Auth::getSubAccountID() : Auth::getAuthOwner()
+                    ]);
                 }
 
             ],
@@ -372,6 +528,7 @@ class AdminPanel
                             'social'
                         ])),
                     ]),
+                    'uid' => Shm::string(),
                     'structure' => self::baseStructure(),
                     'socket' => Shm::structure([
                         'domain' => Shm::string(),
@@ -413,6 +570,8 @@ class AdminPanel
                         ],
                         'structure' => $initData,
 
+                        'uid' => self::getUID(),
+
                         "socket" => Config::get('socket'),
                     ];
                 }
@@ -433,14 +592,18 @@ class AdminPanel
                     Auth::authenticateOrThrow(...self::$users);
 
                     if (!isset($args['collection'])) {
-                        Response::validation("Данные не доступны для просмотра");
+                        return [
+                            "_" => null
+                        ];
                     }
 
-                    $structure = self::$schema->findItemByCollection($args['collection']);
+                    $structure = self::fullSchema()->findItemByCollection($args['collection']);
 
 
                     if (!$structure) {
-                        Response::validation("Данные не доступны для просмотра");
+                        return [
+                            "_" => null
+                        ];
                     }
 
 
@@ -572,7 +735,7 @@ class AdminPanel
 
 
 
-                    $structure = self::$schema->findItemByCollection($args['collection']);
+                    $structure = self::fullSchema()->findItemByCollection($args['collection']);
 
 
                     $_ids = $args['_ids'] ?? null;
@@ -626,7 +789,7 @@ class AdminPanel
 
 
 
-                    $structure = self::$schema->findItemByCollection($args['collection']);
+                    $structure = self::fullSchema()->findItemByCollection($args['collection']);
 
 
 
@@ -748,7 +911,7 @@ class AdminPanel
                     $hash = [];
 
                     foreach ($result as $val) {
-                        $hash[] = $val['_id'] . $val['updated_at'];
+                        $hash[] = $val['_id'] . ($val['updated_at'] ?? "");
                     }
 
                     return  md5(implode("", $hash));
@@ -797,9 +960,11 @@ class AdminPanel
                     }
 
 
+                    $structure = self::fullSchema()->findItemByCollection($args['collection']);
 
-                    $structure = self::$schema->findItemByCollection($args['collection']);
 
+                    echo json_encode(self::fullSchema()->json());
+                    exit;
 
 
                     $structure->inTable(true);
@@ -1004,7 +1169,7 @@ class AdminPanel
                     $hash = [];
 
                     foreach ($result as $val) {
-                        $hash[] = $val['_id'] . $val['updated_at'];
+                        $hash[] = $val['_id'] . ($val['updated_at'] ?? "");
                     }
 
                     $hash = md5(implode("", $hash));
@@ -1148,7 +1313,7 @@ class AdminPanel
                     }
 
 
-                    $structure = self::$schema->findItemByCollection($args['collection']);
+                    $structure = self::fullSchema()->findItemByCollection($args['collection']);
 
 
                     if (!$structure) {
@@ -1196,7 +1361,7 @@ class AdminPanel
 
 
 
-                    $structure = self::$schema->findItemByCollection($args['collection']);
+                    $structure = self::fullSchema()->findItemByCollection($args['collection']);
 
 
 
@@ -1336,7 +1501,7 @@ class AdminPanel
 
                     Auth::authenticateOrThrow(...self::$users);
 
-                    $structure = self::$schema->findItemByCollection($args['collection']);
+                    $structure = self::fullSchema()->findItemByCollection($args['collection']);
 
                     if (!$structure) {
                         Response::validation("Данные не доступны");
@@ -1377,7 +1542,7 @@ class AdminPanel
 
 
 
-                    $structure = self::$schema->findItemByCollection($args['collection']);
+                    $structure = self::fullSchema()->findItemByCollection($args['collection']);
 
 
 
@@ -1430,15 +1595,17 @@ class AdminPanel
                     $facet = [];
 
                     foreach ($stages->items as $stage) {
-                        $facet[$stage->key] = [
-                            ...$stage->getPipeline(),
-                            [
-                                '$group' => [
-                                    '_id' => null,
-                                    'count' => ['$sum' => 1],
+                        if ($stage instanceof StageType) {
+                            $facet[$stage->key] = [
+                                ...$stage->getPipeline(),
+                                [
+                                    '$group' => [
+                                        '_id' => null,
+                                        'count' => ['$sum' => 1],
+                                    ]
                                 ]
-                            ]
-                        ];
+                            ];
+                        }
                     }
 
                     $stagesCounts = $structure->aggregate([
@@ -1672,7 +1839,16 @@ class AdminPanel
 
                     return true;
                 },
-            ]
+            ],
+
+
+
+
+
+
+
+
+
         ]);
     }
 }

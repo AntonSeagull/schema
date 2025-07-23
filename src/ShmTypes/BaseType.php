@@ -10,6 +10,7 @@ use Shm\ShmTypes\Utils\JsonLogicBuilder;
 use Shm\ShmUtils\MaterialIcons;
 use Shm\ShmUtils\ShmInit;
 use Shm\ShmUtils\ShmUtils;
+use Traversable;
 
 abstract class BaseType
 {
@@ -17,8 +18,34 @@ abstract class BaseType
     public $hide = false;
 
 
+    public $unique = false;
+
+    public $globalUnique = false;
+
     private bool $flatted = false;
 
+    public $description = null;
+
+
+    public function globalUnique(bool $globalUnique = true): static
+    {
+        $this->globalUnique = $globalUnique;
+        return $this;
+    }
+
+
+    public function unique(bool $unique = true): static
+    {
+        $this->unique = $unique;
+        return $this;
+    }
+
+
+    public function description(string $description): static
+    {
+        $this->description = $description;
+        return $this;
+    }
 
     public function flatted(bool $flatted = true): static
     {
@@ -68,6 +95,7 @@ abstract class BaseType
     public function hide($hide = true): self
     {
 
+
         $this->hide = $hide;
         return $this;
     }
@@ -114,7 +142,7 @@ abstract class BaseType
         return $this;
     }
 
-    public BaseType $itemType;
+    public BaseType | null $itemType = null;
 
 
     public $onlyAuth = false;
@@ -127,6 +155,30 @@ abstract class BaseType
     public  $max = null;
 
     public bool $editable = false;
+
+    private bool $editableSet = false;
+
+    private bool $inAdminSet = false;
+
+    private bool $inTableSet = false;
+
+
+    public function isInTableSet(): bool
+    {
+        return $this->inTableSet;
+    }
+
+
+    public function isInAdminSet(): bool
+    {
+        return $this->inAdminSet;
+    }
+
+
+    public function isEditableSet(): bool
+    {
+        return $this->editableSet;
+    }
 
     public bool $inAdmin = false;
 
@@ -184,14 +236,28 @@ abstract class BaseType
     {
         $this->inAdmin = $isAdmin;
 
-        /* if (isset($this->items)) {
+        if (isset($this->items)) {
             foreach ($this->items as $key => $item) {
+
+                if ($key === '_id') {
+                    continue;
+                }
+
+                if ($item->isInAdminSet()) {
+                    continue;
+                }
+
                 $item->inAdmin($isAdmin);
             }
-        }*/
+        }
 
         if (isset($this->itemType)) {
-            $this->itemType->inAdmin($isAdmin);
+
+            if (!$this->itemType->isInAdminSet()) {
+
+
+                $this->itemType->inAdmin($isAdmin);
+            }
         }
 
         return $this;
@@ -281,13 +347,49 @@ abstract class BaseType
     }
 
 
+
+    public null | int $tablePriority = null;
+
     /**
      * Set whether this field is for table display.
      * If true, it will use the table layout.
      */
-    public function inTable(bool $isInTable = true): static
+    public function inTable(bool | int $isInTable = true): static
     {
+
+        if (is_int($isInTable)) {
+            $this->tablePriority = $isInTable;
+            $this->inTable = true;
+
+            return $this;
+        }
+
         $this->inTable = $isInTable;
+
+
+        if (isset($this->items)) {
+            foreach ($this->items as $key => $item) {
+
+                if ($key === '_id') {
+                    continue;
+                }
+
+                if ($item->isInTableSet()) {
+                    continue;
+                }
+
+                $item->inTable($isInTable);
+            }
+        }
+
+        if (isset($this->itemType)) {
+
+            if (!$this->itemType->isInTableSet()) {
+                $this->itemType->inTable($isInTable);
+            }
+        }
+
+
         return $this;
     }
 
@@ -306,6 +408,46 @@ abstract class BaseType
 
 
 
+
+    public $localCond = null;
+
+
+    /**
+     * Set a condition using JsonLogicBuilder.
+     * This allows complex conditions to be applied to the field.
+     */
+    public  function localCond(JsonLogicBuilder $cond): self
+    {
+        $this->localCond = $cond->build();
+        return $this;
+    }
+
+
+    public function childrenEditable(bool $isEditable = true)
+    {
+
+        if (isset($this->items)) {
+            foreach ($this->items as $key => $item) {
+
+
+
+                if (!$item->isEditableSet()) {
+                    $item->editable($isEditable);
+                }
+            }
+        }
+
+        if (isset($this->itemType)) {
+            if (!$this->itemType->isEditableSet()) {
+                $this->itemType->editable($isEditable);
+            }
+        }
+
+
+
+        return $this;
+    }
+
     /**
      * Set whether this field is editable.
      * If true, it will be editable.
@@ -313,6 +455,26 @@ abstract class BaseType
     public function editable(bool $isEditable = true): static
     {
         $this->editable = $isEditable;
+        $this->editableSet = true;
+
+
+        if (isset($this->items)) {
+            foreach ($this->items as $key => $item) {
+
+                if (!$item->editableSet) {
+                    $item->editable($isEditable);
+                }
+            }
+        }
+
+        if (isset($this->itemType)) {
+            if (!$this->itemType->editableSet) {
+                $this->itemType->editable($isEditable);
+            }
+        }
+
+
+
         return $this;
     }
 
@@ -432,6 +594,58 @@ abstract class BaseType
         return $this;
     }
 
+    public bool $private = false;
+
+    public function private(bool $private = true): static
+    {
+        $this->private = $private;
+        return $this;
+    }
+
+
+
+
+    /**
+     * Normalize the input value to the expected type.
+     */
+    public function normalizePrivate(mixed $value): mixed
+    {
+
+        if ($this->private) return null;
+
+
+
+        if (isset($this->items)) {
+            foreach ($this->items as $name => $type) {
+                if (isset($value[$name])) {
+                    $value[$name] =  $type->normalizePrivate($value[$name]);
+                }
+            }
+        }
+
+        if (isset($this->itemType)) {
+
+
+            if ((is_array($value) || $value instanceof Traversable)) {
+
+
+
+
+                foreach ($value as  $index => $valueItem) {
+                    if (!$valueItem) {
+                        continue;
+                    }
+
+                    $value[$index] = $this->itemType->normalizePrivate($valueItem);
+                }
+            }
+        }
+
+
+        return $value;
+    }
+
+
 
 
     /**
@@ -447,6 +661,7 @@ abstract class BaseType
         return $value;
     }
 
+
     public function removeOtherItems(mixed $value): mixed
     {
         return $value;
@@ -461,7 +676,7 @@ abstract class BaseType
         if ($value === null) {
             if (!$this->nullable && $this->required) {
                 $field = $this->title ?? 'Value';
-                throw new \InvalidArgumentException("{$field} is required and cannot be null.");
+                throw new \Exception("{$field} is required and cannot be null.");
             }
         }
     }
@@ -482,37 +697,8 @@ abstract class BaseType
         return null;
     }
 
-    public function safeFullEditable(bool $editable = true): static
-    {
-        return $this->fullEditable($editable);
-    }
 
 
-    public function fullEditable(bool $editable = true): static
-    {
-        $this->editable = $editable;
-        return $this;
-    }
-
-    public function fullInAdmin(bool $isAdmin = true): static
-    {
-        $this->inAdmin = $isAdmin;
-
-        if (isset($this->items)) {
-            foreach ($this->items as $key => $item) {
-                if ($key === '_id') {
-                    continue;
-                }
-                $item->fullInAdmin($isAdmin);
-            }
-        }
-
-        if (isset($this->itemType)) {
-            $this->itemType->fullInAdmin($isAdmin);
-        }
-
-        return $this;
-    }
 
 
 
@@ -601,6 +787,53 @@ abstract class BaseType
         }
     }
 
+
+    public function getGlobalUniquePath(array $path): array
+    {
+
+        if (count($path) > 0 && $this->globalUnique) {
+            return [...$path, $this->key];
+        }
+
+        $findPaths = [];
+
+        if (isset($this->items)) {
+            foreach ($this->items as $key => $item) {
+
+                $findPaths = [...$findPaths, ...$item->getUniquePath([...$path, $key])];
+            }
+        }
+
+        if (isset($this->itemType)) {
+            $findPaths =   [...$findPaths, ...$this->itemType->getUniquePath([...$path])];
+        }
+
+        return  $findPaths;
+    }
+
+    public function getUniquePath(array $path): array
+    {
+
+        if (count($path) > 0 && $this->unique) {
+            return [...$path, $this->key];
+        }
+
+        $findPaths = [];
+
+        if (isset($this->items)) {
+            foreach ($this->items as $key => $item) {
+
+                $findPaths = [...$findPaths, ...$item->getUniquePath([...$path, $key])];
+            }
+        }
+
+        if (isset($this->itemType)) {
+            $findPaths =   [...$findPaths, ...$this->itemType->getUniquePath([...$path])];
+        }
+
+        return  $findPaths;
+    }
+
     public function getIDsPaths(array $path): array
     {
 
@@ -608,6 +841,8 @@ abstract class BaseType
 
         if (isset($this->items)) {
             foreach ($this->items as $key => $item) {
+
+
 
                 $findPaths = [...$findPaths, ...$item->getIDsPaths([...$path, $key])];
             }
@@ -644,6 +879,13 @@ abstract class BaseType
 
 
     public $columnsWidth = null;
+
+    public function width(int $width): static
+    {
+        $this->columnsWidth = $width;
+        return $this;
+    }
+
 
     public function setColumnsWidth(int $width): static
     {
@@ -732,6 +974,19 @@ abstract class BaseType
     private $onUpdateEvent = null;
 
     /**
+     * Устанавливает обработчик события вставки или изменения значения.
+     *
+     * @param callable $handler Функция с сигнатурой function(array $_ids, mixed $newValue, array $docs)
+     */
+    public function insertOrUpdateEvent(callable $handler): static
+    {
+        $this->onInsertEvent = $handler;
+        $this->onUpdateEvent = $handler;
+        return $this;
+    }
+
+
+    /**
      * Устанавливает обработчик события изменения значения.
      *
      * @param callable $handler Функция с сигнатурой function(array $_ids, mixed $newValue, array $docs)
@@ -739,6 +994,43 @@ abstract class BaseType
     public function updateEvent(callable $handler): static
     {
         $this->onUpdateEvent = $handler;
+        return $this;
+    }
+
+    private $onBeforeInsertEvent = null;
+    private $onBeforeUpdateEvent = null;
+    /**
+     * Устанавливает обработчик события перед вставкой значения, должно возвращать значение.
+     *
+     * @param callable $handler Функция с сигнатурой function($value): mixed
+     */
+    public function beforeInsertEvent(callable $handler): static
+    {
+        $this->onBeforeInsertEvent = $handler;
+        return $this;
+    }
+
+    /**
+     * Устанавливает обработчик события перед изменением значения, должно возвращать значение.
+     *
+     * @param callable $handler Функция с сигнатурой function($value): mixed
+     */
+    public function beforeUpdateEvent(callable $handler): static
+    {
+        $this->onBeforeUpdateEvent = $handler;
+        return $this;
+    }
+
+
+    /**
+     * Устанавливает обработчик события перед вставкой или изменением значения, должно возвращать значение.
+     *
+     * @param callable $handler Функция с сигнатурой function($value): mixed
+     */
+    public function beforeInsertOrUpdateEvent(callable $handler): static
+    {
+        $this->onBeforeInsertEvent = $handler;
+        $this->onBeforeUpdateEvent = $handler;
         return $this;
     }
 
@@ -752,6 +1044,47 @@ abstract class BaseType
     {
         $this->onInsertEvent = $handler;
         return $this;
+    }
+
+
+    public function haveBeforeInsertEvent(): bool
+    {
+        if (isset($this->items)) {
+
+            foreach ($this->items as $key => $item) {
+                if ($item instanceof BaseType) {
+                    if (is_callable($item->onBeforeInsertEvent)) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        if (is_callable($this->onBeforeInsertEvent)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    public function haveBeforeUpdateEvent(): bool
+    {
+        if (isset($this->items)) {
+
+            foreach ($this->items as $key => $item) {
+                if ($item instanceof BaseType) {
+                    if (is_callable($item->onBeforeUpdateEvent)) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        if (is_callable($this->onBeforeUpdateEvent)) {
+            return true;
+        }
+
+        return false;
     }
 
 
@@ -894,6 +1227,50 @@ abstract class BaseType
         }
     }
 
+
+    public function callBeforeInsertEvent($value): mixed
+    {
+
+        if (is_callable($this->onBeforeInsertEvent)) {
+            return call_user_func($this->onBeforeInsertEvent, $value);
+        }
+
+        if (isset($this->items)) {
+
+            foreach ($this->items as $key => $item) {
+
+                if ($item instanceof BaseType) {
+                    if ($item->haveBeforeInsertEvent() && isset($value[$key])) {
+                        $value[$key] = $item->callBeforeInsertEvent($value[$key]);
+                    }
+                }
+            }
+        }
+
+        return $value;
+    }
+
+    public function callBeforeUpdateEvent($value): mixed
+    {
+
+        if (is_callable($this->onBeforeUpdateEvent)) {
+            return call_user_func($this->onBeforeUpdateEvent, $value);
+        }
+
+        if (isset($this->items)) {
+
+            foreach ($this->items as $key => $item) {
+
+                if ($item instanceof BaseType) {
+                    if ($item->haveBeforeUpdateEvent() && isset($value[$key])) {
+                        $value[$key] = $item->callBeforeUpdateEvent($value[$key]);
+                    }
+                }
+            }
+        }
+
+        return $value;
+    }
 
     public function callInsertEvent($newDocs, $allNewDocs): void
     {

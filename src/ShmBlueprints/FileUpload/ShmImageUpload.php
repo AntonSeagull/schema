@@ -20,20 +20,7 @@ class ShmImageUpload
 
 
         return [
-            'type' => Shm::structure([
-                "fileType" => Shm::string(),
-                "name" => Shm::string(),
-                "url" => Shm::string(),
-                "url_medium" => Shm::string(),
-                "url_small" => Shm::string(),
-                "source" => Shm::string(),
-                "blurhash" => Shm::string(),
-                "width" => Shm::float(),
-                "height" => Shm::float(),
-                "type" => Shm::string(),
-                "created_at" => Shm::number(),
-                "_id" => Shm::ID()
-            ])->staticBaseTypeName("ImageFileUpload"),
+            'type' => Shm::fileImage(),
 
 
             'formData' => true,
@@ -134,7 +121,7 @@ class ShmImageUpload
 
                 $fields = [
                     "fileType" => "image",
-                    'user' => Auth::getAuthOwner(),
+                    'owner' => Auth::getAuthOwner(),
                     'name' => is_string($image) ? "none" : $image['name'],
                     'url' => $url,
                     'url_medium' => $url_filename_medium,

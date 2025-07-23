@@ -2,6 +2,7 @@
 
 namespace Shm\ShmRPC;
 
+
 use Sentry\Util\JSON;
 use Shm\Shm;
 use Shm\ShmBlueprints\Auth\ShmAuth;
@@ -43,7 +44,8 @@ class ShmRPC
                 $field['args'] = new StructureType($field['args']);
             }
 
-            $field['args']->safeFullEditable()->staticBaseTypeName('Args' . ShmUtils::onlyLetters($key));
+
+            $field['args']->editable()->staticBaseTypeName('Args' . ShmUtils::onlyLetters($key));
         }
 
         return $field;
@@ -56,13 +58,13 @@ class ShmRPC
 
 
         if (!is_array($schemaParams)) {
-            throw new \InvalidArgumentException("Schema must be an array.");
+            throw new \Exception("Schema must be an array.");
         }
 
         //Проверка что type это BaseType и args это StructureType
         foreach ($schemaParams as $key => $field) {
             if (!isset($field['type']) || !($field['type'] instanceof \Shm\ShmTypes\BaseType)) {
-                throw new \InvalidArgumentException("Schema field '{$key}' must have a 'type' of BaseType.");
+                throw new \Exception("Schema field '{$key}' must have a 'type' of BaseType.");
             }
         }
     }
@@ -192,7 +194,7 @@ class ShmRPC
 
 
 
-            ShmRPCCodeGen::html($schemaParams);
+            ShmRPCCodeGen::html($schemaParams, isset($_GET['json']));
         };
 
 
@@ -221,12 +223,12 @@ class ShmRPC
 
 
         if ($method === null) {
-            throw new \InvalidArgumentException("Method is required.");
+            throw new \Exception("Method is required.");
         }
 
 
         if ($method === null) {
-            throw new \InvalidArgumentException("Method is required.");
+            throw new \Exception("Method is required.");
         }
 
         $schemaMethod = $schemaParams[$method] ?? null;
@@ -308,6 +310,10 @@ class ShmRPC
         $result = $schemaMethod['type']->normalize($result, false);
 
         $result = $schemaMethod['type']->removeOtherItems($result);
+
+
+        $result = $schemaMethod['type']->normalizePrivate($result);
+
         Response::endTraceTiming("normalize");
 
 
@@ -319,6 +325,9 @@ class ShmRPC
 
 
             if ($schemaMethod['type'] instanceof StructureType || $schemaMethod['type'] instanceof \Shm\ShmTypes\ArrayOfType) {
+
+
+
                 Response::startTraceTiming("externalData");
                 $result = $schemaMethod['type']->externalData($result);
                 Response::endTraceTiming("externalData");
@@ -350,6 +359,7 @@ class ShmRPC
 
         Response::success($result);
     }
+
 
     public static function auth(StructureType ...$authStructures): ShmAuth
     {

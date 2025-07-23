@@ -14,7 +14,7 @@ class StaticType extends BaseType
     {
 
         if (!$staticValue) {
-            throw new \InvalidArgumentException('Static value cannot be null or empty');
+            throw new \Exception('Static value cannot be null or empty');
         }
 
         $this->staticValue = $staticValue;

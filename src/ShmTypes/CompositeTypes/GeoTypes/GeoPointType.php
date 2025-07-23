@@ -27,7 +27,7 @@ class GeoPointType extends StructureType
                 'address' => Shm::string(),
                 'lat' => Shm::float(),
                 'lng' => Shm::float(),
-                'location' => Shm::monogoPoint(),
+                'location' => Shm::mongoPoint(),
             ]
         );
     }
@@ -64,14 +64,14 @@ class GeoPointType extends StructureType
         }
         if (!is_array($value)) {
             $field = $this->title ?? 'Value';
-            throw new \InvalidArgumentException("{$field} must be an object/structure (associative array).");
+            throw new \Exception("{$field} must be an object/structure (associative array).");
         }
         foreach ($this->items as $name => $type) {
             try {
                 $type->validate($value[$name] ?? null);
-            } catch (\InvalidArgumentException $e) {
+            } catch (\Exception $e) {
                 $field = $this->title ?? $name;
-                throw new \InvalidArgumentException("{$field}.{$name}: " . $e->getMessage());
+                throw new \Exception("{$field}.{$name}: " . $e->getMessage());
             }
         }
     }

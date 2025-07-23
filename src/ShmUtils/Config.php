@@ -17,7 +17,7 @@ class Config
         if ($config === null) {
             $file = realpath(ShmInit::$rootDir . '/config/config.php');
             if (!file_exists($file)) {
-                throw new \RuntimeException("Config file not found: $file");
+                return $default;
             }
             $config = require $file;
         }

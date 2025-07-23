@@ -34,7 +34,7 @@ class ColorType extends BaseType
 
         if (!is_string($value)) {
             $field = $this->title ?? 'Value';
-            throw new \InvalidArgumentException("{$field} must be a string.");
+            throw new \Exception("{$field} must be a string.");
         }
     }
 
@@ -48,7 +48,7 @@ class ColorType extends BaseType
 
         $itemTypeFilter = Shm::string()->editable();
 
-        return $itemTypeFilter->fullEditable()->fullInAdmin($this->inAdmin)->title($this->title);
+        return $itemTypeFilter->inAdmin($this->inAdmin)->title($this->title);
     }
 
 

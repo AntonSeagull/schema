@@ -37,6 +37,12 @@ class ShmBlueprintMutation
 
     public function pipeline($pipeline = []): self
     {
+
+        if (count($pipeline) > 0) {
+            mDB::validatePipeline($pipeline);
+        }
+
+
         $this->pipeline = $pipeline;
         return $this;
     }
@@ -89,7 +95,7 @@ class ShmBlueprintMutation
             $args['delete'] = Shm::boolean();
         }
 
-        $args['fields'] = $this->structure;
+        $args['fields'] = $this->structure->editable();
 
         $editableKeys = array_values(array_filter(array_keys($this->structure->items), function ($key) {
             return isset($this->structure->items[$key]->editable) && $this->structure->items[$key]->editable;
@@ -118,8 +124,8 @@ class ShmBlueprintMutation
         }
 
         if (count($fields) > 0) {
-            $args['addToSet']  = Shm::structure($fields)->fullEditable();
-            $args['pull']  = Shm::structure($fields)->fullEditable();
+            $args['addToSet']  = Shm::structure($fields)->editable();
+            $args['pull']  = Shm::structure($fields)->editable();
         }
 
 
@@ -246,10 +252,7 @@ class ShmBlueprintMutation
                         if (isset($args['unset'])) {
 
                             $nullSet = [];
-                            foreach ($args['unset'] as $key) {
-                                if ($key == "_id") continue;
-                                $nullSet[$key] = null;
-                            }
+
                             if (count($nullSet) > 0)
                                 $structure->updateOne(['_id' => mDB::id($_id)], ['$set' => $nullSet]);
                         }

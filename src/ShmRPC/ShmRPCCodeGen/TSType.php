@@ -67,13 +67,13 @@ class TSType
 
         if (!isset($this->tsTypeValue) || empty($this->tsTypeValue)) {
             return '';
-            //   throw new \InvalidArgumentException("Type name is not set or empty.");
+            //   throw new \Exception("Type name is not set or empty.");
         }
 
 
         if (!isset($this->tsTypeName) || empty($this->tsTypeName)) {
             return '';
-            //   throw new \InvalidArgumentException("Type name is not set or empty.");
+            //   throw new \Exception("Type name is not set or empty.");
         }
 
         $result = "";

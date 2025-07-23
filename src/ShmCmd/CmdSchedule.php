@@ -127,8 +127,16 @@ class CmdSchedule
     public static function run(): void
     {
 
+
+        //If is cli request do return
+        if (php_sapi_name() === 'cli') {
+            return;
+        }
+
+
+
         $requestMethod = $_SERVER['REQUEST_METHOD'] ?? '';
-        $requestUri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+        $requestUri = is_string($_SERVER['REQUEST_URI']) ? parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) : '';
 
         if ($requestMethod === 'GET' && $requestUri === '/cron/schedule/run') {
 

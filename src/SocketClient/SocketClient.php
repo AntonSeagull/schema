@@ -23,7 +23,10 @@ class SocketClient
         $channel = ltrim($channel, '/');
         $channel = rtrim($channel, '/');
 
+
         $url = 'https://' . Config::get("socket.domain") . "/pub/" . Config::get("socket.prefix") . '/'  . $channel;
+
+
 
         $data = mDB::replaceObjectIdsToString($data);
 

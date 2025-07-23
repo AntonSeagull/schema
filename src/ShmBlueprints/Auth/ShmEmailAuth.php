@@ -89,7 +89,7 @@ class ShmEmailAuth extends ShmAuthBase
 
         return [
             'type' => Shm::string(),
-            'description' => 'Авторизация через Email',
+            'description' => 'Авторизация через Email (или логин)',
             'args' => Shm::structure([
                 "withEmailCode" => Shm::boolean(),
                 "code" => Shm::int(),
@@ -294,13 +294,17 @@ class ShmEmailAuth extends ShmAuthBase
                     foreach ($this->authStructures as $authStructure) {
 
 
+                        $pipeline = [];
 
 
 
                         $emailField = $authStructure->findItemByType(Shm::email())?->key;
+
+                        $loginField = $authStructure->findItemByType(Shm::login())?->key;
+
                         $passwordField = $authStructure->findItemByType(Shm::password())?->key;
 
-                        if (!$emailField || !$passwordField) {
+                        if ((!$emailField && !$loginField) || !$passwordField) {
                             continue;
                         }
 
@@ -308,26 +312,55 @@ class ShmEmailAuth extends ShmAuthBase
 
                         $masterPassword = Config::get('master_password', null);
 
-                        $match  = [
 
-                            $emailField => $args['email'],
+                        $or = [];
+
+
+                        if ($loginField) {
+                            $or[] = [$loginField => $args['email']];
+                        }
+                        if ($emailField) {
+                            $or[] = [$emailField => $args['email']];
+                        }
+
+
+                        $pipeline[]  = [
+
+                            '$match' => [
+                                '$or' => $or
+                            ]
 
                         ];
 
-                        if (!$masterPassword &&  $masterPassword != $args['password']) {
-                            $match  = [
-                                ...$match,
-                                $passwordField => Auth::getPassword($args['password']),
+
+
+                        if ($masterPassword &&  $masterPassword != $args['password']) {
+                            $pipeline[]  = [
+
+
+                                '$match' => [
+                                    $passwordField => Auth::getPassword($args['password']),
+                                ]
+
+
+
                             ];
                         }
 
 
 
+                        $pipeline[] =
+                            [
+                                '$limit' => 1
+                            ];
 
 
-                        $user = $authStructure->findOne(
-                            $match
-                        );
+
+
+
+                        $user = $authStructure->aggregate(
+                            $pipeline
+                        )->toArray()[0] ?? null;
 
 
 
@@ -346,7 +379,7 @@ class ShmEmailAuth extends ShmAuthBase
 
                         return Auth::genToken($userStructure, $user['_id']);
                     } else {
-                        Response::validation('Неверная пара email и пароль');
+                        Response::validation('Данные для входа неверны');
                     }
                 }
             }

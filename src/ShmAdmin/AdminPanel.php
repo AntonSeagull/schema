@@ -963,8 +963,6 @@ class AdminPanel
                     $structure = self::fullSchema()->findItemByCollection($args['collection']);
 
 
-                    echo json_encode(self::fullSchema()->json());
-                    exit;
 
 
                     $structure->inTable(true);

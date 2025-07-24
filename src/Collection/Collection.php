@@ -17,6 +17,19 @@ class Collection
 {
 
 
+    public static $target = false;
+
+    public static function isTarget(bool | null $target = null): bool
+    {
+        if ($target === null) {
+            return self::$target;
+        }
+
+        self::$target = $target;
+
+        return self::$target;
+    }
+
     public function __construct()
     {
 
@@ -87,6 +100,7 @@ class Collection
 
 
 
+
     public static function cloneSchema(): StructureType | null
     {
         $_this = new static();
@@ -99,32 +113,14 @@ class Collection
     }
 
 
-    public static $flattenCache = [];
+
 
     public static function flatten(): StructureType | null
     {
 
         $_this = new static();
 
-        if (!$_this->collection) {
-            $_this->collection = $_this->getShortClassName();
-        }
-
-        if (isset(self::$flattenCache[$_this->collection])) {
-            return self::$flattenCache[$_this->collection];
-        }
-
-
-        if (method_exists($_this, 'expectSchema')) {
-
-            $schema = clone $_this->expectSchema();
-
-            $schema->flatted(true);
-
-            return self::$flattenCache[$_this->collection] = $schema;
-        }
-
-        return null;
+        return $_this->expectSchema();
     }
 
 
@@ -151,22 +147,8 @@ class Collection
 
         $_this = new static();
 
-        if (!$_this->collection) {
-            $_this->collection = $_this->getShortClassName();
-        }
 
-
-        if (isset(self::$structureCache[$_this->collection])) {
-            return self::$structureCache[$_this->collection];
-        }
-
-
-        if (method_exists($_this, 'expectSchema')) {
-            return self::$structureCache[$_this->collection] = $_this->expectSchema()->stripNestedIds();
-        }
-
-
-        return Shm::structure([]);
+        return $_this->expectSchema()->expand();
     }
 
 
@@ -184,6 +166,12 @@ class Collection
         $shortName = end($parts);
 
         return lcfirst($shortName);
+    }
+
+
+    public function prepare(StructureType $schema): StructureType
+    {
+        return $schema;
     }
 
     final public function expectSchema(): StructureType | null
@@ -216,6 +204,8 @@ class Collection
             SubAccountsSchema::updateSchema($schema);
         }
 
+
+        $schema =  $this->prepare($schema);
 
 
 

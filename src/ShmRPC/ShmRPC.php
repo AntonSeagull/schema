@@ -25,6 +25,9 @@ class ShmRPC
     public static $init = false;
 
 
+    public static $key = null;
+
+
     private static function executeMethod(&$schemaMethod, $params)
     {
 

@@ -22,8 +22,10 @@ class IDsType extends BaseType
 
 
 
-    public function documentResolver()
+    public function expand(): static
     {
+
+        $this->expanded = true;
 
         if ($this->documentResolver !== null) {
             $resolver = $this->documentResolver;
@@ -34,14 +36,21 @@ class IDsType extends BaseType
                 throw new InvalidArgumentException('documentResolver must return StructureType or null');
             }
         }
+
+        return $this;
     }
+
+
+
 
 
     public function __construct(callable  | StructureType $documentResolver = null)
     {
 
         if ($documentResolver instanceof StructureType) {
-            $this->document = $documentResolver;
+            $this->documentResolver = function () use ($documentResolver) {
+                return $documentResolver;
+            };
         } else {
 
             $this->documentResolver = $documentResolver;
@@ -218,7 +227,7 @@ class IDsType extends BaseType
     {
 
 
-        if (!$this->isFlatted() &&  $this->document && !$this->document->hide) {
+        if ($this->document && !$this->document->hide) {
 
             $documentTsType = $this->document->tsType();
 
@@ -258,9 +267,6 @@ class IDsType extends BaseType
     public function getIDsPaths(array $path): array
     {
 
-        if ($this->isFlatted()) {
-            return [];
-        }
 
 
         if ($this->document && !$this->document->hide) {

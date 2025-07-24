@@ -17,6 +17,8 @@ class Collection extends CollectionCollection
         return null;
     }
 
+    public $single = false;
+
 
     public function title()
     {
@@ -139,6 +141,9 @@ class Collection extends CollectionCollection
             $schema->pipeline($basePipeline);
         }
 
+        if ($this->single) {
+            $schema->single();
+        }
 
         return $schema;
     }

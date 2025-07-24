@@ -128,11 +128,17 @@ class Shm
 
     public static function ID(callable  | StructureType $documentResolver = null): IDType
     {
+
+
+
         return (new IDType($documentResolver));
     }
 
     public static function IDs(callable | StructureType $documentResolver = null): IDsType
     {
+
+
+
         return (new IDsType($documentResolver));
     }
 

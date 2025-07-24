@@ -22,7 +22,9 @@ abstract class BaseType
 
     public $globalUnique = false;
 
-    private bool $flatted = false;
+    public $expanded = false;
+
+
 
     public $description = null;
 
@@ -47,18 +49,21 @@ abstract class BaseType
         return $this;
     }
 
-    public function flatted(bool $flatted = true): static
+    public function expand(): static
     {
-        $this->flatted = $flatted;
+        $this->expanded = true;
+
 
         if (isset($this->items)) {
             foreach ($this->items as $key => $item) {
-                $item->flatted($flatted);
+
+
+                $item->expand();
             }
         }
 
         if (isset($this->itemType)) {
-            $this->itemType->flatted($flatted);
+            $this->itemType->expand();
         }
 
 
@@ -66,10 +71,7 @@ abstract class BaseType
         return $this;
     }
 
-    public function isFlatted(): bool
-    {
-        return $this->flatted;
-    }
+
 
 
     public $display = false;
@@ -897,42 +899,6 @@ abstract class BaseType
 
 
 
-
-    public function stripNestedIds(): self
-    {
-
-
-
-
-        if (isset($this->items)) {
-
-
-            foreach ($this->items as $key => $item) {
-
-
-
-                if ($item instanceof IDType || $item instanceof IDsType) {
-                    $item->documentResolver();
-                }
-
-                if ($item instanceof StructureType) {
-                    $item->stripNestedIds();
-                }
-
-                if ($item instanceof ArrayOfType) {
-                    $item->stripNestedIds();
-                }
-            }
-        }
-
-        if (isset($this->itemType)) {
-
-
-            $this->itemType->stripNestedIds();
-        }
-
-        return $this;
-    }
 
 
 

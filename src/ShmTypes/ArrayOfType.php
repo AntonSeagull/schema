@@ -196,8 +196,7 @@ class ArrayOfType extends BaseType
             $pathsByCollections[$pathItem['document']->collection][] = $pathItem;
         }
 
-        //  var_dump($pathsByCollections);
-        //  exit;
+
 
 
 
@@ -224,22 +223,31 @@ class ArrayOfType extends BaseType
                 $allIds = [...$allIds, ...$val];
             }
 
+
+
+
             if (count($allIds) == 0) {
                 continue;
             }
 
             $pathItem = $collectionPaths[0];
 
+
+
+
+
+
             $mongoDocs = mDB::collection($pathItem['document']->collection)->aggregate([
 
                 ...$pathItem['document']->getPipeline(),
                 [
                     '$match' => [
-                        '_id' => ['$in' => $val]
+                        '_id' => ['$in' => $allIds]
                     ]
                 ],
 
             ])->toArray();
+
 
 
             if (count($mongoDocs) == 0) {

@@ -23,8 +23,10 @@ class IDType extends BaseType
 
 
 
-    public function documentResolver()
+    public function expand(): static
     {
+
+        $this->expanded = true;
 
         if ($this->documentResolver !== null) {
             $resolver = $this->documentResolver;
@@ -35,13 +37,17 @@ class IDType extends BaseType
                 throw new InvalidArgumentException('documentResolver must return StructureType or null');
             }
         }
+
+        return $this;
     }
 
-    public function __construct(callable | StructureType $documentResolver = null)
+    public function __construct(callable  | StructureType $documentResolver = null)
     {
 
         if ($documentResolver instanceof StructureType) {
-            $this->document = $documentResolver;
+            $this->documentResolver = function () use ($documentResolver) {
+                return $documentResolver;
+            };
         } else {
 
             $this->documentResolver = $documentResolver;
@@ -184,7 +190,7 @@ class IDType extends BaseType
     {
 
 
-        if (!$this->isFlatted() && $this->document && !$this->document->hide) {
+        if ($this->document && !$this->document->hide) {
             return $this->document->tsType();
         } else {
 
@@ -218,12 +224,6 @@ class IDType extends BaseType
     {
 
 
-
-        if ($this->isFlatted()) {
-
-
-            return [];
-        }
 
         if ($this->document && !$this->document->hide) {
 

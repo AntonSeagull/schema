@@ -30,7 +30,7 @@ class ShmImageUpload
 
                 $body = json_decode(file_get_contents('php://input'), true);
 
-                $image = $_FILES['file'] ?? $body['file'] ?? null;
+                $image = $_FILES['file'] ?? $_POST['file'] ?? $body['file'] ?? null;
 
 
                 $width = $_REQUEST['w'] ?? $body['w'] ?? 1000;

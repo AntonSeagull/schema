@@ -443,12 +443,14 @@ class StructureType extends BaseType
         }
 
         $baseTypePrefix = null;
-        if ($this->isFlatted()) {
+        if (!$this->expanded) {
             $baseTypePrefix = 'Flat';
         }
 
         return $baseTypePrefix ? $baseTypePrefix . $typeName : $typeName;
     }
+
+
 
 
 
@@ -475,14 +477,14 @@ class StructureType extends BaseType
             if ($item instanceof IDType || $item instanceof IDsType) {
 
                 if ($item->document && $item->document->collection === $collection) {
-                    return $item->document;
+                    return $item->document->expand();
                 }
             }
 
 
             if ($item instanceof StructureType) {
                 if ($item->collection === $collection)
-                    return $item;
+                    return $item->expand();
 
 
 

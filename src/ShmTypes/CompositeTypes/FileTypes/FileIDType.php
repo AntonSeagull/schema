@@ -38,6 +38,8 @@ class FileIDType extends IDType
             throw new \Exception("Unknown FileIDType file type: $type");
         }
 
+
+
         parent::__construct($structure);
     }
 

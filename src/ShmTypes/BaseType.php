@@ -5,6 +5,7 @@ namespace Shm\ShmTypes;
 
 use Nette\PhpGenerator\Method;
 use Sentry\Util\Arr;
+use Shm\Shm;
 use Shm\ShmRPC\ShmRPCCodeGen\TSType;
 use Shm\ShmTypes\Utils\JsonLogicBuilder;
 use Shm\ShmUtils\MaterialIcons;
@@ -227,16 +228,30 @@ abstract class BaseType
 
 
 
+    /**
+     * Set whether this field is for admin forms.
+     * Ignores children fields
+     */
+    public function  inAdminThis(bool $inAdmin = true): static
+    {
+        $this->inAdmin = $inAdmin;
+        $this->inAdminSet = true;
+
+
+        return $this;
+    }
 
 
     /**
      * Set whether this field is for admin forms.
-     * If true, it will use the admin form layout.
+     * For all children fields, this will also set the inAdmin property.
      */
 
     public function inAdmin(bool $isAdmin = true): static
     {
         $this->inAdmin = $isAdmin;
+
+        $this->inAdminSet = true;
 
         if (isset($this->items)) {
             foreach ($this->items as $key => $item) {
@@ -424,6 +439,60 @@ abstract class BaseType
         return $this;
     }
 
+    public function addUUIDInArray(): self
+    {
+
+
+
+        if (isset($this->items)) {
+            foreach ($this->items as $key => $item) {
+
+                $item->addUUIDInArray();
+            }
+        }
+
+        if (isset($this->itemType)) {
+
+
+            if ($this->itemType instanceof StructureType && !$this->itemType->collection && $this->itemType->type == 'structure') {
+
+
+                $this->itemType->addField('uuid', Shm::uuid());
+            }
+
+
+
+            $this->itemType->addUUIDInArray();
+        }
+
+        return $this;
+    }
+
+
+    public function childrenInAdmin(bool $inAdmin = true)
+    {
+
+        if (isset($this->items)) {
+            foreach ($this->items as $key => $item) {
+
+
+
+                if (!$item->isInAdminSet()) {
+                    $item->inAdmin($inAdmin);
+                }
+            }
+        }
+
+        if (isset($this->itemType)) {
+            if (!$this->itemType->isInAdminSet()) {
+                $this->itemType->inAdmin($inAdmin);
+            }
+        }
+
+
+
+        return $this;
+    }
 
     public function childrenEditable(bool $isEditable = true)
     {
@@ -449,6 +518,18 @@ abstract class BaseType
 
         return $this;
     }
+
+
+    public function  editableThis(bool $editable = true): static
+    {
+        $this->editable = $editable;
+        $this->editableSet = true;
+
+
+        return $this;
+    }
+
+
 
     /**
      * Set whether this field is editable.
@@ -836,6 +917,29 @@ abstract class BaseType
         return  $findPaths;
     }
 
+    public function haveID(): bool
+    {
+
+
+        if (isset($this->items)) {
+            foreach ($this->items as $key => $item) {
+
+                if ($item->haveID()) {
+                    return true;
+                }
+            }
+        }
+
+        if (isset($this->itemType)) {
+            if ($this->itemType->haveID()) {
+                return true;
+            }
+        }
+
+        return  false;
+    }
+
+
     public function getIDsPaths(array $path): array
     {
 
@@ -858,6 +962,7 @@ abstract class BaseType
     }
 
 
+
     public function getSearchPaths(): array
     {
 
@@ -878,6 +983,8 @@ abstract class BaseType
 
         return  $findPaths;
     }
+
+
 
 
     public $columnsWidth = null;

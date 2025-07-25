@@ -173,6 +173,7 @@ class AdminPanel
                 return $type;
             }),
 
+            'columnsWidth' => Shm::float(),
 
             'values' => Shm::structure([
                 "*" => Shm::string()

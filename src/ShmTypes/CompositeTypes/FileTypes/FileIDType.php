@@ -18,18 +18,26 @@ class FileIDType extends IDType
 
         if ($type == 'image') {
 
+            $this->type = 'image';
+
             $structure = Shm::structure(FileImageType::items())->collection('_files');
         }
 
         if ($type == 'video') {
 
+            $this->type = 'video';
+
             $structure = Shm::structure(FileVideoType::items())->collection('_files');
         }
         if ($type == 'audio') {
 
+            $this->type = 'audio';
+
             $structure = Shm::structure(FileAudioType::items())->collection('_files');
         }
         if ($type == 'document') {
+
+            $this->type = 'document';
 
             $structure = Shm::structure(FileDocumentType::items())->collection('_files');
         }

@@ -122,7 +122,7 @@ class Collection extends CollectionCollection
             $stages = [];
             foreach ($tabs as $tab) {
 
-                $stages[] = Shm::stage()->pipeline($tab['filter'])->title($tab['title'] ?? '');
+                $stages[md5($tab['title'])] = Shm::stage()->pipeline($tab['filter'])->title($tab['title'] ?? '');
             }
             if (count($stages) > 0) {
                 $schema->stages(Shm::structure($stages));

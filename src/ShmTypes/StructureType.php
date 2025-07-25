@@ -443,7 +443,9 @@ class StructureType extends BaseType
         }
 
         $baseTypePrefix = null;
-        if (!$this->expanded) {
+        if (!$this->expanded && $this->haveID()) {
+
+
             $baseTypePrefix = 'Flat';
         }
 

@@ -12,6 +12,7 @@ use Shm\ShmTypes\IDsType;
 use Shm\ShmTypes\IDType;
 use Shm\ShmUtils\Response;
 use Shm\ShmTypes\StructureType;
+use Shm\ShmUtils\ShmInit;
 
 class Collection
 {
@@ -184,9 +185,13 @@ class Collection
 
 
 
+
         $schema =   $this->schema()
             ->key($this->collection)
             ->collection($this->collection);
+
+        $schema->addUUIDInArray();
+
 
         $schema->addField("_id", Shm::ID()->editable(false));
 

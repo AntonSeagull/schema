@@ -264,6 +264,14 @@ class IDsType extends BaseType
         $this->path = $newPath;
     }
 
+    public function haveID(): bool
+    {
+        if ($this->documentResolver)
+            return true;
+
+        return false;
+    }
+
     public function getIDsPaths(array $path): array
     {
 

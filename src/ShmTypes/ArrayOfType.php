@@ -24,10 +24,6 @@ class ArrayOfType extends BaseType
         }
 
 
-        //If it's a structure and without collection then add uuid field if it doesn't exist
-        if ($itemType instanceof StructureType && !$itemType->collection) {
-            $itemType->addField('uuid', Shm::uuid());
-        }
 
 
         $this->itemType = $itemType;

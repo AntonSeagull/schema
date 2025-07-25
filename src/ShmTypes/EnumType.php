@@ -36,6 +36,22 @@ class EnumType extends BaseType
         $this->values = $values;
     }
 
+    public array $valuesColor;
+
+    public function color(string | array $key, $color): EnumType
+    {
+
+        if (is_array($key)) {
+            foreach ($key as $k) {
+                $this->valuesColor[$k] = $color;
+            }
+            return $this;
+        }
+
+        $this->valuesColor[$key] = $color;
+        return $this;
+    }
+
     public function normalize(mixed $value, $addDefaultValues = false, string | null $processId = null): mixed
     {
 

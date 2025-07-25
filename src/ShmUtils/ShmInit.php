@@ -23,6 +23,8 @@ class ShmInit
 
     public static $isAdmin = false;
 
+
+
     public static $shmVersionHash = 'none';
 
     public static $shmDir = null;

@@ -51,13 +51,13 @@ class ShmBlueprintQuery
     public $prepare = null;
 
 
-    public function prepare(callable $prepare): self
+    public function prepare(callable $prepare): static
     {
         $this->prepare = $prepare;
         return $this;
     }
 
-    public function pipeline($pipeline = []): self
+    public function pipeline($pipeline = []): static
     {
 
         if (count($pipeline) > 0) {
@@ -70,13 +70,13 @@ class ShmBlueprintQuery
     }
 
 
-    public function filter($filter = true): self
+    public function filter($filter = true): static
     {
         $this->filter = $filter;
         return $this;
     }
 
-    public function sort($sort = true): self
+    public function sort($sort = true): static
     {
         $this->sort = $sort;
         return $this;
@@ -90,7 +90,7 @@ class ShmBlueprintQuery
      * @param callable $beforeQuery Функция-коллбэк, которая принимает аргументы запроса и может модифицировать их.
      * @return self
      */
-    public function before(callable $beforeQuery): self
+    public function before(callable $beforeQuery): static
     {
         $this->beforeQuery = $beforeQuery;
         return $this;
@@ -102,7 +102,7 @@ class ShmBlueprintQuery
      * @param callable $afterQuery Функция-коллбэк, которая принимает результат запроса и может модифицировать его.
      * @return self
      */
-    public function after(callable $afterQuery): self
+    public function after(callable $afterQuery): static
     {
         $this->afterQuery = $afterQuery;
         return $this;
@@ -110,7 +110,7 @@ class ShmBlueprintQuery
 
 
 
-    public function withoutData($withoutData = true): self
+    public function withoutData($withoutData = true): static
     {
         $this->withoutData = $withoutData;
         return $this;

@@ -23,14 +23,14 @@ class PipelineBuilder
         return $this->pipeline;
     }
 
-    public function setPipeline(array $pipeline): self
+    public function setPipeline(array $pipeline): static
     {
         $this->pipeline = $pipeline;
         return $this;
     }
 
 
-    public function addToPipeline($pipeline): self
+    public function addToPipeline($pipeline): static
     {
         if (!$pipeline) {
             return $this;
@@ -46,7 +46,7 @@ class PipelineBuilder
         return $this;
     }
 
-    public function addFields(array $fields): self
+    public function addFields(array $fields): static
     {
         if (!$fields || !is_array($fields) || count($fields) === 0) {
             return $this;

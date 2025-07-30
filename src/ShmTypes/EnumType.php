@@ -81,6 +81,159 @@ class EnumType extends BaseType
     }
 
 
+    public function computedReport(StructureType | null $root = null, $path = [], $pipeline = [])
+    {
+
+        if (!$root) {
+
+            new \Exception("Root structure is not set for EnumType report. Path: " . implode('.', $path));
+        }
+
+        if (!$this->report) {
+            return null;
+        }
+
+
+        $basePipeline = [
+            [
+                '$match' => [
+                    implode('.', $path) => ['$exists' => true, '$ne' => null]
+                ]
+            ],
+            [
+                '$group' => [
+                    '_id' => '$' . implode('.', $path),
+                    'value' => ['$sum' => 1],
+                    'name' => ['$first' => '$' . implode('.', $path)],
+
+                ]
+            ],
+            [
+                '$project' => [
+                    'value' => 1,
+                    'name' => 1,
+                ]
+            ]
+        ];
+
+
+
+
+        $result =  $root->aggregate([
+            ...$pipeline,
+            ...$basePipeline,
+
+
+        ])->toArray();
+
+
+        $unixStartOfToday = strtotime('today');
+
+
+        $todayResult =  $root->aggregate([
+            ...$pipeline,
+            [
+                '$match' => [
+                    'created_at' => ['$gte' => $unixStartOfToday]
+                ]
+            ],
+            ...$basePipeline
+
+
+        ])->toArray();
+
+
+        $unixStartOfWeek = strtotime('monday this week');
+
+        $weekResult =  $root->aggregate([
+            ...$pipeline,
+            [
+                '$match' => [
+                    'created_at' => ['$gte' => $unixStartOfWeek]
+                ]
+            ],
+            ...$basePipeline
+
+
+        ])->toArray();
+
+        $unixStartOfMonth = strtotime('first day of this month');
+
+        $monthResult =  $root->aggregate([
+            ...$pipeline,
+            [
+                '$match' => [
+                    'created_at' => ['$gte' => $unixStartOfMonth]
+                ]
+            ],
+            ...$basePipeline
+
+
+        ])->toArray();
+
+        //Replace name key to  $this->names
+
+        foreach ($result as &$item) {
+            if (isset($this->values[$item['name']])) {
+                $item['name'] = $this->values[$item['name']];
+            }
+        }
+        foreach ($todayResult as &$item) {
+            if (isset($this->values[$item['name']])) {
+                $item['name'] = $this->values[$item['name']];
+            }
+        }
+        foreach ($weekResult as &$item) {
+            if (isset($this->values[$item['name']])) {
+                $item['name'] = $this->values[$item['name']];
+            }
+        }
+        foreach ($monthResult as &$item) {
+            if (isset($this->values[$item['name']])) {
+                $item['name'] = $this->values[$item['name']];
+            }
+        }
+
+
+
+        return [
+
+            'type' => $this->type,
+
+            'title' => $this->title,
+
+            'main' => [
+                [
+                    'view' => 'treemap',
+                    'title' => 'Cегодня',
+                    'result' => $todayResult,
+                ],
+                [
+                    'view' => 'treemap',
+                    'title' => 'За неделю',
+                    'result' => $weekResult,
+                ],
+                [
+                    'view' => 'treemap',
+                    'title' => 'За месяц',
+                    'result' => $monthResult,
+                ],
+                [
+                    'view' => 'treemap',
+                    'title' =>  'За все время',
+                    'result' => $result,
+                ],
+
+
+            ],
+
+
+        ];
+    }
+
+
+
+
     public function filterType($safeMode = false): ?BaseType
     {
 

@@ -38,7 +38,7 @@ trait CollectionPipeline
      * @param array|string $pipeline
      * 
      */
-    public function addToPipeline($pipeline): self
+    public function addToPipeline($pipeline): static
     {
         if (!$pipeline) {
             return $this;

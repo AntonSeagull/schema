@@ -43,6 +43,10 @@ abstract class BaseType
         return $this;
     }
 
+    public function ai(bool $ai = true): static
+    {
+        return $this;
+    }
 
     public function description(string $description): static
     {
@@ -95,7 +99,7 @@ abstract class BaseType
 
     public $single = false;
 
-    public function hide($hide = true): self
+    public function hide($hide = true): static
     {
 
 
@@ -122,7 +126,7 @@ abstract class BaseType
         'key' => 'default'
     ];
 
-    public function hideNotInTable(): self
+    public function hideNotInTable(): static
     {
 
         if (!$this->key || $this->key == '_id') {
@@ -226,6 +230,70 @@ abstract class BaseType
         return $this;
     }
 
+
+
+
+    public function getAllCollections($result = [])
+    {
+
+
+        if (isset($this->items)) {
+            foreach ($this->items as $key => $item) {
+
+                if ($item instanceof StructureType && $item->collection) {
+
+
+
+                    $result[$item->collection] = $item;
+                } else {
+
+
+                    $result =  $item->getAllCollections($result);
+                }
+            }
+        }
+
+        if (isset($this->itemType)) {
+            $result = $this->itemType->getAllCollections($result);
+        }
+
+
+        return $result;
+    }
+
+
+    public bool $report = false;
+
+    public function report(bool $report = true): static
+    {
+        $this->report = $report;
+        return $this;
+    }
+
+
+    public function displayValues($value): array | string | null
+    {
+
+        if ($value && (is_string($value) || is_numeric($value))) {
+            return $value;
+        }
+
+        return null;
+    }
+
+
+
+
+
+    public function computedReport(StructureType | null $root = null, $path = [], $pipeline = [])
+    {
+
+
+
+
+
+        return   null;
+    }
 
 
     /**
@@ -342,7 +410,7 @@ abstract class BaseType
     }
 
 
-    public function icon(string $icon): self
+    public function icon(string $icon): static
     {
         $this->assets([
             'icon' => $icon,
@@ -413,11 +481,18 @@ abstract class BaseType
     public $cond = null;
 
 
+    public function condLogic(JsonLogicBuilder $cond): static
+    {
+        $this->cond = $cond->build();
+        return $this;
+    }
+
+
     /**
      * Set a condition using JsonLogicBuilder.
      * This allows complex conditions to be applied to the field.
      */
-    public  function cond(JsonLogicBuilder $cond): self
+    public  function cond(JsonLogicBuilder $cond): static
     {
         $this->cond = $cond->build();
         return $this;
@@ -433,13 +508,13 @@ abstract class BaseType
      * Set a condition using JsonLogicBuilder.
      * This allows complex conditions to be applied to the field.
      */
-    public  function localCond(JsonLogicBuilder $cond): self
+    public  function localCond(JsonLogicBuilder $cond): static
     {
         $this->localCond = $cond->build();
         return $this;
     }
 
-    public function addUUIDInArray(): self
+    public function addUUIDInArray(): static
     {
 
 
@@ -581,6 +656,14 @@ abstract class BaseType
     }
 
     /**
+     * Duplicate the current type.
+     */
+    public function protected(bool $protected = true): static
+    {
+        return $this->hide($protected);
+    }
+
+    /**
      * Mark the field as required or optional.
      */
     public function required(bool $isRequired = true): static
@@ -666,6 +749,13 @@ abstract class BaseType
         $this->defaultIsSet = false;
         $this->default = null;
         return $this;
+    }
+
+
+    public function setTitle(null | string $title): static
+    {
+
+        return $this->title($title);
     }
 
     /**
@@ -937,6 +1027,44 @@ abstract class BaseType
         }
 
         return  false;
+    }
+
+
+    public function getIDsPathsForCollection(array $path, string $collection): array
+    {
+
+
+        if (($this instanceof IDType || $this instanceof IDsType)) {
+
+            if ($this->document && $this->document->collection == $collection) {
+                return [
+                    [
+                        'path' => [...$path],
+                        'document' => $this->document,
+                    ]
+                ];
+            } else {
+                return [];
+            }
+        }
+
+
+        $findPaths = [];
+
+        if (isset($this->items)) {
+            foreach ($this->items as $key => $item) {
+
+
+
+                $findPaths = [...$findPaths, ...$item->getIDsPathsForCollection([...$path, $key], $collection)];
+            }
+        }
+
+        if (isset($this->itemType)) {
+            $findPaths =   [...$findPaths, ...$this->itemType->getIDsPathsForCollection([...$path, '[]'], $collection)];
+        }
+
+        return  $findPaths;
     }
 
 

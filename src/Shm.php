@@ -305,11 +305,11 @@ class Shm
 
     //@deprecated
     //Use Shm::mongoPolygon() instead
-    public static function geoRegion(): StructureType
+    public static function geoRegion(): ArrayOfType
     {
-        return  Shm::structure([
-            "geometry" => Shm::mongoPolygon(),
-        ])->type('geoRegion');
+        return  Shm::arrayOf(Shm::structure([
+            "geometry" => Shm::mongoPolygon()
+        ]))->type('geoRegion');
     }
 
 

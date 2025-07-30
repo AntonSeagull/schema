@@ -27,7 +27,7 @@ class ColRender
      * @param callable(ColRenderContext $context): mixed $handler
      * @return self
      */
-    public function popup(callable $handler): self
+    public function popup(callable $handler): static
     {
 
 
@@ -43,7 +43,7 @@ class ColRender
      * @param callable(ColRenderContext $context): mixed $handler
      * @return self
      */
-    public function render(callable $handler): self
+    public function render(callable $handler): static
     {
 
 

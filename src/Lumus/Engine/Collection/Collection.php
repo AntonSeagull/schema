@@ -2,15 +2,19 @@
 
 namespace Lumus\Engine\Collection;
 
-use Lumus\Schema\Elements\Structure;
+use Shm\ShmTypes\StructureType;
 use Shm\Collection\Collection as CollectionCollection;
 use Shm\Shm;
-use Shm\ShmTypes\StructureType;
+
 
 class Collection extends CollectionCollection
 {
 
     use CollectionPipeline;
+
+
+    private $key = null;
+
 
     public function expect(): StructureType | null
     {

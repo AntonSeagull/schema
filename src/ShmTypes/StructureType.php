@@ -2,6 +2,7 @@
 
 namespace Shm\ShmTypes;
 
+use DateTime;
 use Error;
 
 use Sentry\Util\Str;
@@ -53,7 +54,7 @@ class StructureType extends BaseType
     public bool $canDelete = false;
 
 
-    public function manualSort(bool $manualSort = true): self
+    public function manualSort(bool $manualSort = true): static
     {
         $this->manualSort = $manualSort;
         return $this;
@@ -62,11 +63,13 @@ class StructureType extends BaseType
 
 
 
-    public function update(array $update): self
+
+    public function update(array $update): static
     {
 
 
         foreach ($update as $key => $value) {
+            $key = ShmUtils::cleanKey($key);
             $this->items[$key] = $value;
         }
 
@@ -77,7 +80,7 @@ class StructureType extends BaseType
     }
 
 
-    public function hideFields(array $hideFields): self
+    public function hideFields(array $hideFields): static
     {
         foreach ($hideFields as $key) {
             if (isset($this->items[$key])) {
@@ -88,10 +91,10 @@ class StructureType extends BaseType
         return $this;
     }
 
-    public function addField(string $key, BaseType $type): self
+    public function addField(string $key, BaseType $type): static
     {
 
-
+        $key = ShmUtils::cleanKey($key);
 
         $this->items[$key] = $type;
 
@@ -100,7 +103,7 @@ class StructureType extends BaseType
     }
 
 
-    public function canDelete(bool $canDelete = true): self
+    public function canDelete(bool $canDelete = true): static
     {
         $this->canDelete = $canDelete;
         return $this;
@@ -111,7 +114,7 @@ class StructureType extends BaseType
 
 
 
-    public function canUpdate(JsonLogicBuilder | bool $canUpdate = true): self
+    public function canUpdate(JsonLogicBuilder | bool $canUpdate = true): static
     {
 
         if ($canUpdate instanceof JsonLogicBuilder) {
@@ -124,7 +127,7 @@ class StructureType extends BaseType
         $this->canUpdate = $canUpdate;
         return $this;
     }
-    public function canCreate(bool $canCreate = true): self
+    public function canCreate(bool $canCreate = true): static
     {
         $this->canCreate = $canCreate;
         return $this;
@@ -145,7 +148,7 @@ class StructureType extends BaseType
     }
 
 
-    public function buttonActions(StructureType $buttonActions): self
+    public function buttonActions(StructureType $buttonActions): static
     {
         foreach ($buttonActions->items as $key => $action) {
             if (!($action instanceof ComputedType)) {
@@ -157,7 +160,7 @@ class StructureType extends BaseType
         return $this;
     }
 
-    public function stages(StructureType $stages): self
+    public function stages(StructureType $stages): static
     {
 
         foreach ($stages->items as $key => $stage) {
@@ -191,7 +194,7 @@ class StructureType extends BaseType
         return null;
     }
 
-    public function insertValues(array $insertValues): self
+    public function insertValues(array $insertValues): static
     {
         $this->insertValues = $insertValues;
         return $this;
@@ -205,7 +208,7 @@ class StructureType extends BaseType
 
 
 
-    public function addPipeline(array $pipeline): self
+    public function addPipeline(array $pipeline): static
     {
 
         if (count($pipeline) > 0) {
@@ -219,7 +222,7 @@ class StructureType extends BaseType
         return $this;
     }
 
-    public function pipeline(array $pipeline): self
+    public function pipeline(array $pipeline): static
     {
 
         if (count($pipeline) > 0) {
@@ -239,12 +242,252 @@ class StructureType extends BaseType
         return $this->pipeline;
     }
 
-    public function collection(string $collection): self
+    public function collection(string $collection): static
     {
 
         $this->collection = $collection;
         return $this;
     }
+
+
+    public function displayValues($values): array | string | null
+    {
+
+        $displayValues = [];
+        foreach ($this->items as $key => $item) {
+            if (isset($values[$key]) && $item->display) {
+                $val = $item->displayValues($values[$key]);
+
+                if ($val) {
+
+                    if (is_array($val)) {
+                        $displayValues = [
+                            ...$displayValues,
+                            ...$val
+                        ];
+                    } else {
+                        $displayValues[] = $val;
+                    }
+                }
+            }
+        }
+
+        return $displayValues;
+    }
+
+
+
+
+    private function reportCollection(StructureType | null $root = null, $path = [], $pipeline = [])
+    {
+        $maxAtDay = time() - 60 * 60 * 24 * 30; // последние 30 дней
+
+        $date = new DateTime('first day of -2 months');
+        if ($date->format('N') != 1) {
+            $date->modify('next monday');
+        }
+        $maxAtWeek = $date->getTimestamp();
+
+        $date = new DateTime('first day of -6 months');
+        $maxAtMonth = $date->getTimestamp();
+
+        $total = $root->aggregate([
+            ...$pipeline,
+            [
+                '$count' => 'total'
+            ]
+        ])->toArray()[0]['total'] ?? 0;
+
+        // === По дням ===
+        $basePipelineDay = [
+            ['$match' => ['created_at' => ['$gte' => $maxAtDay]]],
+            ['$project' => [
+                'label' => [
+                    '$dateToString' => [
+                        'format' => '%d.%m.%Y',
+                        'date' => ['$toDate' => ['$multiply' => ['$created_at', 1000]]],
+                        'timezone' => date_default_timezone_get()
+                    ]
+                ],
+                'created_at' => 1,
+            ]],
+            ['$group' => [
+                '_id' => '$label',
+                'value' => ['$sum' => 1],
+                'name' => ['$first' => '$created_at'],
+            ]],
+            ['$sort' => ['name' => 1]]
+        ];
+
+        $basePipelineWeek = [
+            ['$match' => ['created_at' => ['$gte' => $maxAtWeek]]],
+            ['$project' => [
+                'created_at' => 1,
+                'startOfWeek' => [
+                    '$dateTrunc' => [
+                        'date' => ['$toDate' => ['$multiply' => ['$created_at', 1000]]],
+                        'unit' => 'week',
+                        'timezone' => date_default_timezone_get(),
+                        'binSize' => 1
+                    ]
+                ]
+            ]],
+            ['$group' => [
+                '_id' => '$startOfWeek',
+                'value' => ['$sum' => 1],
+            ]],
+            ['$sort' => ['_id' => 1]]
+        ];
+
+        $basePipelineMonth = [
+            ['$match' => ['created_at' => ['$gte' => $maxAtMonth]]],
+            ['$project' => [
+                'label' => [
+                    '$dateToString' => [
+                        'format' => '%m.%Y',
+                        'date' => ['$toDate' => ['$multiply' => ['$created_at', 1000]]],
+                        'timezone' => date_default_timezone_get()
+                    ]
+                ],
+                'created_at' => 1,
+            ]],
+            ['$group' => [
+                '_id' => '$label',
+                'value' => ['$sum' => 1],
+                'name' => ['$first' => '$created_at'],
+            ]],
+            ['$sort' => ['name' => 1]]
+        ];
+
+        // === Выполнение запросов ===
+        $resultDay = $root->aggregate([...$pipeline, ...$basePipelineDay])->toArray();
+        $resultWeek = $root->aggregate([...$pipeline, ...$basePipelineWeek])->toArray();
+        $resultMonth = $root->aggregate([...$pipeline, ...$basePipelineMonth])->toArray();
+
+        // Приводим name к дате
+        foreach ([$resultDay, $resultMonth] as &$resultGroup) {
+            foreach ($resultGroup as &$item) {
+                $item['name'] = date('d.m.Y', $item['name']);
+            }
+        }
+
+        foreach ($resultWeek as &$item) {
+            $start = new DateTime();
+            $start->setTimestamp($item['_id']->toDateTime()->getTimestamp()); // from MongoDB UTCDateTime
+            $end = clone $start;
+            $end->modify('+6 days');
+
+            $item['name'] = $start->format('d.m.Y') . ' – ' . $end->format('d.m.Y');
+        }
+
+        return [
+            [
+                'type' => $this->type,
+                'title' => $this->title,
+                'main' => [
+                    [
+                        'view' => 'cards',
+
+                        'result' => [
+                            [
+                                'value' => $total,
+                                'name' => "Всего",
+
+                            ]
+                        ]
+                    ]
+                ]
+            ],
+
+            [
+                'type' => $this->type,
+                'title' => "Создано \"{$this->title}\"",
+                'main' => [
+                    [
+                        'view' => 'bar',
+                        'title' => "По дням",
+                        'result' => $resultDay,
+                    ],
+                    [
+                        'view' => 'bar',
+                        'title' => "По неделям",
+                        'result' => $resultWeek,
+                    ],
+                    [
+                        'view' => 'bar',
+                        'title' => "По месяцам",
+                        'result' => $resultMonth,
+                    ],
+                ]
+
+            ]
+
+        ];
+    }
+
+
+    public function computedReport(StructureType | null $root = null, $path = [], $pipeline = [])
+    {
+
+
+        if (!$this->report) {
+            return null;
+        }
+
+
+        $report = [];
+
+
+        $pipeline = [...$pipeline, ...$this->getPipeline()];
+
+
+
+
+        if (!$this->collection) {
+            $path = [...$path];
+        } else {
+
+            $root = $this;
+
+            $reportItem = $this->reportCollection($root, $path, $pipeline);
+
+            if ($reportItem) {
+                $report = [
+                    ...$report,
+                    ...$reportItem
+                ];
+            }
+        }
+        foreach ($this->items as $key => $item) {
+
+            if ($item->hide || !$item->inAdmin) {
+                continue;
+            }
+
+            Response::startTraceTiming("computedReport-{$item->key}");
+            $reportItem = $item->computedReport($root, [...$path, $key], $pipeline);
+
+            if ($reportItem)
+
+                if (isset($reportItem['type'])) {
+                    Response::endTraceTiming("computedReport-{$item->key}");
+                    $report = [
+                        ...$report,
+                        $reportItem
+                    ];
+                } else {
+                    $report = [
+                        ...$report,
+                        ...$reportItem
+                    ];
+                }
+        }
+
+
+
+        return  $report;
+    }
+
 
 
     public function rebuild(array $items): void
@@ -253,7 +496,7 @@ class StructureType extends BaseType
         foreach ($items as $key => $field) {
 
 
-
+            $key = ShmUtils::cleanKey($key);
 
             ShmUtils::isValidKey($key);
 
@@ -407,7 +650,7 @@ class StructureType extends BaseType
 
     private $staticBaseTypeName = null;
 
-    public function staticBaseTypeName(string $name): self
+    public function staticBaseTypeName(string $name): static
     {
         $this->staticBaseTypeName = ShmUtils::onlyLetters($name);
         return $this;
@@ -473,6 +716,15 @@ class StructureType extends BaseType
 
     public function findItemByCollection(string $collection): ?StructureType
     {
+
+        $collections = $this->getAllCollections();
+
+        if (isset($collections[$collection])) {
+            return $collections[$collection];
+        }
+
+
+
         foreach ($this->items as $item) {
 
 
@@ -548,6 +800,8 @@ class StructureType extends BaseType
 
         return $this;
     }
+
+
 
 
 
@@ -1583,7 +1837,7 @@ class StructureType extends BaseType
 
 
 
-    public function hideNotInTable(): self
+    public function hideNotInTable(): static
     {
 
         if ($this->type == "structure") {

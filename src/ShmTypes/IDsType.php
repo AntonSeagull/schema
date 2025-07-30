@@ -272,6 +272,15 @@ class IDsType extends BaseType
         return false;
     }
 
+
+    public function computedReport(StructureType | null $root = null, $path = [], $pipeline = [])
+    {
+
+
+        return null;
+    }
+
+
     public function getIDsPaths(array $path): array
     {
 

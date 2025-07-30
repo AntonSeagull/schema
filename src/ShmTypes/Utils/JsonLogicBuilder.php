@@ -10,7 +10,7 @@ class JsonLogicBuilder
     private array $fields = [];
 
 
-    public function equals(string $field, $value): self
+    public function equals(string $field, $value): static
     {
 
         if ($value === false) {
@@ -25,7 +25,7 @@ class JsonLogicBuilder
     }
 
 
-    public function notEquals(string $field, $value): self
+    public function notEquals(string $field, $value): static
     {
         $this->fields[] = $field;
         $this->logic[] = [
@@ -35,7 +35,7 @@ class JsonLogicBuilder
     }
 
 
-    public function greaterThan(string $field, $value): self
+    public function greaterThan(string $field, $value): static
     {
         $this->fields[] = $field;
         $this->logic[] = [
@@ -44,7 +44,7 @@ class JsonLogicBuilder
         return $this;
     }
 
-    public function lessThan(string $field, $value): self
+    public function lessThan(string $field, $value): static
     {
         $this->fields[] = $field;
         $this->logic[] = [
@@ -54,7 +54,7 @@ class JsonLogicBuilder
     }
 
 
-    public function contains(string $field, string $value): self
+    public function contains(string $field, string $value): static
     {
         $this->fields[] = $field;
         $this->logic[] = [
@@ -64,7 +64,7 @@ class JsonLogicBuilder
     }
 
 
-    public function missing(string $field): self
+    public function missing(string $field): static
     {
         $this->fields[] = $field;
         $this->logic[] = [
@@ -74,7 +74,7 @@ class JsonLogicBuilder
     }
 
 
-    public function some(string $field, array $condition): self
+    public function some(string $field, array $condition): static
     {
         $this->fields[] = $field;
         $this->logic[] = [
@@ -83,7 +83,7 @@ class JsonLogicBuilder
         return $this;
     }
 
-    public function in(string $field, array $values): self
+    public function in(string $field, array $values): static
     {
         $this->fields[] = $field;
 
@@ -116,7 +116,7 @@ class JsonLogicBuilder
     }
 
 
-    public function all(string $field, array $condition): self
+    public function all(string $field, array $condition): static
     {
         $this->fields[] = $field;
         $this->logic[] = [
@@ -125,7 +125,7 @@ class JsonLogicBuilder
         return $this;
     }
 
-    public function isNull(string $field): self
+    public function isNull(string $field): static
     {
         $this->fields[] = $field;
         $this->logic[] = [
@@ -138,7 +138,7 @@ class JsonLogicBuilder
     }
 
 
-    public function and(): self
+    public function and(): static
     {
         $this->logic = [
             "and" => $this->logic
@@ -147,7 +147,7 @@ class JsonLogicBuilder
     }
 
 
-    public function or(): self
+    public function or(): static
     {
         $this->logic = [
             "or" => $this->logic
@@ -168,7 +168,7 @@ class JsonLogicBuilder
     }
 
 
-    public function reset(): self
+    public function reset(): static
     {
         $this->logic = [];
         return $this;

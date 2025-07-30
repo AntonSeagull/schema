@@ -20,7 +20,7 @@ class ShmCallAuth extends ShmAuthBase
     private $getCodeFunctionHandler = null;
 
 
-    public function setGetCodeFunctionHandler($handler): self
+    public function setGetCodeFunctionHandler($handler): static
     {
         $this->getCodeFunctionHandler = $handler;
         return $this;

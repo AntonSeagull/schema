@@ -26,7 +26,7 @@ class ShmBlueprintMutation
 
 
 
-    public function delete(bool $delete): self
+    public function delete(bool $delete): static
     {
         $this->delete = $delete;
         return $this;
@@ -35,7 +35,7 @@ class ShmBlueprintMutation
 
     public $pipeline = [];
 
-    public function pipeline($pipeline = []): self
+    public function pipeline($pipeline = []): static
     {
 
         if (count($pipeline) > 0) {

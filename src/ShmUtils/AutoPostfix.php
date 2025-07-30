@@ -13,6 +13,11 @@ class AutoPostfix
     {
 
 
+        $keys = array_map(function ($key) {
+            return ShmUtils::translitIfCyrillic($key);
+        }, $keys);
+
+
 
         $firstLetters = array_map(function ($key) {
             if ($key[0] === '_') {

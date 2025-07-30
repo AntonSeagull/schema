@@ -21,13 +21,13 @@ class StringType extends BaseType
     public bool $uppercase = false;
 
 
-    public function trim(bool $trim = true): self
+    public function trim(bool $trim = true): static
     {
         $this->trim = $trim;
         return $this;
     }
 
-    public function uppercase(bool $uppercase = true): self
+    public function uppercase(bool $uppercase = true): static
     {
         $this->uppercase = $uppercase;
         return $this;
@@ -49,6 +49,8 @@ class StringType extends BaseType
         }
         return $value;
     }
+
+
 
 
 

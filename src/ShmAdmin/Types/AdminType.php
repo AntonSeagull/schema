@@ -11,7 +11,7 @@ class AdminType extends StructureType
     public string $type = 'admin';
 
 
-    public function icon(string $icon): self
+    public function icon(string $icon): static
     {
         $this->assets([
             'icon' => $icon,
@@ -20,7 +20,7 @@ class AdminType extends StructureType
         return $this;
     }
 
-    public function cover(string $cover): self
+    public function cover(string $cover): static
     {
         $this->assets([
             'cover' => $cover,
@@ -29,7 +29,7 @@ class AdminType extends StructureType
         return $this;
     }
 
-    public function color(string $color): self
+    public function color(string $color): static
     {
         $this->assets([
             'color' => $color,
@@ -38,7 +38,7 @@ class AdminType extends StructureType
         return $this;
     }
 
-    public function subtitle(string $subtitle): self
+    public function subtitle(string $subtitle): static
     {
         $this->assets([
             'subtitle' => $subtitle,

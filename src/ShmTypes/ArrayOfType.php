@@ -29,6 +29,8 @@ class ArrayOfType extends BaseType
         $this->itemType = $itemType;
     }
 
+
+
     public function normalize(mixed $value, $addDefaultValues = false, string|null $processId = null): mixed
     {
 

@@ -13,7 +13,7 @@ class StageType extends BaseType
     private $pipeline = [];
 
 
-    public function pipeline(array $pipeline): self
+    public function pipeline(array $pipeline): static
     {
 
         if (count($pipeline) > 0) {

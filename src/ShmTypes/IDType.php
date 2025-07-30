@@ -228,6 +228,146 @@ class IDType extends BaseType
         return false;
     }
 
+
+
+    public function computedReport(StructureType | null $root = null, $path = [], $pipeline = [])
+    {
+
+        if (!$this->report) {
+            return null;
+        }
+
+
+        if (!$root) {
+
+            new \Exception("Root structure is not set for EnumType report. Path: " . implode('.', $path));
+        }
+
+
+        if (!$this->document) {
+            return null;
+        }
+
+        $key = implode('.', $path);
+
+
+        $basePipeline = [
+            [
+                '$match' => [
+                    $key => ['$exists' => true, '$ne' => null]
+                ]
+            ],
+
+            [
+                '$facet' => [
+                    'top' => [
+                        [
+                            '$group' => [
+                                '_id' => '$' . $key,
+                                'count' => ['$sum' => 1],
+                            ]
+                        ],
+                        [
+                            '$sort' => ['count' => -1]
+                        ],
+                        [
+                            '$limit' => 10
+                        ],
+                        [
+                            '$lookup' => [
+                                'from' => $this->document->collection,
+                                'localField' => '_id',
+                                'foreignField' => '_id',
+                                'as' => 'value'
+                            ]
+                        ],
+                        [
+                            '$addFields' => [
+                                'value' => [
+                                    '$first' => '$value'
+                                ]
+                            ],
+                        ]
+                    ],
+                    'total' => [
+                        [
+                            '$group' => [
+                                '_id' => null,
+                                'total' => ['$sum' => 1]
+                            ]
+                        ]
+                    ]
+                ]
+            ]
+
+        ];
+
+
+
+
+        $data =  $root->aggregate([
+            ...$pipeline,
+            ...$basePipeline,
+
+
+        ])->toArray();
+
+
+
+
+
+        $top = $data[0]['top'] ?? [];
+        $total = $data[0]['total'][0]['total'] ?? 0;
+
+        $result = [];
+
+        $topCount = 0;
+
+        foreach ($top as $key => $item) {
+            if (isset($item['value'])) {
+                $topCount += $item['count'];
+                $result[] = [
+                    'value' => $item['count'],
+                    'item' =>  $this->document->removeOtherItems($item['value']),
+
+                ];
+            }
+        }
+
+        if (($total - $topCount) > 0) {
+            $result[] = [
+                'value' => $total - $topCount,
+                'name' => 'Остальные',
+            ];
+        }
+
+
+
+
+
+        return [
+            [
+
+                'type' => $this->type,
+
+                'title' => $this->title,
+
+                'main' => [
+                    [
+                        'view' => 'treemap',
+                        'title' => 'Общая статистика',
+                        'structure' => $this->document->json(),
+                        'result' => $result
+                    ]
+
+
+                ],
+            ]
+
+        ];
+    }
+
+
     public function getIDsPaths(array $path): array
     {
 

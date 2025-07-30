@@ -26,6 +26,12 @@ enum FileType
 class Expect extends Shm
 {
 
+    public static function condLogic()
+    {
+
+        return Shm::cond();
+    }
+
     public static function anyFile()
     {
 
@@ -77,7 +83,7 @@ class Expect extends Shm
         return (new IDsType($documentResolver));
     }
 
-    public static function file(FileType $fileType): BaseType
+    public static function file(FileType $fileType)
     {
 
         switch ($fileType) {

@@ -77,6 +77,7 @@ class Doctor
                     'connectTimeoutMS' => 360000,
                     'socketTimeoutMS' => 360000,
                 ],
+                'validKey' => true,
                 
                 'redis' => [
                     'host' => 'localhost',

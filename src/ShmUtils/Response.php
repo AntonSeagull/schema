@@ -9,6 +9,21 @@ class Response
 {
 
 
+
+    public  static function json($data, $status = 200, array $headers = [])
+    {
+
+        header("Content-Type: application/json;charset=utf-8");
+
+        http_response_code($status);
+
+        echo json_encode($data);
+        exit;
+    }
+
+
+
+
     private static $startTime = 0;
 
 

@@ -29,13 +29,13 @@ class ShmSmsAuth extends ShmAuthBase
      * @return self
      */
 
-    public function setSmsSendFunctionHandler($handler): self
+    public function setSmsSendFunctionHandler($handler): static
     {
         $this->smsSendFunctionHandler = $handler;
         return $this;
     }
 
-    public function setSmsCodeFunctionHandler($handler): self
+    public function setSmsCodeFunctionHandler($handler): static
     {
         $this->smsCodeFunctionHandler = $handler;
         return $this;

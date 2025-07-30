@@ -13,13 +13,13 @@ class FileImageLinkType extends StringType
     public $height = 300;
 
 
-    public function setResize(int $w = 300, int $h = 300): self
+    public function setResize(int $w = 300, int $h = 300): static
     {
 
         return $this->resize($w, $h);
     }
 
-    public function resize(int $w = 300, int $h = 300): self
+    public function resize(int $w = 300, int $h = 300): static
     {
         $this->width = $w;
         $this->height = $h;

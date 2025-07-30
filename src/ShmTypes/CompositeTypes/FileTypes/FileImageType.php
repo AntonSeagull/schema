@@ -23,14 +23,22 @@ class FileImageType extends StructureType
     public $width = 300;
     public $height = 300;
 
+    public $accept = 'image/*';
 
-    public function setResize(int $w = 300, int $h = 300): self
+    public function setAccept(string $accept): self
+    {
+        $this->accept = $accept;
+        return $this;
+    }
+
+
+    public function setResize(int $w = 300, int $h = 300, $k = null): static
     {
 
         return $this->resize($w, $h);
     }
 
-    public function resize(int $w = 300, int $h = 300): self
+    public function resize(int $w = 300, int $h = 300, $k = null): static
     {
         $this->width = $w;
         $this->height = $h;

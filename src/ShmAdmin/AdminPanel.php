@@ -20,6 +20,7 @@ use Shm\ShmTypes\StructureType;
 use Shm\ShmTypes\SupportTypes\StageType;
 use Shm\ShmUtils\Config;
 use Shm\ShmUtils\Inflect;
+use Shm\ShmUtils\MaterialIcons;
 use Shm\ShmUtils\Response;
 use Shm\ShmUtils\ShmInit;
 
@@ -83,6 +84,33 @@ class AdminPanel
     {
         $schema = self::fullSchema();
 
+
+        $reportCollections = self::$schema->getAllCollections();
+
+        $reportsItems = [];
+
+        foreach ($reportCollections as $collection) {
+
+            if ($collection->report) {
+                $reportsItems['report_' . $collection->collection] = (clone  $collection)->type("report")->icon(MaterialIcons::ChartArc());
+            }
+        }
+
+
+        if (count($reportsItems) > 0) {
+
+
+
+            $schema->update([
+
+                'reports' => AdminPanel::group($reportsItems)->title("Аналитика и отчеты")->icon(MaterialIcons::ChartArc())
+
+            ]);
+        }
+
+
+
+
         // $schema->filterType(true);
 
         // return null;
@@ -128,8 +156,51 @@ class AdminPanel
         "mongoPolygon",
         "url",
         "rate",
-        "gradient"
+        "gradient",
+        'report',
+        'geoRegion'
     ];
+
+
+    private static function reportResultType()
+    {
+
+
+        $viewType = Shm::enum([
+            'treemap' => 'Древовидная карта',
+            'bar' => 'Гистограмма',
+            'cards' => 'Карточки',
+        ]);
+
+        $reportItem = Shm::structure([
+            'view' =>  $viewType,
+
+            'title' => Shm::string(),
+            'structure' => self::baseStructure(),
+            'result' => Shm::arrayOf(Shm::structure([
+                'value' => Shm::mixed(),
+                'item' => Shm::structure([
+                    '_id' => Shm::ID(),
+                    "*" => Shm::mixed(),
+                ]),
+                'name' => Shm::string(),
+
+            ]))
+
+        ])->staticBaseTypeName("ReportItem");
+
+        return Shm::arrayOf(
+            Shm::structure(
+                [
+
+                    'type' => Shm::string(),
+                    'title' => Shm::string(),
+                    'main' => Shm::arrayOf($reportItem),
+                    'extra' => Shm::arrayOf($reportItem)
+                ]
+            )->staticBaseTypeName("ReportResult")
+        );
+    }
 
     private static function baseStructure(): StructureType
     {
@@ -181,6 +252,7 @@ class AdminPanel
 
             'tablePriority' => Shm::int(),
             'unique' => Shm::boolean(),
+            'report' => Shm::boolean(),
             'globalUnique' => Shm::boolean(),
             'canUpdateCond' => Shm::mixed(),
             'display' => Shm::bool(),
@@ -530,6 +602,7 @@ class AdminPanel
                         ])),
                     ]),
                     'uid' => Shm::string(),
+                    'reports' => self::baseStructure(),
                     'structure' => self::baseStructure(),
                     'socket' => Shm::structure([
                         'domain' => Shm::string(),
@@ -562,6 +635,7 @@ class AdminPanel
                             $onlyAuth = false;
                         }
                     }
+
 
 
                     return [
@@ -1332,6 +1406,34 @@ class AdminPanel
 
             ],
 
+            'report' => [
+                'type' => self::reportResultType(),
+
+                'args' => [
+                    "collection" => Shm::nonNull(Shm::string()),
+                ],
+                'resolve' => function ($root, $args) {
+
+                    if (!isset($args['collection'])) {
+                        Response::validation("Данные не доступны для просмотра");
+                    }
+
+
+
+                    $structure = self::fullSchema()->findItemByCollection($args['collection']);
+
+
+
+                    if (!$structure) {
+                        Response::validation("Данные не доступны для просмотра");
+                    }
+
+                    return  $structure->computedReport();
+                }
+
+            ],
+
+
 
 
             'update' => [
@@ -1622,6 +1724,7 @@ class AdminPanel
                 }
 
             ],
+
 
             'descriptions' => [
                 "type" => Shm::structure([

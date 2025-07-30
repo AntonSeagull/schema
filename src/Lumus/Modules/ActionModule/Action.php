@@ -6,36 +6,28 @@ namespace Lumus\Modules\ActionModule;
 class Action
 {
 
-    public function resultWithOpenLink(string $url): self
+    public function resultWithOpenLink(string $url): static
     {
 
 
         return $this;
     }
 
-    public function resultWithBack(): self
+    public function resultWithBack(): static
     {
 
 
         return $this;
     }
 
-    public function resultWithReload(): self
+    public function resultWithReload(): static
     {
 
 
         return $this;
     }
 
-    public function resultWithRefresh(array $data): self
-    {
-
-
-        return $this;
-    }
-
-
-    public function resultWithError($msg): self
+    public function resultWithRefresh(array $data): static
     {
 
 
@@ -43,7 +35,15 @@ class Action
     }
 
 
-    public function resultWitError($msg): self
+    public function resultWithError($msg): static
+    {
+
+
+        return $this;
+    }
+
+
+    public function resultWitError($msg): static
     {
 
 

@@ -252,7 +252,7 @@ class Collection
 
 
 
-    public static function create(): self
+    public static function create(): Collection
     {
         return new static();
     }

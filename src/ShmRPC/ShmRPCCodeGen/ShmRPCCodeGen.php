@@ -15,7 +15,7 @@ class ShmRPCCodeGen
     {
 
 
-        Doctor::doctor();
+
 
 
 

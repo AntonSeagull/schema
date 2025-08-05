@@ -275,7 +275,51 @@ class StructureType extends BaseType
         return $displayValues;
     }
 
+    private function formatHeatmap(array $mongoResult): array
+    {
+        $dayLabels = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
 
+        $data = [];
+        $xAxisSet = [];
+
+        foreach ($mongoResult as $dayEntry) {
+            $dayOfWeek = (int) $dayEntry['_id']; // 1–7
+            $dayIndex = $dayOfWeek - 1; // 0–6
+
+            foreach ($dayEntry['hours'] as $hourEntry) {
+                $hour = (int) $hourEntry['hour'];
+                $avgCount = (float) $hourEntry['avgCount'];
+                $avgCount = ceil($avgCount); // округляем вверх
+
+                $xAxisSet[$hour] = true;
+
+                // временно сохраняем как есть — заменим потом, когда сформируем индексы
+                $data[] = ['hour' => $hour, 'day' => $dayIndex, 'value' => $avgCount];
+            }
+        }
+
+        // Собираем и форматируем xAxis
+        $xAxis = array_keys($xAxisSet);
+        sort($xAxis);
+        $xAxisFormatted = array_map(fn($h) => str_pad((string)$h, 2, '0', STR_PAD_LEFT) . ':00', $xAxis);
+        $xIndexMap = array_flip($xAxisFormatted); // '09:00' => 0
+
+        // Переформатируем data с использованием индексов
+        $finalData = [];
+        foreach ($data as $item) {
+            $hourStr = str_pad((string)$item['hour'], 2, '0', STR_PAD_LEFT) . ':00';
+            $xIndex = $xIndexMap[$hourStr] ?? null;
+            if ($xIndex !== null) {
+                $finalData[] = [$xIndex, $item['day'], $item['value']];
+            }
+        }
+
+        return [
+            'xAxis' => $xAxisFormatted,
+            'yAxis' => $dayLabels,
+            'data' => $finalData,
+        ];
+    }
 
 
     private function reportCollection(StructureType | null $root = null, $path = [], $pipeline = [])
@@ -406,6 +450,59 @@ class StructureType extends BaseType
         }
 
 
+        $heatmap = $root->aggregate([
+            ...$pipeline,
+            [
+                '$addFields' => [
+                    'createdDate' => [
+                        '$toDate' => ['$multiply' => ['$created_at', 1000]]
+                    ]
+                ]
+            ],
+            [
+                '$addFields' => [
+                    'dayOfWeek' => ['$isoDayOfWeek' => '$createdDate'], // 1 = Monday, 7 = Sunday
+                    'hour' => ['$hour' => '$createdDate']
+                ]
+            ],
+            [
+                '$group' => [
+                    '_id' => [
+                        'dayOfWeek' => '$dayOfWeek',
+                        'hour' => '$hour',
+                        'date' => ['$dateToString' => ['format' => '%Y-%m-%d', 'date' => '$createdDate']]
+                    ],
+                    'count' => ['$sum' => 1]
+                ]
+            ],
+            [
+                '$group' => [
+                    '_id' => [
+                        'dayOfWeek' => '$_id.dayOfWeek',
+                        'hour' => '$_id.hour'
+                    ],
+                    'avgCount' => ['$avg' => '$count']
+                ]
+            ],
+            [
+                '$group' => [
+                    '_id' => '$_id.dayOfWeek',
+                    'hours' => [
+                        '$push' => [
+                            'hour' => '$_id.hour',
+                            'avgCount' => ['$round' => ['$avgCount', 2]]
+                        ]
+                    ]
+                ]
+            ],
+            [
+                '$sort' => ['_id' => 1]
+            ]
+
+        ])->toArray();
+
+
+
         $resultData = [
             [
                 'type' => $this->type,
@@ -436,6 +533,23 @@ class StructureType extends BaseType
 
                 ];
         }
+
+
+
+
+
+
+        $resultData[] = [
+            'type' => $this->type,
+            'title' => "Создано \"{$this->title}\" среднее кол-во по дням недели и часам",
+            'main' => [
+                [
+                    'view' => 'heatmap',
+                    'title' => "Создано \"{$this->title}\"",
+                    'heatmap' =>  $this->formatHeatmap($heatmap)
+                ]
+            ]
+        ];
 
         return $resultData;
     }

@@ -171,6 +171,8 @@ class AdminPanel
             'bar' => 'Гистограмма',
             'cards' => 'Карточки',
             'pie' => 'Круговая диаграмма',
+            'heatmap' => 'Тепловая карта',
+            'horizontalBar' => 'Горизонтальная гистограмма',
         ]);
 
         $reportItem = Shm::structure([
@@ -178,6 +180,11 @@ class AdminPanel
 
             'title' => Shm::string(),
             'structure' => self::baseStructure(),
+            'heatmap' => Shm::structure([
+                'xAxis' => Shm::arrayOf(Shm::string()),
+                'yAxis' => Shm::arrayOf(Shm::string()),
+                'data' => Shm::arrayOf(Shm::arrayOf(Shm::float())),
+            ])->staticBaseTypeName("HeatmapData"),
             'result' => Shm::arrayOf(Shm::structure([
                 'value' => Shm::mixed(),
                 'item' => Shm::structure([

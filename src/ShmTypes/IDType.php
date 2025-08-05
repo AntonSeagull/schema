@@ -334,7 +334,7 @@ class IDType extends BaseType
             }
         }
 
-        $view = 'treemap';
+        $view = 'horizontalBar';
 
         if (($total - $topCount) > 0) {
             $result[] = [
@@ -359,7 +359,7 @@ class IDType extends BaseType
                 'main' => [
                     [
                         'view' => $view,
-                        'title' => 'Общая статистика',
+                        'title' => $this->title,
                         'structure' => $this->document->json(),
                         'result' => $result
                     ]

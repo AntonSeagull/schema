@@ -27,7 +27,6 @@
     "require": {
         "php": ">=8.1",
         "aws/aws-sdk-php": "3.269.8",
-        "webonyx/graphql-php": "*",
         "sentry/sdk": "*",
         "nette/php-generator": "^4.1",
         "mongodb/mongodb": "*",

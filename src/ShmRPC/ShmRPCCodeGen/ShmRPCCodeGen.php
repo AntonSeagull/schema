@@ -20,7 +20,7 @@ class ShmRPCCodeGen
 
 
 
-        $requests = [];
+        $requestsData = [];
 
         $linkRequest = [];
 
@@ -34,7 +34,7 @@ class ShmRPCCodeGen
             //  }
             //         exit;
 
-            $requests[$key] = (new ShmRPCRequestCode($field['type'], $field['args'] ?? null, $key, $field['formData'] ?? null))->initialize();
+            $requestsData[$key] = (new ShmRPCRequestCode($field['type'], $field['args'] ?? null, $key, $field['formData'] ?? null))->initialize();
 
             $linkRequest[$key] = "export const " . $key . " = rpc." . $key . ";";
         }
@@ -48,13 +48,15 @@ class ShmRPCCodeGen
 
         //Сортируем  ksort(TSType::$tsTypes);
         ksort(TSType::$tsTypes);
-        ksort($requests);
+        ksort($requestsData);
+
+
 
         $allTypesKeys = array_keys(TSType::$tsTypes);
 
         $types = implode("\n", array_values(TSType::$tsTypes));
 
-        $requests =   array_values($requests);
+        $requests =   array_values($requestsData);
         $linkRequest = array_values($linkRequest);
 
 
@@ -81,17 +83,33 @@ class ShmRPCCodeGen
             $REQUEST_URI = str_replace('/', '_', $REQUEST_URI);
 
 
-            $dir =  ShmInit::$rootDir . '/schema_history';
+            $dir =  ShmInit::$rootDir . '/schema_history/' . $REQUEST_URI;
+
 
 
             if (!is_dir($dir)) {
                 mkdir($dir, 0777, true);
             }
 
+            $dirTypes = $dir . '/types';
+            if (!is_dir($dirTypes)) {
+                mkdir($dirTypes, 0777, true);
+            }
+
+            $dirRequests = $dir . '/requests';
+            if (!is_dir($dirRequests)) {
+                mkdir($dirRequests, 0777, true);
+            }
 
 
-            file_put_contents($dir . '/' . $REQUEST_URI . '-types.txt', $types);
-            file_put_contents($dir . '/' . $REQUEST_URI . '-requests.txt', $requests);
+            foreach (TSType::$tsTypes as $key => $type) {
+
+                file_put_contents($dirTypes . '/' . $key . '.tmp', $type);
+            }
+
+            foreach ($requestsData as $key => $request) {
+                file_put_contents($dirRequests . '/' . $key . '.tmp', $request);
+            }
         }
 
         $types = "export interface RpcError {

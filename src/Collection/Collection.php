@@ -193,14 +193,15 @@ class Collection
         $schema->addUUIDInArray();
 
 
-        $schema->addField("_id", Shm::ID()->editable(false));
+        $schema->addFieldIfNotExists("_id", Shm::ID()->editable(false));
 
         if ($schema->manualSort) {
-            $schema->addField("_sortWeight", Shm::int()->editable(false));
+            $schema->addFieldIfNotExists("_sortWeight", Shm::int()->editable(false));
         }
 
-        $schema->addField("created_at", Shm::int()->editable(false));
-        $schema->addField("updated_at", Shm::int()->editable(false));
+
+        $schema->addFieldIfNotExists("created_at", Shm::int()->editable(false));
+        $schema->addFieldIfNotExists("updated_at", Shm::int()->editable(false));
 
 
 

@@ -91,6 +91,19 @@ class StructureType extends BaseType
         return $this;
     }
 
+    public function addFieldIfNotExists(string $key, BaseType $type): static
+    {
+
+        $key = ShmUtils::cleanKey($key);
+
+        if (!isset($this->items[$key])) {
+            $this->items[$key] = $type;
+        } else {
+        }
+
+        return $this;
+    }
+
     public function addField(string $key, BaseType $type): static
     {
 

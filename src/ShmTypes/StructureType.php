@@ -380,7 +380,33 @@ class StructureType extends BaseType
             $item['name'] = $start->format('d.m.Y') . ' – ' . $end->format('d.m.Y');
         }
 
-        return [
+
+        $mainSecond = [];
+
+        if (count($resultDay) > 0) {
+            $mainSecond[] = [
+                'view' => 'bar',
+                'title' => "По дням",
+                'result' => $resultDay,
+            ];
+        }
+        if (count($resultWeek) > 0) {
+            $mainSecond[] = [
+                'view' => 'bar',
+                'title' => "По неделям",
+                'result' => $resultWeek,
+            ];
+        }
+        if (count($resultMonth) > 0) {
+            $mainSecond[] = [
+                'view' => 'bar',
+                'title' => "По месяцам",
+                'result' => $resultMonth,
+            ];
+        }
+
+
+        $resultData = [
             [
                 'type' => $this->type,
                 'title' => $this->title,
@@ -399,30 +425,19 @@ class StructureType extends BaseType
                 ]
             ],
 
-            [
-                'type' => $this->type,
-                'title' => "Создано \"{$this->title}\"",
-                'main' => [
-                    [
-                        'view' => 'bar',
-                        'title' => "По дням",
-                        'result' => $resultDay,
-                    ],
-                    [
-                        'view' => 'bar',
-                        'title' => "По неделям",
-                        'result' => $resultWeek,
-                    ],
-                    [
-                        'view' => 'bar',
-                        'title' => "По месяцам",
-                        'result' => $resultMonth,
-                    ],
-                ]
-
-            ]
-
         ];
+
+        if (count($mainSecond) > 0) {
+            $resultData[] =
+                [
+                    'type' => $this->type,
+                    'title' => "Создано \"{$this->title}\"",
+                    'main' => $mainSecond,
+
+                ];
+        }
+
+        return $resultData;
     }
 
 

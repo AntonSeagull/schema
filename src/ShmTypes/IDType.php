@@ -334,11 +334,15 @@ class IDType extends BaseType
             }
         }
 
+        $view = 'treemap';
+
         if (($total - $topCount) > 0) {
             $result[] = [
                 'value' => $total - $topCount,
                 'name' => 'Остальные',
             ];
+        } else {
+            $view = 'pie';
         }
 
 
@@ -354,7 +358,7 @@ class IDType extends BaseType
 
                 'main' => [
                     [
-                        'view' => 'treemap',
+                        'view' => $view,
                         'title' => 'Общая статистика',
                         'structure' => $this->document->json(),
                         'result' => $result

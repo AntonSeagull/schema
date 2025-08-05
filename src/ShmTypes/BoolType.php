@@ -42,6 +42,93 @@ class BoolType extends BaseType
     }
 
 
+    public function computedReport(StructureType | null $root = null, $path = [], $pipeline = [])
+    {
+
+        if (!$root) {
+
+            new \Exception("Root structure is not set for EnumType report. Path: " . implode('.', $path));
+        }
+
+        if (!$this->report) {
+            return null;
+        }
+
+
+        $basePipeline = [
+
+
+            [
+                '$addFields' => [
+                    implode('.', $path) => [
+                        '$cond' => [
+                            'if' => [
+                                '$and' => [
+                                    ['$ne' => ['$' . implode('.', $path), null]],
+                                    ['$in' => ['$' . implode('.', $path), [true, false]]]
+                                ]
+                            ],
+                            'then' => '$' . implode('.', $path),
+                            'else' => false
+                        ]
+                    ]
+                ]
+            ],
+            [
+                '$group' => [
+                    '_id' => '$' . implode('.', $path),
+                    'value' => ['$sum' => 1],
+
+
+                ]
+            ],
+            [
+                '$project' => [
+                    'value' => 1,
+
+                ]
+            ]
+        ];
+
+
+
+
+        $result =  $root->aggregate([
+            ...$pipeline,
+            ...$basePipeline,
+
+
+        ])->toArray();
+
+
+        foreach ($result as &$item) {
+
+            $item['name'] = $item['_id'] ? 'Да' : 'Нет';
+        }
+
+
+
+        return [
+
+            'type' => $this->type,
+
+            'title' => $this->title,
+
+            'main' => [
+                [
+                    'view' => 'pie',
+                    'title' =>  $this->title,
+                    'result' => $result,
+                ],
+
+
+            ],
+
+
+        ];
+    }
+
+
     public $columnsWidth = 100;
 
     public function filterToPipeline($filter, array | null $absolutePath = null): ?array

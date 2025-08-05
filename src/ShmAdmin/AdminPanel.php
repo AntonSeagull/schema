@@ -170,6 +170,7 @@ class AdminPanel
             'treemap' => 'Древовидная карта',
             'bar' => 'Гистограмма',
             'cards' => 'Карточки',
+            'pie' => 'Круговая диаграмма',
         ]);
 
         $reportItem = Shm::structure([
@@ -1260,6 +1261,24 @@ class AdminPanel
 
             ],
 
+            'filter' => [
+                'type' => self::baseStructure(),
+                'args' => [
+                    'collection' => Shm::nonNull(Shm::string()),
+                ],
+                'resolve' => function ($root, $args) {
+
+                    Auth::authenticateOrThrow(...self::$users);
+
+                    if (!isset($args['collection'])) {
+                        Response::validation("Данные не доступны для просмотра");
+                    }
+
+                    $structure = self::fullSchema()->findItemByCollection($args['collection']);
+
+                    return $structure->expand()->filterType()->expand()->json();
+                }
+            ],
 
 
             'apikeys' => [
@@ -1411,6 +1430,7 @@ class AdminPanel
 
                 'args' => [
                     "collection" => Shm::nonNull(Shm::string()),
+                    'filter' => Shm::mixed(),
                 ],
                 'resolve' => function ($root, $args) {
 
@@ -1428,7 +1448,16 @@ class AdminPanel
                         Response::validation("Данные не доступны для просмотра");
                     }
 
-                    return  $structure->computedReport();
+                    $pipelineFilter = [];
+                    if (isset($args['filter'])) {
+
+
+                        $pipelineFilter =  $structure->filterToPipeline($args['filter']);
+                    };
+
+
+
+                    return  $structure->computedReport(null, [], $pipelineFilter);
                 }
 
             ],

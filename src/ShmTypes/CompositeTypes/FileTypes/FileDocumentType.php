@@ -57,6 +57,11 @@ class FileDocumentType extends StructureType
         return parent::normalize($value, $addDefaultValues, $processId);
     }
 
+    public function filterType($safeMode = false): ?BaseType
+    {
+        return null;
+    }
+
 
     public function baseTypeName()
     {

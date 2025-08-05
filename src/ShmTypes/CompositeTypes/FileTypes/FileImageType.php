@@ -65,6 +65,11 @@ class FileImageType extends StructureType
         ];
     }
 
+    public function filterType($safeMode = false): ?BaseType
+    {
+        return null;
+    }
+
 
 
     public function __construct()

@@ -19,6 +19,7 @@ class FileImageLinkType extends StringType
         return $this->resize($w, $h);
     }
 
+
     public function resize(int $w = 300, int $h = 300): static
     {
         $this->width = $w;

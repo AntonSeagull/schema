@@ -204,22 +204,22 @@ class EnumType extends BaseType
 
             'main' => [
                 [
-                    'view' => 'treemap',
+                    'view' => 'pie',
                     'title' => 'Cегодня',
                     'result' => $todayResult,
                 ],
                 [
-                    'view' => 'treemap',
+                    'view' => 'pie',
                     'title' => 'За неделю',
                     'result' => $weekResult,
                 ],
                 [
-                    'view' => 'treemap',
+                    'view' => 'pie',
                     'title' => 'За месяц',
                     'result' => $monthResult,
                 ],
                 [
-                    'view' => 'treemap',
+                    'view' => 'pie',
                     'title' =>  'За все время',
                     'result' => $result,
                 ],

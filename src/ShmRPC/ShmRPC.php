@@ -176,6 +176,12 @@ class ShmRPC
     {
 
 
+        $_schemaParams = [];
+
+        foreach ($schemaParams as $key => $field) {
+            $_schemaParams[ShmUtils::translitIfCyrillic($key)] = $field;
+        }
+        $schemaParams = $_schemaParams;
 
 
         Response::startTime();

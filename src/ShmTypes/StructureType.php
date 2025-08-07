@@ -61,6 +61,19 @@ class StructureType extends BaseType
     }
 
 
+    public function translitKeys(): static
+    {
+        $newItems = [];
+
+        foreach ($this->items as $key => $item) {
+            $translitKey = ShmUtils::translitIfCyrillic($key);
+            $item->key($translitKey);
+            $newItems[$translitKey] = $item;
+        }
+
+        $this->items = $newItems;
+        return $this;
+    }
 
 
 
@@ -635,6 +648,7 @@ class StructureType extends BaseType
     public function rebuild(array $items): void
     {
 
+        $_items = [];
         foreach ($items as $key => $field) {
 
 
@@ -794,7 +808,7 @@ class StructureType extends BaseType
 
     public function staticBaseTypeName(string $name): static
     {
-        $this->staticBaseTypeName = ShmUtils::onlyLetters($name);
+        $this->staticBaseTypeName = ShmUtils::translitIfCyrillic(ShmUtils::onlyLetters($name));
         return $this;
     }
 

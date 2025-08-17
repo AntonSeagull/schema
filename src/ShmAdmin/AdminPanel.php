@@ -436,6 +436,15 @@ class AdminPanel
 
         ShmRPC::init([
 
+            'compositeTypes' => [
+                'type' => Shm::structure([
+                    'geoPoint' => Shm::geoPoint(),
+                    'geoRegion' => Shm::geoRegion(),
+
+                ]),
+            ],
+
+            'geolocation' => ShmRPC::IPGeolocation(),
 
             'imageUpload' => ShmRPC::fileUpload()->image()->make(),
             'videoUpload' => ShmRPC::fileUpload()->video()->make(),
@@ -845,6 +854,7 @@ class AdminPanel
             'hash' => [
                 'type' => Shm::string(),
                 'args' => Shm::structure([
+                    "_id" => Shm::string(),
                     "collection" => Shm::nonNull(Shm::string()),
                     'limit' => Shm::int()->default(30),
                     'offset' =>  Shm::int()->default(0),
@@ -928,9 +938,11 @@ class AdminPanel
 
                     $_limit = $args['limit'] ?? null;
 
-                    if (! $_limit) {
+                    if (!$_limit) {
                         return null;
                     }
+
+
 
 
 
@@ -966,6 +978,15 @@ class AdminPanel
 
                         $pipeline[] = [
                             '$skip' => $args['offset'],
+                        ];
+                    }
+
+
+                    if (isset($args['_id']) && $args['_id']) {
+                        $pipeline[] = [
+                            '$match' => [
+                                "_id" => mDB::id($args['_id']),
+                            ],
                         ];
                     }
 
@@ -1130,14 +1151,25 @@ class AdminPanel
                         $result = $structure->aggregate($pipeline)->toArray() ?? null;
 
 
+
                         if (!$result) {
                             return [
                                 'data' => [],
                             ];
                         } else {
 
+                            $hash = [];
+
+                            foreach ($result as $val) {
+                                $hash[] = $val['_id'] . ($val['updated_at'] ?? "");
+                            }
+
+                            $hash = md5(implode("", $hash));
+
+
                             return  [
-                                'data' => $result
+                                'data' => $result,
+                                'hash' => $hash,
                             ];
                         }
                     }

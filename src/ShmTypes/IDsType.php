@@ -22,6 +22,19 @@ class IDsType extends BaseType
 
 
 
+
+    public function depthExpand(): BaseType | static
+    {
+
+        if ($this->depth > 0 && $this->document) {
+
+            return Shm::arrayOf($this->document->expand()->depth($this->depth - 1));
+        }
+
+        return $this;
+    }
+
+
     public function expand(): static
     {
 

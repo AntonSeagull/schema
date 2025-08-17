@@ -5,9 +5,11 @@ namespace Shm\Collection;
 use Error;
 use MongoDB\InsertOneResult;
 use MongoDB\UpdateResult;
+use Predis\Command\Redis\STRLEN;
 use Shm\Shm;
 use Shm\ShmAdmin\SchemaCollections\SubAccountsSchema;
 use Shm\ShmAuth\Auth;
+use Shm\ShmDB\mDB;
 use Shm\ShmTypes\IDsType;
 use Shm\ShmTypes\IDType;
 use Shm\ShmUtils\Response;
@@ -18,7 +20,7 @@ class Collection
 {
 
 
-    public static $target = false;
+    private static $target = false;
 
     public static function isTarget(bool | null $target = null): bool
     {
@@ -94,6 +96,12 @@ class Collection
     }
 
 
+    public static function _collection()
+    {
+        $_this = new static();
+        return mDB::_collection($_this->collection);
+    }
+
 
     public $collection;
 
@@ -123,6 +131,11 @@ class Collection
 
         return $_this->expectSchema();
     }
+
+
+
+
+
 
 
     public static function ID(): IDType
@@ -224,6 +237,8 @@ class Collection
     {
         return self::structure()->insertOne($document, $options);
     }
+
+
 
     public static function updateMany(array $filter, array $update, array $options = []): UpdateResult
     {

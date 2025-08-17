@@ -14,7 +14,7 @@ class DescriptionsUtils
         $collectionDescription =   mDB::collection("_collectionDescriptions")->findOne([
             "key" => $collectionName
         ]);
-        if (! $collectionDescription) return [];
+        if (!$collectionDescription) return [];
 
         $fields = $collectionDescription['fields'][$modelName] ?? [];
 
@@ -30,13 +30,22 @@ class DescriptionsUtils
         return $fields;
     }
 
+    /**
+     * Retrieves groups associated with a specific model in a collection.
+     * If no description is found for the collection, returns an empty array.
+     * Merges groups from all models in the collection if they differ from the specified model.
+     *
+     * @param string $collectionName The name of the collection to search in
+     * @param string $modelName The name of the model to get groups for
+     * @return array The groups associated with the model, or empty array if none found
+     */
     public static function groups($collectionName, $modelName)
     {
 
         $collectionDescription =   mDB::collection("_collectionDescriptions")->findOne([
             "key" => $collectionName
         ]);
-        if (! $collectionDescription) return [];
+        if (!$collectionDescription) return [];
 
         $groups =  $collectionDescription['groups'][$modelName] ?? [];
 
@@ -58,7 +67,7 @@ class DescriptionsUtils
         $collectionDescription =   mDB::collection("_collectionDescriptions")->findOne([
             "key" => $collectionName
         ]);
-        if (! $collectionDescription) return [];
+        if (!$collectionDescription) return [];
 
         $tabs = $collectionDescription['tabs'][$modelName] ?? [];
 
@@ -80,7 +89,7 @@ class DescriptionsUtils
         $collectionDescription =   mDB::collection("_collectionDescriptions")->findOne([
             "key" => $collectionName
         ]);
-        if (! $collectionDescription) return [];
+        if (!$collectionDescription) return [];
 
         $menu = $collectionDescription['menu'][$modelName] ?? [];
 

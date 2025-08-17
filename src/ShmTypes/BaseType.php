@@ -30,6 +30,114 @@ abstract class BaseType
     public $description = null;
 
 
+
+    public int $depth = 0;
+
+    public function depth(int $depth): static
+    {
+        $this->depth = $depth;
+        return $this;
+    }
+
+
+    /**
+     * Трансформеры «перед отдачей в RPC».
+     * @var callable[]
+     */
+    public array $outputTransformers = [];
+
+    /**
+     * Устанавливает обработчик «перед отдачей в RPC» значения.
+     * Если $enabled = false, обработчик не регистрируется.
+     *
+     * @param callable $fn function(mixed $root, mixed $value): mixed
+     * @param bool $enabled
+     */
+    public function onOutput(callable $fn, bool $enabled = true): static
+    {
+        if ($enabled) {
+            $this->outputTransformers[] = $fn;
+        }
+        return $this;
+    }
+
+    public function hasOutputTransformers(): bool
+    {
+        if (!empty($this->outputTransformers)) {
+            return true;
+        }
+        if (isset($this->items)) {
+            foreach ($this->items as $item) {
+                if ($item->hasOutputTransformers()) {
+                    return true;
+                }
+            }
+        }
+        if (isset($this->itemType) && $this->itemType instanceof BaseType) {
+            if ($this->itemType->hasOutputTransformers()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Рекурсивно применяет все зарегистрированные onOutput-хендлеры.
+     */
+    public function applyOutput(mixed $root, mixed $value): mixed
+    {
+
+
+
+
+
+        if ($this instanceof StructureType && $this->collection) {
+
+
+            $root = $value;
+        }
+
+        // Применяем обработчики текущего узла
+        foreach ($this->outputTransformers as $fn) {
+
+            $value = $fn($root, $value);
+        }
+
+        // Спуск в подтипы
+        if (isset($this->items)) {
+            foreach ($this->items as $key => $item) {
+                if ($item instanceof BaseType && isset($value[$key])) {
+
+                    $value[$key] = $item->applyOutput($root, $value[$key]);
+                }
+            }
+        }
+
+        // Спуск в itemType (массивы/коллекции)
+        if (isset($this->itemType) && (is_array($value) || $value instanceof Traversable)) {
+
+
+            foreach ($value as $i => $v) {
+                $value[$i] = $this->itemType->applyOutput($root, $v);
+            }
+        }
+
+        return $value;
+    }
+
+    public function toOutput(mixed $value): mixed
+    {
+
+
+
+
+        $root = null;
+
+
+
+        return $this->applyOutput($root, $value);
+    }
+
     public function globalUnique(bool $globalUnique = true): static
     {
         $this->globalUnique = $globalUnique;
@@ -133,7 +241,7 @@ abstract class BaseType
             return $this;
         }
 
-        if (! $this->inTable) {
+        if (!$this->inTable) {
             $this->hide = true;
         }
         return $this;
@@ -529,10 +637,11 @@ abstract class BaseType
         if (isset($this->itemType)) {
 
 
-            if ($this->itemType instanceof StructureType && !$this->itemType->collection && $this->itemType->type == 'structure') {
+            if ($this->itemType instanceof StructureType && !$this->itemType->collection && !$this->itemType->haveItemByKey('_id')) {
 
 
-                $this->itemType->addField('uuid', Shm::uuid());
+
+                $this->itemType->addFieldIfNotExists('uuid', Shm::uuid());
             }
 
 
@@ -671,6 +780,29 @@ abstract class BaseType
         $this->required = $isRequired;
         return $this;
     }
+
+
+
+    public function depthExpand(): BaseType | static
+    {
+
+
+        if (isset($this->items)) {
+            foreach ($this->items as $key => $item) {
+                $this->items[$key] = $item->depthExpand();
+            }
+        }
+
+        if (isset($this->itemType)) {
+            $this->itemType = $this->itemType->depthExpand();
+        }
+
+
+
+
+        return $this;
+    }
+
 
 
     public function hideDocuments(): void

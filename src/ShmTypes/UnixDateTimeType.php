@@ -22,7 +22,11 @@ class UnixDateTimeType extends BaseType
         if ($addDefaultValues &&  $value === null && $this->defaultIsSet) {
             return $this->default;
         }
-        return (int) $value;
+
+        if (isset($value))
+            return (int) $value;
+
+        return null;
     }
 
     /**

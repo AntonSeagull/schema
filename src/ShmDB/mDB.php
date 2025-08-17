@@ -772,6 +772,26 @@ class mDB
         return $data;
     }
 
+    public static function hashDocuments($documents): string | null
+    {
+
+        if (!$documents) return null;
+        if (isset($documents['_id'])) {
+            $documents = [$documents];
+        }
+
+
+        $hash = [];
+        foreach ($documents as $order) {
+            $id = $order['_id'] ?? null;
+            $updated_at = $order['updated_at'] ?? null;
+            $hash[] = $id . $updated_at;
+        }
+
+        $hash =  md5(implode('-', $hash));
+
+        return $hash;
+    }
 
 
     public static function replaceStringToObjectIds($data)

@@ -17,6 +17,7 @@ use Shm\ShmUtils\Response;
 use Shm\ShmTypes\StructureType;
 use Shm\ShmUtils\ShmUtils;
 use Shm\ShmBlueprints\FileUpload\ShmFileUpload;
+use Shm\ShmBlueprints\Geo\ShmIPGeolocation;
 use Shm\ShmUtils\RedisCache;
 
 class ShmRPC
@@ -318,6 +319,13 @@ class ShmRPC
 
         $result = $schemaMethod['type']->normalize($result, false);
 
+
+
+        $result = $schemaMethod['type']->toOutput($result);
+
+
+
+
         $result = $schemaMethod['type']->removeOtherItems($result);
 
 
@@ -333,8 +341,9 @@ class ShmRPC
 
 
 
-            if ($schemaMethod['type'] instanceof StructureType || $schemaMethod['type'] instanceof \Shm\ShmTypes\ArrayOfType) {
 
+            if ($schemaMethod['type'] instanceof StructureType || $schemaMethod['type'] instanceof \Shm\ShmTypes\ArrayOfType) {
+                $schemaMethod['type']->expand();
 
 
                 Response::startTraceTiming("externalData");
@@ -378,5 +387,10 @@ class ShmRPC
     public static function fileUpload(): ShmFileUpload
     {
         return new ShmFileUpload();
+    }
+
+    public static function IPGeolocation()
+    {
+        return ShmIPGeolocation::rpc();
     }
 }

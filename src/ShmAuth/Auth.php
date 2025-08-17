@@ -71,6 +71,7 @@ class Auth
         $token = self::getRequestKey(['token', 'authorization', 'x-auth-token']);
 
 
+
         $apikey = self::getRequestKey(['apikey', 'x-api-key', 'api-key']);
 
         if ($token) {
@@ -89,6 +90,8 @@ class Auth
                 ]
             );
 
+
+
             if ($findToken && isset($findToken->collection) && isset($findToken->owner)) {
 
                 if ($findToken->collection === SubAccountsSchema::$collection) {
@@ -102,6 +105,14 @@ class Auth
                 } else {
                     self::$authCollection = $findToken->collection;
                     self::$authOwner = $findToken->owner;
+
+                    mDB::_collection(self::$authCollection)->updateOne([
+                        '_id' => $findToken->owner
+                    ], [
+                        '$set' => [
+                            'last_active_at' => time(),
+                        ]
+                    ]);
                 }
             }
         }

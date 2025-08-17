@@ -37,7 +37,8 @@
         "maximal/audio-waveform": "*",
         "kornrunner/blurhash": "*",
         "predis/predis": "^3.0",
-        "php-school/cli-menu": "^4.3"
+        "php-school/cli-menu": "^4.3",
+        "geoip2/geoip2": "^3.2"
     },
     "prefer-stable": true
 }

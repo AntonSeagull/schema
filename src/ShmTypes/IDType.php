@@ -19,12 +19,23 @@ class IDType extends BaseType
     private $documentResolver = null;
 
 
+    public int $defaultValue = 0;
 
 
+    public function depthExpand(): BaseType | static
+    {
 
+        if ($this->depth > 0 && $this->document) {
+
+            return $this->document->expand()->depth($this->depth - 1);
+        }
+
+        return $this;
+    }
 
     public function expand(): static
     {
+
 
         $this->expanded = true;
 
@@ -374,6 +385,8 @@ class IDType extends BaseType
 
     public function getIDsPaths(array $path): array
     {
+
+
 
 
 

@@ -252,7 +252,11 @@ class ArrayOfType extends BaseType
                 continue;
             }
 
+
+
             $mongoDocs = Shm::arrayOf($pathItem['document'])->removeOtherItems($mongoDocs);
+
+            $mongoDocs = Shm::arrayOf($pathItem['document'])->toOutput($mongoDocs);
 
 
 

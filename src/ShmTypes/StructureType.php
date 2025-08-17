@@ -710,10 +710,10 @@ class StructureType extends BaseType
 
         if ($addDefaultValues) {
 
-            if (!(is_array($value) || $value instanceof Traversable)) {
+            /* if (!(is_array($value) || $value instanceof Traversable)) {
                 //$value = [];
                 return null;
-            }
+            }*/
 
             foreach ($this->items as $name => $type) {
                 if ($processId) {
@@ -912,6 +912,10 @@ class StructureType extends BaseType
         return null;
     }
 
+    public function haveItemByKey(string $key): bool
+    {
+        return isset($this->items[$key]);
+    }
 
     public function findItemByKey(string $key): ?BaseType
     {
@@ -1024,6 +1028,7 @@ class StructureType extends BaseType
             }
 
             $mongoDocs = Shm::arrayOf($pathItem['document'])->removeOtherItems($mongoDocs);
+            $mongoDocs = Shm::arrayOf($pathItem['document'])->toOutput($mongoDocs);
 
 
 
@@ -1166,6 +1171,10 @@ class StructureType extends BaseType
 
         foreach ($this->items as $key => $item) {
             $separate = $item->nullable ? '?: ' : ': ';
+
+            if ($item->hide) {
+                continue;
+            }
 
             if ($key == "*") {
                 $key = '[key: string]';
@@ -1809,6 +1818,7 @@ class StructureType extends BaseType
         return  $result;
     }
 
+
     public function insertOne($document, array $options = []): \MongoDB\InsertOneResult
     {
 
@@ -2004,7 +2014,7 @@ class StructureType extends BaseType
                 $item->hideNotInTable();
             }
         } else {
-            if (! $this->inTable) {
+            if (!$this->inTable) {
                 $this->hide = true;
             }
         }

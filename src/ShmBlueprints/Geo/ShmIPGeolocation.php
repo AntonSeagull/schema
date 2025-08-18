@@ -30,7 +30,8 @@ class ShmIPGeolocation
 
                 $currentIp = $args['ip'] ??  $_SERVER['REMOTE_ADDR'] ?? null;
 
-                if (explode('.', $currentIp) !== 4) {
+                $parts = explode('.', $currentIp);
+                if (count($parts) !== 4) {
                     return [
                         'ip' => $currentIp,
                     ];

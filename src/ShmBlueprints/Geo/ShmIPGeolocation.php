@@ -21,6 +21,7 @@ class ShmIPGeolocation
             'type' => Shm::structure([
                 'latitude' => Shm::float(),
                 'longitude' => Shm::float(),
+                'ip' => Shm::string(),
             ]),
             'args' => [
                 'ip' => Shm::string()
@@ -30,7 +31,9 @@ class ShmIPGeolocation
                 $currentIp = $args['ip'] ??  $_SERVER['REMOTE_ADDR'] ?? null;
 
                 if (explode('.', $currentIp) !== 4) {
-                    return null;
+                    return [
+                        'ip' => $currentIp,
+                    ];
                 }
 
                 if (!$currentIp) return null;
@@ -46,6 +49,7 @@ class ShmIPGeolocation
                 return [
                     'latitude' => $latitude,
                     'longitude' => $longitude,
+                    'ip' => $currentIp
                 ];
             }
 

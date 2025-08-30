@@ -211,12 +211,6 @@ trait CollectionPipeline
 
     public function addFields(array $fields)
     {
-        if (isset($fields[0])) {
-            $class = explode("\\", get_class($fields[0]))[0];
-            if ($class == 'Lumus') {
-                return $this->setFields($fields);
-            }
-        }
 
         $this->validateArray($fields, 'fields');
         $this->pipeline[] = ['$addFields' => $fields];

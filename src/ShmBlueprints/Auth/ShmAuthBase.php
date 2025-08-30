@@ -24,6 +24,23 @@ class ShmAuthBase
     public $pipeline;
 
 
+    public function currentStructure(): ?StructureType
+    {
+        $currentAuthStructure = null;
+        foreach ($this->authStructures as $authStructure) {
+            if ($authStructure->collection == Auth::getAuthCollection()) {
+                $currentAuthStructure = $authStructure;
+                break;
+            }
+        }
+
+
+        if (!$currentAuthStructure) {
+            Response::unauthorized();
+        }
+
+        return $currentAuthStructure;
+    }
 
 
     public  function hasValueValidator($keys, $params)

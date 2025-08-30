@@ -966,7 +966,7 @@ class StructureType extends BaseType
 
         if (count($result) === 0) {
 
-            throw new \Exception("findItemsByKey -> Key not found: " . $key);
+            throw new \Exception("findItemsByKey -> Keys not found: " . implode(', ', $keys));
         }
         return $result;
     }

@@ -73,14 +73,18 @@ class ShmMsgAuth extends ShmAuthBase
 
                             Auth::authenticateOrThrow();
 
-                            $authUser = Auth::getAuth();
-                            $authStructure = Auth::getAuthStructure();
+                            $currentAuthStructure = $this->currentStructure();
 
 
 
 
-                            $phoneField =  $authStructure->findItemByType(Shm::phone())?->key;
 
+
+                            $phoneField =  $currentAuthStructure->findItemByType(Shm::phone())?->key;
+
+                            if (!$phoneField) {
+                                Response::validation("Авторизация по телефону не поддерживается");
+                            }
 
                             foreach ($this->authStructures as $authStructure) {
 
@@ -103,7 +107,7 @@ class ShmMsgAuth extends ShmAuthBase
                             }
 
 
-                            $user = $authStructure->updateOne([
+                            $user = $currentAuthStructure->updateOne([
                                 "_id" => Auth::getAuthOwner(),
                             ], [
                                 '$set' => [

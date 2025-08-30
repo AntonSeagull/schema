@@ -43,7 +43,7 @@ class ShmSocAuth extends ShmAuthBase
                     Auth::authenticateOrThrow();
 
 
-                    $authModel = Auth::getAuthStructure();
+                    $authModel = $this->currentStructure();
 
 
 
@@ -89,7 +89,7 @@ class ShmSocAuth extends ShmAuthBase
                     Auth::authenticateOrThrow();
 
 
-                    $authModel = Auth::getAuthStructure();
+                    $authModel = $this->currentStructure();
 
 
 

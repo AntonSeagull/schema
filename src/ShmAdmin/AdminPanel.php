@@ -289,7 +289,7 @@ class AdminPanel
             "cond" => Shm::mixed(),
             "localCond" => Shm::mixed(),
             "defaultIsSet" => Shm::boolean(),
-            "collection" => Shm::string(),
+
             'assets' => Shm::structure([
                 'icon' => Shm::string(),
                 'cover' => Shm::string(),
@@ -1525,7 +1525,7 @@ class AdminPanel
                 }
             ],
 
-            'addManualTag' => [],
+            //   'addManualTag' => [],
 
 
             'update' => [

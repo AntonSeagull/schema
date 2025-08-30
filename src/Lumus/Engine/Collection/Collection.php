@@ -162,10 +162,6 @@ class Collection extends CollectionCollection
         return self::structure()->aggregate($pipeline);
     }
 
-    public  function aggregate()
-    {
-        return self::structure()->aggregate($this->pipeline);
-    }
 
     public static function richFindOne($params)
     {

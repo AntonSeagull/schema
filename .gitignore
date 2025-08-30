@@ -16,3 +16,6 @@ composer.lock
 
 # PHPStorm meta
 .phpstorm.meta.php/
+
+phpstan-errors.txt
+run-phpstan.sh

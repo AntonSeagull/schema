@@ -15,7 +15,9 @@ class GradientType extends StructureType
     public function __construct()
     {
 
-        $this->items = [
+
+
+        parent::__construct([
 
             "palette" => Shm::arrayOf(Shm::structure([
                 "color" => Shm::string(),
@@ -24,7 +26,7 @@ class GradientType extends StructureType
             ])),
             "angle" => Shm::float()
 
-        ];
+        ]);
     }
 
     public function getSearchPaths(): array

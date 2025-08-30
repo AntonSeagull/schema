@@ -7,6 +7,7 @@ use GuzzleHttp\Client;
 use GuzzleHttp\Psr7\Request;
 use Shm\ShmDB\mDB;
 use Shm\Shm;
+use Shm\ShmAdmin\SchemaCollections\ManualTags;
 use Shm\ShmAdmin\SchemaCollections\SubAccountsSchema;
 use Shm\ShmAdmin\Types\AdminType;
 use Shm\ShmAdmin\Types\GroupType;
@@ -76,6 +77,7 @@ class AdminPanel
             $schema = SubAccountsSchema::removeLockItemInSchema($schema);
         }
 
+        $schema->addField("manualTags", ManualTags::structure());
         return $schema;
     }
 
@@ -257,6 +259,8 @@ class AdminPanel
             'values' => Shm::structure([
                 "*" => Shm::string()
             ]),
+
+            "tagMode" => Shm::bool(),
 
             'tablePriority' => Shm::int(),
             'unique' => Shm::boolean(),
@@ -440,6 +444,7 @@ class AdminPanel
                 'type' => Shm::structure([
                     'geoPoint' => Shm::geoPoint(),
                     'geoRegion' => Shm::geoRegion(),
+                    'manualTags' => ManualTags::structure()
 
                 ]),
             ],
@@ -851,6 +856,8 @@ class AdminPanel
             ],
 
 
+
+
             'hash' => [
                 'type' => Shm::string(),
                 'args' => Shm::structure([
@@ -1182,6 +1189,7 @@ class AdminPanel
 
 
 
+
                         if ($pipelineFilter) {
 
                             $pipeline = [
@@ -1502,6 +1510,22 @@ class AdminPanel
             ],
 
 
+            'manualTags' => [
+                'type' => Shm::listOf(ManualTags::structure()),
+                'args' => [
+                    'collection' => Shm::nonNull(Shm::string()),
+                ],
+                'resolve' => function ($root, $args) {
+
+                    Auth::authenticateOrThrow(...self::$users);
+
+                    ManualTags::find([
+                        'collection' => $args['collection'],
+                    ]);
+                }
+            ],
+
+            'addManualTag' => [],
 
 
             'update' => [
@@ -1530,7 +1554,11 @@ class AdminPanel
 
 
 
+
                     $structure = self::fullSchema()->findItemByCollection($args['collection']);
+
+
+
 
 
 
@@ -1547,12 +1575,18 @@ class AdminPanel
 
                     $values = $args['values'] ?? null;
 
+
                     if (!$values) {
                         Response::validation("Нет данных для обновления");
                     }
 
                     $values = $structure->normalize($values);
+
+
                     $values = $structure->removeOtherItems($values);
+
+
+
 
                     //remove _id
                     if (isset($values['_id'])) {

@@ -5,7 +5,6 @@ namespace Shm\Collection;
 use Error;
 use MongoDB\InsertOneResult;
 use MongoDB\UpdateResult;
-use Predis\Command\Redis\STRLEN;
 use Shm\Shm;
 use Shm\ShmAdmin\SchemaCollections\SubAccountsSchema;
 use Shm\ShmAuth\Auth;
@@ -18,6 +17,7 @@ use Shm\ShmUtils\ShmInit;
 
 class Collection
 {
+
 
 
     private static $target = false;
@@ -213,6 +213,11 @@ class Collection
         }
 
 
+        if ($schema->tagMode) {
+            $schema->addFieldIfNotExists("_manualTags", Shm::IDs()->editable());
+        }
+
+
         $schema->addFieldIfNotExists("created_at", Shm::int()->editable(false));
         $schema->addFieldIfNotExists("updated_at", Shm::int()->editable(false));
 
@@ -255,9 +260,22 @@ class Collection
         return self::structure()->findOne($filter, $options);
     }
 
+    public static function findById(string $id)
+    {
+        return self::findOne([
+            '_id' => mDB::id($id)
+        ]);
+    }
+
     public static function find(array $filter = [], array $options = [])
     {
         return self::structure()->find($filter, $options);
+    }
+
+
+    public static function aggregate(array $pipeline, array $options = [])
+    {
+        return self::structure()->aggregate($pipeline, $options);
     }
 
     public static function distinct(string $field, array $filter = [], array $options = []): array

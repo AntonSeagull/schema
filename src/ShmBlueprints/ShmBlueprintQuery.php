@@ -2,6 +2,7 @@
 
 namespace Shm\ShmBlueprints;
 
+use InvalidArgumentException;
 use Shm\ShmDB\mDB;
 use Shm\Shm;
 use Shm\ShmTypes\StructureType;
@@ -12,9 +13,6 @@ class ShmBlueprintQuery
 
     private StructureType $structure;
 
-
-
-    public $pipeline = [];
 
 
 
@@ -48,25 +46,47 @@ class ShmBlueprintQuery
     /**
      * @var callable|null
      */
-    public $prepare = null;
 
 
-    public function prepare(callable $prepare): static
+    private $pipelineFunction = null;
+
+    public function pipeline($pipeline = null): static
     {
-        $this->prepare = $prepare;
+        if ($pipeline === null) {
+            return $this;
+        }
+
+        if (is_array($pipeline)) {
+            // Если передан массив, создаем функцию, которая его возвращает
+            $this->pipelineFunction = function () use ($pipeline) {
+                return $pipeline;
+            };
+        } elseif (is_callable($pipeline)) {
+            // Если передана функция, сохраняем её
+            $this->pipelineFunction = $pipeline;
+        } else {
+            throw new InvalidArgumentException('Pipeline должен быть массивом или функцией');
+        }
+
         return $this;
     }
 
-    public function pipeline($pipeline = []): static
+    public function getPipeline(): array
     {
-
-        if (count($pipeline) > 0) {
-            mDB::validatePipeline($pipeline);
+        if ($this->pipelineFunction === null) {
+            return [];
         }
 
+        $pipeline = call_user_func($this->pipelineFunction);
 
-        $this->pipeline = $pipeline;
-        return $this;
+        if (!$pipeline) {
+            return [];
+        }
+
+        // Валидируем полученный pipeline
+        mDB::validatePipeline($pipeline);
+
+        return $pipeline;
     }
 
 
@@ -168,17 +188,20 @@ class ShmBlueprintQuery
         $argsStructure = Shm::structure($args);
         $withoutData = $this->withoutData;
         $structure = $this->structure;
-        $pipeline = $this->pipeline;
 
+
+
+        $_this = $this;
 
 
         $result = [
             'type' => $dataType,
             'args' =>  $argsStructure,
-            'resolve' => function ($root, $args, $context, $info) use ($structure, $withoutData, $pipeline, $argsStructure) {
+            'resolve' => function ($root, $args, $context, $info) use ($_this, $structure, $withoutData, $argsStructure) {
 
 
 
+                $pipeline = $_this->getPipeline();
 
 
 

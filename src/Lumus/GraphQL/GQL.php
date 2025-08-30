@@ -114,6 +114,10 @@ class GQL extends ShmRPC
         foreach ($schema as &$item) {
 
 
+
+            if (!is_array($item)) continue;
+
+
             if (isset($item['args'])) {
 
                 foreach ($item['args'] as &$arg) {

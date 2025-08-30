@@ -76,9 +76,6 @@ class Auth
 
         if ($token) {
 
-
-
-
             $findToken = mDB::_collection(self::$token_collection)->findOneAndUpdate(
                 [
                     "token" => $token,
@@ -148,6 +145,26 @@ class Auth
     }
 
 
+    public static function apiKeyAuthenticatedOrThrow(StructureType ...$authStructures)
+    {
+
+
+        if ($authStructures) {
+
+            foreach ($authStructures as $structure) {
+
+                if ($structure->collection &&  $structure->collection == self::$apikeyCollection) {
+                    return false;
+                }
+            }
+
+            Response::unauthorized();
+        }
+
+        if (!self::getApiKeyOwner()) {
+            Response::unauthorized();
+        }
+    }
 
 
     public static function authenticateOrThrow(StructureType ...$authStructures)

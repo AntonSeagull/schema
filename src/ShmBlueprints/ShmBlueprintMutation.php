@@ -2,6 +2,7 @@
 
 namespace Shm\ShmBlueprints;
 
+use InvalidArgumentException;
 use Shm\ShmDB\mDB;
 use Shm\Shm;
 use Shm\ShmTypes\StructureType;
@@ -33,19 +34,47 @@ class ShmBlueprintMutation
     }
 
 
-    public $pipeline = [];
+    private $pipelineFunction = null;
 
-    public function pipeline($pipeline = []): static
+    public function pipeline($pipeline = null): static
     {
-
-        if (count($pipeline) > 0) {
-            mDB::validatePipeline($pipeline);
+        if ($pipeline === null) {
+            return $this;
         }
 
+        if (is_array($pipeline)) {
+            // Если передан массив, создаем функцию, которая его возвращает
+            $this->pipelineFunction = function () use ($pipeline) {
+                return $pipeline;
+            };
+        } elseif (is_callable($pipeline)) {
+            // Если передана функция, сохраняем её
+            $this->pipelineFunction = $pipeline;
+        } else {
+            throw new InvalidArgumentException('Pipeline должен быть массивом или функцией');
+        }
 
-        $this->pipeline = $pipeline;
         return $this;
     }
+
+    public function getPipeline(): array
+    {
+        if ($this->pipelineFunction === null) {
+            return [];
+        }
+
+        $pipeline = call_user_func($this->pipelineFunction);
+
+        if (!$pipeline) {
+            return [];
+        }
+
+        // Валидируем полученный pipeline
+        mDB::validatePipeline($pipeline);
+
+        return $pipeline;
+    }
+
 
 
     public function flattenObject($data, $parentKey = '', &$result = [])
@@ -146,14 +175,16 @@ class ShmBlueprintMutation
 
         $structure = $this->structure;
 
-        $pipeline = $this->pipeline;
+
 
         return [
             "type" => $this->structure,
             "args" => $argsStructure,
-            'resolve' => function ($root, $args) use ($structure, $pipeline, $argsStructure) {
+            'resolve' => function ($root, $args) use ($_this, $structure, $argsStructure) {
 
 
+
+                $pipeline = $this->getPipeline();
 
                 $pipeline = [
                     ...$pipeline,

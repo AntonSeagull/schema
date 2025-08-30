@@ -6,6 +6,7 @@ namespace Shm\ShmRPC;
 use Sentry\Util\JSON;
 use Shm\Shm;
 use Shm\ShmBlueprints\Auth\ShmAuth;
+use Shm\ShmBlueprints\Auth\ShmPassportAuth;
 use Shm\ShmBlueprints\ShmBlueprintMutation;
 use Shm\ShmBlueprints\ShmBlueprintQuery;
 
@@ -18,6 +19,7 @@ use Shm\ShmTypes\StructureType;
 use Shm\ShmUtils\ShmUtils;
 use Shm\ShmBlueprints\FileUpload\ShmFileUpload;
 use Shm\ShmBlueprints\Geo\ShmIPGeolocation;
+use Shm\ShmTypes\BaseType;
 use Shm\ShmUtils\RedisCache;
 
 class ShmRPC
@@ -35,6 +37,22 @@ class ShmRPC
         return $schemaMethod['resolve']($schemaMethod, $params, null, null);
     }
 
+    private static function executeMakeBlueprint($schemaParams)
+    {
+
+
+        foreach ($schemaParams as $key => $field) {
+
+
+
+            if (is_object($field) && method_exists($field, 'make')) {
+                $schemaParams[$key] = $field->make();
+            }
+        }
+
+
+        return $schemaParams;
+    }
 
     public static function transformSchemaParams(array $field, string $key): array
     {
@@ -44,8 +62,11 @@ class ShmRPC
 
         if (isset($field['args'])) {
 
+
             if (is_array($field['args']) && !($field['args'] instanceof StructureType)) {
-                $field['args'] = new StructureType($field['args']);
+
+
+                $field['args'] = Shm::structure($field['args']);
             }
 
 
@@ -66,7 +87,10 @@ class ShmRPC
         }
 
         //Проверка что type это BaseType и args это StructureType
-        foreach ($schemaParams as $key => $field) {
+        foreach ($schemaParams as $key => &$field) {
+
+
+
             if (!isset($field['type']) || !($field['type'] instanceof \Shm\ShmTypes\BaseType)) {
                 throw new \Exception("Schema field '{$key}' must have a 'type' of BaseType.");
             }
@@ -177,6 +201,7 @@ class ShmRPC
     {
 
 
+
         $_schemaParams = [];
 
         foreach ($schemaParams as $key => $field) {
@@ -185,7 +210,10 @@ class ShmRPC
         $schemaParams = $_schemaParams;
 
 
+
         Response::startTime();
+
+        $schemaParams =  self::executeMakeBlueprint($schemaParams);
 
         self::validateSchemaParams($schemaParams);
 
@@ -198,6 +226,8 @@ class ShmRPC
 
 
             foreach ($schemaParams as $key => $field) {
+
+
                 $schemaParams[$key] = self::transformSchemaParams($field, $key);
             }
 
@@ -206,6 +236,8 @@ class ShmRPC
 
             ShmRPCCodeGen::html($schemaParams, isset($_GET['json']));
         };
+
+
 
 
         self::$init = true;

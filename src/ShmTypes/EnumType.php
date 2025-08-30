@@ -21,7 +21,7 @@ class EnumType extends BaseType
     public function __construct(array $values)
     {
 
-        if (is_numeric(array_keys($values)[0])) {
+        if (is_numeric(array_keys($values)[0]) && array_keys($values)[0] == 0) {
 
 
             $values = array_combine($values, $values);

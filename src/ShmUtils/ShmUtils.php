@@ -2,10 +2,23 @@
 
 namespace Shm\ShmUtils;
 
+use Shm\Shm;
 use Shm\ShmTypes\StructureType;
 
 class ShmUtils
 {
+
+    public static function validate(array $schema, $data = null)
+    {
+
+        $schema = Shm::structure($schema);
+
+        if ($data === null) {
+            $data = ShmUtils::allRequest();
+        }
+
+        $schema->validate($data);
+    }
 
     public static function translitIfCyrillic(string $input): string
     {

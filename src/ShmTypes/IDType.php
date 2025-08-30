@@ -136,9 +136,15 @@ class IDType extends BaseType
         $pipeline = [];
 
         if ($eq !== null) {
+
+            $id = $eq;
+
+            $id = !($id instanceof \MongoDB\BSON\ObjectId) && isset($id['_id']) ? mDB::id($id['_id']) : mDB::id($id);
+
+
             $pipeline[] = [
                 '$match' => [
-                    $path => mDB::id($eq)
+                    $path => $id
                 ]
             ];
         }

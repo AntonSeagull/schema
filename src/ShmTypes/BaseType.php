@@ -543,6 +543,21 @@ abstract class BaseType
 
     public null | int $tablePriority = null;
 
+
+    public function inTableThis(bool | int $inTableThis = true): static
+    {
+        if (is_int($inTableThis)) {
+            $this->tablePriority = $inTableThis;
+            $this->inTable = true;
+
+            return $this;
+        }
+
+        $this->inTable = $inTableThis;
+
+        return $this;
+    }
+
     /**
      * Set whether this field is for table display.
      * If true, it will use the table layout.

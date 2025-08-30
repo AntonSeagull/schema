@@ -4,7 +4,7 @@ namespace Shm\ShmTypes;
 
 use DateTime;
 use Error;
-
+use Sentry\Util\Arr;
 use Sentry\Util\Str;
 use Shm\ShmDB\mDB;
 
@@ -15,6 +15,7 @@ use Shm\CachedType\CachedInputObjectType;
 use Shm\CachedType\CachedObjectType;
 
 use Shm\Shm;
+use Shm\ShmAdmin\SchemaCollections\ManualTags;
 use Shm\ShmAdmin\Types\VisualGroupType;
 use Shm\ShmRPC\ShmRPCCodeGen\TSType;
 use Shm\ShmTypes\SupportTypes\StageType;
@@ -44,6 +45,14 @@ class StructureType extends BaseType
 
 
 
+    public $tagMode = false;
+
+    public function tagMode(bool $tagMode = true): static
+    {
+        $this->tagMode = $tagMode;
+
+        return $this;
+    }
 
 
     public bool $manualSort = false;
@@ -691,6 +700,23 @@ class StructureType extends BaseType
     }
 
 
+    public function setVisualGroup(string $title = "", $icon = null, array $keys = []): static
+    {
+
+        if (!$title || !$keys || count($keys) == 0) {
+            return $this;
+        }
+
+        foreach ($this->items as $key => $field) {
+
+            if (in_array($key, $keys)) {
+
+                $field->group($title, $icon ?? null);
+            }
+        }
+        return $this;
+    }
+
     /**
      * @param array<string, BaseType> $items
      */
@@ -704,6 +730,7 @@ class StructureType extends BaseType
 
     public function normalize(mixed $value, $addDefaultValues = false, string | null $processId = null): mixed
     {
+
 
 
 
@@ -764,6 +791,8 @@ class StructureType extends BaseType
 
     public function removeOtherItems(mixed $value): mixed
     {
+
+
         if (!(is_array($value) || $value instanceof Traversable)) {
             return null;
         }
@@ -833,7 +862,7 @@ class StructureType extends BaseType
             if (!$this->key) {
 
 
-                throw new \Exception("baseTypeName -> Key is not set for StructureType." . print_r($this, true));
+                throw new \Exception("baseTypeName -> Key is not set for StructureType. " . implode(', ', array_keys($this->items)));
             }
 
             $keys = array_keys($this->items);
@@ -926,6 +955,22 @@ class StructureType extends BaseType
 
         return null;
     }
+
+    public function findItemsByKey(array $keys): array
+    {
+        $result = [];
+
+        foreach ($keys as $key) {
+            $result[$key] = $this->findItemByKey($key);
+        }
+
+        if (count($result) === 0) {
+
+            throw new \Exception("findItemsByKey -> Key not found: " . $key);
+        }
+        return $result;
+    }
+
 
     public function findItemByType(string | BaseType $type): ?BaseType
     {

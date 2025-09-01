@@ -163,7 +163,7 @@ class CmdSchedule
             }
 
             $tasksForNow = self::getTasksForNow();
-
+            self::log(json_encode($tasksForNow));
             foreach ($tasksForNow as $task) {
                 if (isset($task['command'])) {
 

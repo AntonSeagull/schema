@@ -89,7 +89,7 @@ class ShmInit
         Doctor::cmdInit();
         SearchStringUpdate::cmdInit();
 
-        CmdSchedule::run();
+
 
 
 

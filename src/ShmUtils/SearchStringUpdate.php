@@ -137,9 +137,6 @@ class SearchStringUpdate
                     self::updateIndex($class::structure());
                 }
             }
-
-
-            exit;
         })->everyMinute();
     }
 }

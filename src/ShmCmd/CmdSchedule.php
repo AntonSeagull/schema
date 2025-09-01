@@ -7,7 +7,8 @@ use Error;
 use Exception;
 use InvalidArgumentException;
 use Poliander\Cron\CronExpression;
-
+use Shm\Shm;
+use Shm\ShmUtils\ShmInit;
 
 class CmdSchedule
 {
@@ -121,6 +122,20 @@ class CmdSchedule
         return $tasksForNow;
     }
 
+    private static function log($message): void
+    {
+
+        $logDir = ShmInit::$rootDir . '/logs/schedule';
+        if (!is_dir($logDir)) {
+            mkdir($logDir, 0777, true);
+        }
+
+        $logFile = $logDir . '/schedule-' . date('Y-m-d') . '.log';
+
+        $message = date('Y-m-d H:i:s') . ' ' . $message;
+        file_put_contents($logFile, $message . PHP_EOL, FILE_APPEND);
+    }
+
     /**
      * Выполняет задачи, подходящие под текущее время.
      */
@@ -153,6 +168,8 @@ class CmdSchedule
                 if (isset($task['command'])) {
 
                     $command = "php ./index.php " . escapeshellarg($task['command']);
+
+                    self::log($command);
 
                     if (!function_exists('exec')) {
                         $error = new \RuntimeException("Function exec() is disabled");

@@ -119,7 +119,7 @@ class StructureType extends BaseType
         $key = ShmUtils::cleanKey($key);
 
         if (!isset($this->items[$key])) {
-            $this->items[$key] = $type;
+            $this->items[$key] = $type->key($key);
         } else {
         }
 
@@ -131,7 +131,7 @@ class StructureType extends BaseType
 
         $key = ShmUtils::cleanKey($key);
 
-        $this->items[$key] = $type;
+        $this->items[$key] = $type->key($key);
 
 
         return $this;
@@ -744,7 +744,7 @@ class StructureType extends BaseType
 
             foreach ($this->items as $name => $type) {
                 if ($processId) {
-                    ProcessLogs::addLog($processId, "Normalizing field '{$name}' in StructureType '{$this->key}'", 1);
+                    ProcessLogs::addLog($processId, "Normalizing field '{$name}' in StructureType '{$this->key}'");
                 }
 
                 if ($type instanceof IDType) {

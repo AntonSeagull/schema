@@ -9,7 +9,7 @@ class AutoPostfix
 {
 
 
-    public static function get(array $keys)
+    public static function get(array $keys, $allKeys = false): string
     {
 
 
@@ -31,14 +31,16 @@ class AutoPostfix
         sort($uniqueLetters);
 
 
-        if (count($uniqueLetters) > 4) {
-            $length = count($uniqueLetters);
-            $result = [];
-            $result[] = $uniqueLetters[0];
-            $result[] = $uniqueLetters[max(1, floor($length / 4))];
-            $result[] = $uniqueLetters[max(2, floor($length / 2))];
-            $result[] = $uniqueLetters[max(3, $length - 1)];
-            $uniqueLetters = array_unique($result);
+        if (!$allKeys) {
+            if (count($uniqueLetters) > 4) {
+                $length = count($uniqueLetters);
+                $result = [];
+                $result[] = $uniqueLetters[0];
+                $result[] = $uniqueLetters[max(1, floor($length / 4))];
+                $result[] = $uniqueLetters[max(2, floor($length / 2))];
+                $result[] = $uniqueLetters[max(3, $length - 1)];
+                $uniqueLetters = array_unique($result);
+            }
         }
 
 

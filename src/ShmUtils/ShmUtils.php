@@ -104,9 +104,9 @@ class ShmUtils
     public static function allRequest()
     {
 
-        $get = $_GET ?? [];
-        $post = $_POST ?? [];
-        $request = $_REQUEST ?? [];
+        $get = $_GET;
+        $post = $_POST;
+        $request = $_REQUEST;
         $requestBody = [];
         $body = file_get_contents('php://input');
         if ($body) {

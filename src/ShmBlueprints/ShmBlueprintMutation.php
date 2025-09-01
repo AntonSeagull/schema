@@ -184,7 +184,7 @@ class ShmBlueprintMutation
 
 
 
-                $pipeline = $this->getPipeline();
+                $pipeline = $_this->getPipeline();
 
                 $pipeline = [
                     ...$pipeline,

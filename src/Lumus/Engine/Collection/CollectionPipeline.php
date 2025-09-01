@@ -85,9 +85,10 @@ trait CollectionPipeline
 
     public function search($search, $searchField = "search_string")
     {
-        if (!$search) return $this;
+        if (empty($search)) return $this;
 
-        $search = mb_strtolower(trim($search ?? ""));
+        $search = (string) $search;
+        $search = mb_strtolower(trim($search));
 
         if (strlen($search) > 0) {
 

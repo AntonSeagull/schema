@@ -147,6 +147,8 @@ class ShmMsgAuth extends ShmAuthBase
                             }
 
 
+
+
                             if (!$user) {
 
                                 $authStructure = $this->authStructures[0];
@@ -177,7 +179,7 @@ class ShmMsgAuth extends ShmAuthBase
 
 
                                 return [
-                                    "token" => Auth::genToken($authStructure, $user->_id),
+                                    "token" => Auth::genToken($userStructure, $user->_id),
                                     "auth" => true,
                                 ];
                             }

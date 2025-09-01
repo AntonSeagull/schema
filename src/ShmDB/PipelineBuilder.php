@@ -72,9 +72,15 @@ class PipelineBuilder
 
     public function search($search, $searchField = "search_string")
     {
-        if (!$search) return $this;
 
-        $search = mb_strtolower(trim($search ?? ""));
+
+
+        if (empty($search)) return $this;
+
+
+        $search = (string) $search;
+
+        $search = mb_strtolower(trim($search));
 
         if (strlen($search) > 0) {
 

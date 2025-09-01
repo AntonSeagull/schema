@@ -91,6 +91,13 @@ class ShmRPC
 
 
 
+            if (is_object($field) && method_exists($field, 'make')) {
+
+                continue;
+            }
+
+
+
             if (!isset($field['type']) || !($field['type'] instanceof \Shm\ShmTypes\BaseType)) {
                 throw new \Exception("Schema field '{$key}' must have a 'type' of BaseType.");
             }
@@ -213,7 +220,7 @@ class ShmRPC
 
         Response::startTime();
 
-        $schemaParams =  self::executeMakeBlueprint($schemaParams);
+
 
         self::validateSchemaParams($schemaParams);
 
@@ -224,6 +231,8 @@ class ShmRPC
 
         if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['schema'])) {
 
+
+            $schemaParams =  self::executeMakeBlueprint($schemaParams);
 
             foreach ($schemaParams as $key => $field) {
 
@@ -277,6 +286,10 @@ class ShmRPC
 
         if ($schemaMethod === null) {
             Response::notFound("Method '{$method}' not found.");
+        }
+
+        if (is_object($schemaMethod) && method_exists($schemaMethod, 'make')) {
+            $schemaMethod = $schemaMethod->make();
         }
 
 

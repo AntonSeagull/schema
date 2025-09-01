@@ -8,7 +8,7 @@ class TSType
 
 
     public static $tsTypes = [];
-    private static $tsTypesHashData = [];
+    //    private static $tsTypesHashData = [];
 
     private bool $isEnum = false;
 
@@ -22,11 +22,11 @@ class TSType
 
 
 
-        $tsTypeHash = md5($tsTypeValue . ($isEnum ? 'enum' : 'type'));
+        //  $tsTypeHash = md5($tsTypeValue . ($isEnum ? 'enum' : 'type'));
 
 
 
-        if ($tsTypeValue && isset(self::$tsTypesHashData[$tsTypeHash]) && self::$tsTypesHashData[$tsTypeHash]['tsTypeName'] != $tsTypeName) {
+        /*  if ($tsTypeValue && isset(self::$tsTypesHashData[$tsTypeHash]) && self::$tsTypesHashData[$tsTypeHash]['tsTypeName'] != $tsTypeName) {
 
 
             $this->tsTypeName = $tsTypeName;
@@ -35,19 +35,19 @@ class TSType
             //   $this->tsTypeName = $cachedData['tsTypeName'];
 
             $this->tsTypeValue = $cachedData['tsTypeName'];
-        } else {
+        } else {*/
 
-            $this->tsTypeName = $tsTypeName;
-
-
-            self::$tsTypesHashData[$tsTypeHash] = [
-                'tsTypeName' => $tsTypeName,
-                'tsTypeValue' => $tsTypeValue,
-            ];
+        $this->tsTypeName = $tsTypeName;
 
 
-            $this->tsTypeValue = $tsTypeValue;
-        }
+        /* self::$tsTypesHashData[$tsTypeHash] = [
+            'tsTypeName' => $tsTypeName,
+            'tsTypeValue' => $tsTypeValue,
+        ];*/
+
+
+        $this->tsTypeValue = $tsTypeValue;
+        // }
 
         $this->isEnum = $isEnum;
 
@@ -65,13 +65,13 @@ class TSType
     {
 
 
-        if (!isset($this->tsTypeValue) || empty($this->tsTypeValue)) {
+        if (empty($this->tsTypeValue)) {
             return '';
             //   throw new \Exception("Type name is not set or empty.");
         }
 
 
-        if (!isset($this->tsTypeName) || empty($this->tsTypeName)) {
+        if (empty($this->tsTypeName)) {
             return '';
             //   throw new \Exception("Type name is not set or empty.");
         }

@@ -238,8 +238,6 @@ class EnumType extends BaseType
     {
 
 
-
-
         $itemTypeFilter =  Shm::structure([
             'eq' => Shm::enum($this->values)->title('Равно'),
             'in' => Shm::arrayOf(Shm::enum($this->values))->title('Включает значения'),
@@ -249,7 +247,7 @@ class EnumType extends BaseType
                 'true' => 'Да',
                 'false' => 'Нет'
             ])->title('Не заполнено'),
-        ])->editable()->inAdmin(true);
+        ])->editable()->inAdmin(true)->staticBaseTypeName($this->key . "EnumFilter" . AutoPostfix::get(array_keys($this->values, true)));
 
         return $itemTypeFilter->inAdmin($this->inAdmin)->title($this->title);
     }
@@ -337,7 +335,7 @@ class EnumType extends BaseType
             throw new \Exception("getEnumTypeName -> Key is not set for EnumType" . ' ' . print_r($this->path) . ' ' .  print_r($this->values, true));
         }
 
-        return ShmUtils::onlyLetters($this->key) . AutoPostfix::get(array_keys($this->values)) . 'Enum';
+        return ShmUtils::onlyLetters($this->key) . AutoPostfix::get(array_keys($this->values), true) . 'Enum';
     }
 
 

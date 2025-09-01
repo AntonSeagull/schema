@@ -109,6 +109,8 @@ class ShmSmsAuth extends ShmAuthBase
 
                     $user = null;
 
+                    $userStructure = null;
+
                     foreach ($this->authStructures as $authStructure) {
 
 
@@ -136,15 +138,22 @@ class ShmSmsAuth extends ShmAuthBase
                         }
                     }
 
+
+
                     if (!$user) {
 
+
+
+                        $authStructure = $this->authStructures[0] ?? null;
+
+                        if (!$authStructure) {
+                            Response::validation("Регистрация по SMS недоступна");
+                        }
 
 
                         if ($authStructure->onlyAuth) {
                             Response::validation("Регистрация по SMS ограничена");
                         }
-
-                        $authStructure = $this->authStructures[0] ?? null;
 
                         if (!$authStructure) {
                             Response::validation("Регистрация по SMS недоступна");
@@ -174,6 +183,9 @@ class ShmSmsAuth extends ShmAuthBase
                         return  Auth::genToken($authStructure, $user->getInsertedId());
                     } else {
 
+                        if (!$userStructure) {
+                            Response::validation("Пользователь не найден");
+                        }
                         return Auth::genToken($userStructure, $user->_id);
                     }
                 } else {

@@ -10,6 +10,7 @@ use Shm\ShmTypes\ArrayOfType;
 use Shm\ShmTypes\EnumType;
 use Shm\ShmTypes\StructureType;
 use PhpSchool\CliMenu\Builder\CliMenuBuilder;
+use Nette\PhpGenerator\Helpers;
 
 class Doctor
 {
@@ -27,6 +28,13 @@ class Doctor
                     self::fieldClasses();
                     exit;
                 })
+
+                ->addItem('Update ItemClasses', function () {
+                    self::itemsClasses();
+                    exit;
+                })
+
+
 
                 ->addItem('Update MongoDB Indexes', function () {
                     self::ensureSortWeightIndex();
@@ -240,6 +248,33 @@ class Doctor
         }
     }
 
+    private static function itemsClasses()
+    {
+
+        $structures = self::structures();
+
+        $dir = ShmInit::$rootDir . '/app/ItemsClasses/';
+
+        if (is_dir($dir)) {
+            foreach (scandir($dir) as $item) {
+                if ($item === '.' || $item === '..') {
+                    continue;
+                }
+
+                $path = $dir . DIRECTORY_SEPARATOR . $item;
+
+                if (is_file($path)) {
+                    unlink($path);
+                }
+            }
+        }
+
+        foreach ($structures as $structure) {
+
+            self::generateItemClass($structure::structure());
+        }
+    }
+
 
 
     private static function toSnakeCase(string $input): string
@@ -308,7 +343,7 @@ class Doctor
                 try {
                     $class->addConstant($enumConstName, $enumConstValue)
                         ->setVisibility('public')
-                        ->setComment("Enum {$key}: {$enumValue}");
+                        ->setComment("Enum {$key}");
                 } catch (\Throwable $error) {
                     // логировать по желанию
                 }
@@ -323,6 +358,105 @@ class Doctor
                 self::addConstantByStructure($class, $item->itemType,  $prefix . $key . '.');
             }
         }
+    }
+
+
+    private static function addVarByStructure(ClassType $class, StructureType $structure, string $prefix = ''): void
+    {
+        $keys = [];
+
+        $shape = [];
+        foreach ($structure->items as $rawKey => $item) {
+            if ($rawKey === '*' || $rawKey === '_id') {
+                continue;
+            }
+
+            // применим префикс (если надо)
+            $name = $rawKey;
+
+
+
+            $keys[] = $name;
+
+            // свойство
+            $prop = $class->addProperty($name, $item->default ?? null)
+                ->setPublic()
+
+                ->setComment((string) $item->title);
+
+            // если знаем тип — укажем (пример, адаптируй маппинг)
+            if (!empty($item->type)) {
+                $mapped = self::mapType((string) $item->type); // например: int|string|array|float|bool
+                if ($mapped !== null) {
+                    $shape[] = "    $name?: $mapped";
+                    $prop->setType($mapped)->setNullable(true); // теперь nullable имеет смысл
+                } else {
+                    $shape[] = "    $name?: mixed";
+                }
+            }
+
+            // метод-сеттер
+            $m = $class->addMethod($name) // либо 'set' . ucfirst($name)
+                ->setPublic()
+                ->setReturnType('self')
+                ->setComment((string) $item->title);
+
+            $param = $m->addParameter('value');
+
+            if (!empty($item->type) && isset($mapped) && $mapped !== null) {
+                $param->setType($mapped);
+            }
+
+            $m->setBody('$this->' . $name . ' = $value;' . "\n" . 'return $this;');
+        }
+
+        // добавим data() только если его ещё нет
+        if (!$class->hasMethod('data')) {
+            $method = $class->addMethod('data')
+                ->setPublic()
+                ->setReturnType('array');
+
+            $bodyLines = [];
+            foreach ($keys as $name) {
+                $bodyLines[] = "'" . $name . "' => \$this->" . $name . ",";
+            }
+            $method->setBody("return [\n" . implode("\n", $bodyLines) . "\n];");
+        }
+
+        // генерируем конструктор
+        $ctor = $class->addMethod('__construct')
+            ->setPublic();
+
+        $ctor->addParameter('values', null)
+            ->setType('array')
+            ->setNullable(true);
+
+        $body = "if (\$values) {\n";
+        foreach ($keys as $name) {
+            $body .= "    if (array_key_exists('$name', \$values)) {\n";
+            $body .= "        \$this->$name = \$values['$name'];\n";
+            $body .= "    }\n";
+        }
+        $body .= "}";
+        $ctor->setBody($body);
+        $doc = "/**\n * @param array{\n" . implode(",\n", $shape) . "\n * }|null \$values\n */";
+
+        $ctor->setComment($doc);
+    }
+
+    /**
+     * Пример маппинга типов из структуры в PHP-типы
+     */
+    private static function mapType(string $t): ?string
+    {
+        return match (strtolower($t)) {
+            'int', 'integer' => 'int',
+            'string', 'text'         => 'string',
+            'float', 'double', 'number' => 'float',
+            'bool', 'boolean' => 'bool',
+            'array', 'list', 'object' => 'array', // при отсутствии детальной схемы
+            default => null, // если неизвестно — без типа
+        };
     }
 
 
@@ -355,6 +489,41 @@ class Doctor
 
 
         $output = "<?php\n\nnamespace App\\FieldClasses;\n\n"; // заголовок файла
+        $output .= "use Shm\ShmUtils\DeepAccess;\n\n"; // импортируем класс StructureType
+        $output .= $class . "\n\n"; // собираем все классы
+
+        file_put_contents($filePath, $output);
+    }
+
+    private static function generateItemClass(StructureType $structure)
+    {
+
+
+
+        $structure->updateKeys();
+        $className = ucfirst(str_replace([' ', '-', '_'], '', $structure->collection));
+
+        $dir =  ShmInit::$rootDir . '/app/ItemClasses/';
+
+
+        if (!is_dir($dir)) {
+            mkdir($dir, 0777, true); // создать все вложенные папки
+        }
+
+
+        $classFullName = $className . 'Item';
+
+        $class = new \Nette\PhpGenerator\ClassType($classFullName);
+
+
+        self::addVarByStructure($class, $structure);
+
+
+
+        $filePath = $dir . $classFullName . '.php';
+
+
+        $output = "<?php\n\nnamespace App\\ItemClasses;\n\n"; // заголовок файла
         $output .= "use Shm\ShmUtils\DeepAccess;\n\n"; // импортируем класс StructureType
         $output .= $class . "\n\n"; // собираем все классы
 

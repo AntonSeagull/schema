@@ -7,7 +7,7 @@ use GuzzleHttp\Client;
 use GuzzleHttp\Psr7\Request;
 use Shm\ShmDB\mDB;
 use Shm\Shm;
-use Shm\ShmAdmin\SchemaCollections\ManualTags;
+
 use Shm\ShmAdmin\SchemaCollections\SubAccountsSchema;
 use Shm\ShmAdmin\Types\AdminType;
 use Shm\ShmAdmin\Types\GroupType;
@@ -77,7 +77,7 @@ class AdminPanel
             $schema = SubAccountsSchema::removeLockItemInSchema($schema);
         }
 
-        $schema->addField("manualTags", ManualTags::structure());
+
         return $schema;
     }
 
@@ -260,8 +260,11 @@ class AdminPanel
                 "*" => Shm::string()
             ]),
 
-            "tagMode" => Shm::bool(),
+            'paymentBalance' => Shm::bool(),
+            'paymentCurrency' => Shm::arrayOf(Shm::string()),
 
+
+            "apikey" => Shm::bool(),
             'tablePriority' => Shm::int(),
             'unique' => Shm::boolean(),
             'report' => Shm::boolean(),
@@ -444,7 +447,7 @@ class AdminPanel
                 'type' => Shm::structure([
                     'geoPoint' => Shm::geoPoint(),
                     'geoRegion' => Shm::geoRegion(),
-                    'manualTags' => ManualTags::structure()
+
 
                 ]),
             ],
@@ -1510,20 +1513,6 @@ class AdminPanel
             ],
 
 
-            'manualTags' => [
-                'type' => Shm::listOf(ManualTags::structure()),
-                'args' => [
-                    'collection' => Shm::nonNull(Shm::string()),
-                ],
-                'resolve' => function ($root, $args) {
-
-                    Auth::authenticateOrThrow(...self::$users);
-
-                    ManualTags::find([
-                        'collection' => $args['collection'],
-                    ]);
-                }
-            ],
 
             //   'addManualTag' => [],
 

@@ -15,7 +15,7 @@ use Shm\CachedType\CachedInputObjectType;
 use Shm\CachedType\CachedObjectType;
 
 use Shm\Shm;
-use Shm\ShmAdmin\SchemaCollections\ManualTags;
+
 use Shm\ShmAdmin\Types\VisualGroupType;
 use Shm\ShmRPC\ShmRPCCodeGen\TSType;
 use Shm\ShmTypes\SupportTypes\StageType;
@@ -44,16 +44,18 @@ class StructureType extends BaseType
 
 
 
+    public bool $apikey = false;
 
-    public $tagMode = false;
+    public bool $paymentBalance = false;
+    public array $paymentCurrency = [];
 
-    public function tagMode(bool $tagMode = true): static
+    public  function payment(bool $paymentBalance = true, array $paymentCurrency = []): static
     {
-        $this->tagMode = $tagMode;
 
+        $this->paymentBalance = $paymentBalance;
+        $this->paymentCurrency = $paymentCurrency;
         return $this;
     }
-
 
     public bool $manualSort = false;
 
@@ -61,6 +63,13 @@ class StructureType extends BaseType
     public bool $canUpdate = false;
     public bool $canCreate = false;
     public bool $canDelete = false;
+
+
+    public function apikey(bool $apikey = true): static
+    {
+        $this->apikey = $apikey;
+        return $this;
+    }
 
 
     public function manualSort(bool $manualSort = true): static

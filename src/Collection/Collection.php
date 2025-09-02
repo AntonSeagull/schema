@@ -213,9 +213,7 @@ class Collection
         }
 
 
-        if ($schema->tagMode) {
-            $schema->addFieldIfNotExists("_manualTags", Shm::IDs()->editable());
-        }
+
 
 
         $schema->addFieldIfNotExists("created_at", Shm::int()->editable(false));

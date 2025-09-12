@@ -10,12 +10,14 @@ use Shm\ShmTypes\FloatType;
 use Shm\ShmTypes\BoolType;
 use Shm\ShmTypes\BaseType;
 use Shm\ShmTypes\ColorType;
+use Shm\ShmTypes\CompositeTypes\CodeType;
 use Shm\ShmTypes\CompositeTypes\FileTypes\FileAnyType;
 use Shm\ShmTypes\CompositeTypes\FileTypes\FileAudioType;
 use Shm\ShmTypes\CompositeTypes\FileTypes\FileDocumentType;
 use Shm\ShmTypes\CompositeTypes\FileTypes\FileIDType;
 use Shm\ShmTypes\CompositeTypes\FileTypes\FileImageLinkType;
 use Shm\ShmTypes\CompositeTypes\FileTypes\FileImageType;
+use Shm\ShmTypes\CompositeTypes\FileTypes\FileDocumentLinkType;
 use Shm\ShmTypes\CompositeTypes\FileTypes\FileVideoType;
 use Shm\ShmTypes\CompositeTypes\GeoTypes\GeoPointType;
 use Shm\ShmTypes\CompositeTypes\GeoTypes\MongoPointType;
@@ -158,6 +160,11 @@ class Shm
         return self::bool();
     }
 
+    public static function code(string | null $codeLang = null): CodeType
+    {
+        return (new CodeType())->codeLanguage($codeLang ?? 'js');
+    }
+
     public static function bool(): BoolType
     {
         return new BoolType();
@@ -191,6 +198,13 @@ class Shm
     public static function color(): ColorType
     {
         return new ColorType();
+    }
+
+
+
+    public static function fileLink(): FileDocumentLinkType
+    {
+        return new FileDocumentLinkType();
     }
 
     public static function fileImageLink(): FileImageLinkType

@@ -9,6 +9,17 @@ class Response
 {
 
 
+    public static function html($html, $status = 200, array $headers = [])
+    {
+
+        header("Content-Type: text/html;charset=utf-8");
+
+        http_response_code($status);
+
+        echo $html;
+        exit;
+    }
+
 
     public  static function json($data, $status = 200, array $headers = [])
     {

@@ -38,7 +38,8 @@
         "kornrunner/blurhash": "*",
         "predis/predis": "^3.0",
         "php-school/cli-menu": "^4.3",
-        "geoip2/geoip2": "^3.2"
+        "geoip2/geoip2": "^3.2",
+        "jenssegers/blade": "^2.0"
     },
     "prefer-stable": true
 }

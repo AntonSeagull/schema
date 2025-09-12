@@ -775,7 +775,7 @@ class mDB
     public static function hashDocuments($documents): string | null
     {
 
-        if (!$documents) return null;
+        if (!$documents) return md5("empty");
         if (isset($documents['_id'])) {
             $documents = [$documents];
         }

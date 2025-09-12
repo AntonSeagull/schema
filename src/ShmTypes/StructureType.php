@@ -802,15 +802,21 @@ class StructureType extends BaseType
     {
 
 
+
+
         if (!(is_array($value) || $value instanceof Traversable)) {
             return null;
         }
+
 
         if (isset($this->items['*'])) {
             return $value;
         }
 
         $newValue = [];
+
+
+
         foreach ($value as $key => $val) {
             if (isset($this->items[$key]) && !$this->items[$key]->hide) {
                 $newValue[$key] = $this->items[$key]->removeOtherItems($val);
@@ -1022,7 +1028,7 @@ class StructureType extends BaseType
 
 
 
-    public function externalData($data)
+    public function externalData($data, $onlyDisplayRelations = false): mixed
     {
 
 
@@ -1066,16 +1072,44 @@ class StructureType extends BaseType
 
             $pathItem = $collectionPaths[0];
 
-            $mongoDocs =  mDB::collection($pathItem['document']->collection)->aggregate([
 
+
+
+            $aggregatePipeline = [
                 ...$pathItem['document']->getPipeline(),
-                [
-                    '$match' => [
-                        '_id' => ['$in' => $allIds]
-                    ]
-                ],
+            ];
 
-            ])->toArray();
+
+            if ($onlyDisplayRelations) {
+
+
+
+
+                if ($pathItem['document']->hasTrueValueDeep("display")) {
+
+                    $displayProjection = $pathItem['document']->getProjection('display');
+
+                    $aggregatePipeline[] = ['$project' => $displayProjection];
+                } else {
+
+                    $displayProjection = $pathItem['document']->getProjection(function ($n) {
+                        return in_array($n->type, ['string', 'phone', 'email']);
+                    });
+
+
+                    if (count($displayProjection) > 0) {
+                        $aggregatePipeline[] = ['$project' => $displayProjection];
+                    }
+                }
+            }
+
+            $aggregatePipeline[] = [
+                '$match' => [
+                    '_id' => ['$in' => $allIds]
+                ]
+            ];
+
+            $mongoDocs =  mDB::collection($pathItem['document']->collection)->aggregate($aggregatePipeline)->toArray();
 
             if (count($mongoDocs) == 0) {
                 continue;

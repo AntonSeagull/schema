@@ -164,7 +164,7 @@ class ArrayOfType extends BaseType
 
 
 
-    public function externalData($data)
+    public function externalData($data, $onlyDisplayRelations = false): mixed
     {
 
 

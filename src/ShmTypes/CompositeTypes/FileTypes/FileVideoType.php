@@ -15,7 +15,9 @@ use Traversable;
 
 class FileVideoType extends StructureType
 {
-    public string $type = 'video';
+    public string $type = 'fileVideo';
+
+
 
     protected StructureType $fields;
 

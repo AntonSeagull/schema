@@ -189,9 +189,18 @@ abstract class BaseType
 
     public $display = false;
 
+    public $displayPrefix = null;
 
-    public function display(bool $display = true): static
+
+    public function display(bool | string $display = true): static
     {
+
+        if (is_string($display)) {
+            $this->displayPrefix = $display;
+            $this->display = true;
+            return $this;
+        }
+
         $this->display = $display;
         return $this;
     }
@@ -1018,6 +1027,155 @@ abstract class BaseType
     }
 
 
+    public function haveGetDisplayProjection(): bool
+    {
+        if ($this instanceof StructureType && isset($this->items)) {
+
+            foreach ($this->items as $key => $item) {
+
+                if ($item->haveGetDisplayProjection()) {
+                    return true;
+                }
+            }
+        }
+
+        if ($this instanceof ArrayOfType && isset($this->itemType)) {
+            if ($this->itemType->haveGetDisplayProjection()) {
+                return true;
+            }
+        }
+
+        if ($this->display) {
+            return true;
+        }
+
+        return false;
+    }
+
+
+
+
+
+    /**
+     * Преобразует строку/коллбек в предикат: fn($node): bool
+     * @param string|callable $criteria
+     * @return callable
+     */
+    private function makePredicate(string|callable $criteria): callable
+    {
+        if (is_string($criteria)) {
+            $prop = $criteria;
+            return static function ($node) use ($prop): bool {
+                // безопасно проверяем свойство
+                return property_exists($node, $prop) && (bool) $node->{$prop};
+            };
+        }
+
+        if (is_callable($criteria)) {
+            return $criteria;
+        }
+
+        throw new \InvalidArgumentException('Criteria must be string or callable.');
+    }
+
+    /**
+     * Рекурсивно проверяет, есть ли true где-либо в узле/детях по критерию.
+     * @param string|callable $criteria
+     */
+    public function hasTrueValueDeep(string|callable $criteria): bool
+    {
+        $pred = $this->makePredicate($criteria);
+
+        if ($pred($this)) {
+            return true;
+        }
+
+        if (isset($this->items)) {
+            foreach ($this->items as $item) {
+                if ($item->hasTrueValueDeep($pred)) {
+                    return true;
+                }
+            }
+        }
+
+        if (isset($this->itemType) && $this->itemType->hasTrueValueDeep($pred)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Получает проекцию по типу или произвольному предикату.
+     * Если передана строка — валидируем, как раньше.
+     *
+     * @param string|callable $criteria 'inAdmin'|'hide'|'display'|'inTable' или callable($node): bool
+     * @param bool $childrenCalled
+     * @return array
+     */
+    public function getProjection(string|callable $criteria, bool $childrenCalled = false): array
+    {
+        // Валидация только для строкового режима (сохраняем прежнее поведение)
+        if (is_string($criteria)) {
+            if (!in_array($criteria, ['inAdmin', 'hide', 'display', 'inTable'], true)) {
+                throw new \LogicException('Invalid projection type: ' . $criteria);
+            }
+        }
+
+        $pred = $this->makePredicate($criteria);
+
+        if ($this->type === 'structure' && isset($this->items)) {
+            if (!$pred($this) && !$this->hasTrueValueDeep($pred)) {
+                return [];
+            }
+
+            $res = [];
+            foreach ($this->items as $item) {
+                $val = $item->getProjection($pred, true);
+
+                if (!is_array($val)) {
+                    throw new \LogicException('Projection must return an array for structure items. Key: ' . $item->key);
+                }
+
+                if (count($val) === 0) {
+                    continue;
+                }
+
+                $res = array_merge($res, $val);
+            }
+
+            if (!$childrenCalled) {
+                return $res;
+            }
+
+            return [$this->key => $res];
+        }
+
+        if ($this->type === 'array' && isset($this->itemType)) {
+            if (!$pred($this) && !$this->hasTrueValueDeep($pred)) {
+                return [];
+            }
+
+            $val = $this->itemType->getProjection($pred, true);
+
+            if (!is_array($val)) {
+                throw new \LogicException('Projection must return an array for array itemType. Key: ' . $this->key);
+            }
+
+            // if (!$childrenCalled) {
+            //     return $val;
+            // }
+
+            return  $val;
+        }
+
+        if ($pred($this)) {
+            return [$this->key => 1];
+        }
+
+        return [];
+    }
+
 
 
 
@@ -1175,6 +1333,8 @@ abstract class BaseType
 
         return  false;
     }
+
+
 
 
     public function getIDsPathsForCollection(array $path, string $collection): array

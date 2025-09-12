@@ -7,7 +7,10 @@ use Shm\ShmTypes\StringType;
 
 class FileImageLinkType extends StringType
 {
-    public string $type = 'imagelink';
+
+
+
+    public string $type = 'fileImageLink';
 
     public $width = 300;
     public $height = 300;

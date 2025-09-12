@@ -15,9 +15,17 @@ use Traversable;
 
 class FileAudioType extends StructureType
 {
-    public string $type = 'audio';
+    public string $type = 'fileAudio';
 
 
+
+    public string $accept = 'audio/*';
+
+    public  function accept($accept = 'audio/*'): static
+    {
+        $this->accept = $accept;
+        return $this;
+    }
 
     public static function items(): array
     {

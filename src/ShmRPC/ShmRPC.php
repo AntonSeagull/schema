@@ -19,6 +19,7 @@ use Shm\ShmTypes\StructureType;
 use Shm\ShmUtils\ShmUtils;
 use Shm\ShmBlueprints\FileUpload\ShmFileUpload;
 use Shm\ShmBlueprints\Geo\ShmIPGeolocation;
+use Shm\ShmBlueprints\Geocoding\ShmGeocoding;
 use Shm\ShmTypes\BaseType;
 use Shm\ShmUtils\RedisCache;
 
@@ -366,6 +367,7 @@ class ShmRPC
 
 
 
+
         $result = $schemaMethod['type']->toOutput($result);
 
 
@@ -374,11 +376,15 @@ class ShmRPC
         $result = $schemaMethod['type']->removeOtherItems($result);
 
 
+
+
         $result = $schemaMethod['type']->normalizePrivate($result);
 
         Response::endTraceTiming("normalize");
 
 
+
+        $onlyDisplayRelations = $schemaMethod['onlyDisplayRelations'] ?? false;
 
 
         if ($result) {
@@ -392,7 +398,7 @@ class ShmRPC
 
 
                 Response::startTraceTiming("externalData");
-                $result = $schemaMethod['type']->externalData($result);
+                $result = $schemaMethod['type']->externalData($result, $onlyDisplayRelations);
                 Response::endTraceTiming("externalData");
             }
         }
@@ -423,6 +429,10 @@ class ShmRPC
         Response::success($result);
     }
 
+    public static function geocoding(): ShmGeocoding
+    {
+        return new ShmGeocoding();
+    }
 
     public static function auth(StructureType ...$authStructures): ShmAuth
     {
@@ -437,5 +447,11 @@ class ShmRPC
     public static function IPGeolocation()
     {
         return ShmIPGeolocation::rpc();
+    }
+
+    public static function error(string $message)
+    {
+
+        Response::validation($message);
     }
 }

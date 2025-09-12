@@ -15,7 +15,10 @@ use Traversable;
 
 class FileImageType extends StructureType
 {
-    public string $type = 'image';
+    public string $type = 'fileImage';
+
+
+
 
     protected StructureType $fields;
 

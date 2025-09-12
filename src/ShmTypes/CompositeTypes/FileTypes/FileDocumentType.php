@@ -15,7 +15,7 @@ use Traversable;
 
 class FileDocumentType extends StructureType
 {
-    public string $type = 'document';
+    public string $type = 'fileDocument';
 
     protected StructureType $fields;
 

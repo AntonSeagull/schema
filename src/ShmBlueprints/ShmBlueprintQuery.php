@@ -474,16 +474,9 @@ class ShmBlueprintQuery
 
                 if ($onlyHash) {
 
-                    $hash = [];
-
-                    foreach ($result as $val) {
-                        $hash[] = $val['_id'] . $val['updated_at'];
-                    }
-
-                    $hash = md5(implode("", $hash));
 
                     return [
-                        'hash' => $hash,
+                        'hash' => mDB::hashDocuments($result),
                     ];
                 }
 
@@ -501,24 +494,14 @@ class ShmBlueprintQuery
 
 
 
-                    $hash = [];
 
-                    foreach ($result as $val) {
-                        $hash[] = $val['_id'] . $val['updated_at'];
-                    }
-
-                    if (count($hash) > 0) {
-                        $hash = md5(implode("", $hash));
-                    } else {
-                        $hash = null;
-                    }
 
                     return [
                         'data' => $result,
                         'limit' => $args['limit'] ?? 20,
                         'offset' => $args['offset'] ?? 0,
                         'dateDistinct' => $dateDistinctData,
-                        'hash' => $hash,
+                        'hash' =>  mDB::hashDocuments($result),
                         'total' => $total,
                     ];
                 }

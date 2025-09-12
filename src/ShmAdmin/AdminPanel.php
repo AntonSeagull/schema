@@ -120,6 +120,16 @@ class AdminPanel
     }
 
     private static $allTypes = [
+        'fileAudio',
+        'fileDocumentLink',
+        'fileDocument',
+        'fileImageID',
+        'fileVideoID',
+        'fileAudioID',
+        'fileDocumentID',
+        'fileImageLink',
+        'fileImage',
+        'fileVideo',
         'enum',
         'enums',
         'string',
@@ -133,19 +143,17 @@ class AdminPanel
         'selfRef',
         'uuid',
         'social',
+        'url',
         'text',
         'html',
         'time',
         'range',
-        'file',
-        'imagelink',
-        'video',
         'IDs',
-        'image',
         'geopoint',
         'array',
         'phone',
         'ID',
+        'code',
         'unixdate',
         'mongoPoint',
         'adminGroup',
@@ -222,6 +230,8 @@ class AdminPanel
             }),
 
 
+
+            'codeLang' => Shm::string(), //for CodeType
             'manualSort' => Shm::bool(),
             'publicStages' => Shm::structure([
                 "*" => Shm::string()
@@ -271,8 +281,10 @@ class AdminPanel
             'globalUnique' => Shm::boolean(),
             'canUpdateCond' => Shm::mixed(),
             'display' => Shm::bool(),
+            'displayPrefix' => Shm::string(),
             'trim' => Shm::boolean(),
             'uppercase' => Shm::boolean(),
+            'accept' => Shm::string(),
             'canUpdate' => Shm::boolean(),
             'canDelete' => Shm::boolean(),
             'canCreate' => Shm::boolean(),
@@ -1022,18 +1034,14 @@ class AdminPanel
                     Response::endTraceTiming("data_aggregate");
 
 
-                    $hash = [];
-
-                    foreach ($result as $val) {
-                        $hash[] = $val['_id'] . ($val['updated_at'] ?? "");
-                    }
-
-                    return  md5(implode("", $hash));
+                    return  mDB::hashDocuments($result);
                 }
 
             ],
 
             'data' => [
+
+                'onlyDisplayRelations' => true,
                 'type' => Shm::structure([
                     'data' => Shm::arrayOf(Shm::structure([
                         "_id" => Shm::ID(),
@@ -1079,10 +1087,11 @@ class AdminPanel
 
 
 
-                    $structure->inTable(true);
-                    if ($args['table'] ?? false) {
-                        $structure->hideNotInTable();
-                    }
+                    $structure->inTableThis(true);
+
+
+
+
 
                     if (!$structure) {
                         Response::validation("Данные не доступны для просмотра");
@@ -1158,7 +1167,22 @@ class AdminPanel
                             ],
                         ];
 
+                        if ($args['table'] ?? false) {
+                            $hideProjection =  $structure->getProjection('inTable');
+
+
+
+                            if ($hideProjection) {
+                                $pipeline[] = [
+                                    '$project' => $hideProjection,
+                                ];
+                            }
+                        }
+
+
+
                         $result = $structure->aggregate($pipeline)->toArray() ?? null;
+
 
 
 
@@ -1168,18 +1192,11 @@ class AdminPanel
                             ];
                         } else {
 
-                            $hash = [];
-
-                            foreach ($result as $val) {
-                                $hash[] = $val['_id'] . ($val['updated_at'] ?? "");
-                            }
-
-                            $hash = md5(implode("", $hash));
 
 
                             return  [
                                 'data' => $result,
-                                'hash' => $hash,
+                                'hash' => mDB::hashDocuments($result),
                             ];
                         }
                     }
@@ -1290,13 +1307,6 @@ class AdminPanel
                     Response::endTraceTiming("data_aggregate");
 
 
-                    $hash = [];
-
-                    foreach ($result as $val) {
-                        $hash[] = $val['_id'] . ($val['updated_at'] ?? "");
-                    }
-
-                    $hash = md5(implode("", $hash));
 
 
 
@@ -1304,7 +1314,7 @@ class AdminPanel
                         'data' => $result,
                         'limit' => $args['limit'] ?? 20,
                         'offset' => $args['offset'] ?? 0,
-                        'hash' => $hash,
+                        'hash' => mDB::hashDocuments($result),
                         'total' => $total,
                     ];
                 }
@@ -1326,7 +1336,7 @@ class AdminPanel
 
                     $structure = self::fullSchema()->findItemByCollection($args['collection']);
 
-                    return $structure->expand()->filterType()->expand()->json();
+                    return $structure->filterType()->json();
                 }
             ],
 

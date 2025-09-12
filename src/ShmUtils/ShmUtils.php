@@ -101,8 +101,16 @@ class ShmUtils
     }
 
 
-    public static function allRequest()
+    private static $_data = null;
+
+    public static function request(string $key, $default = null)
     {
+
+
+        if (self::$_data !== null) {
+            return self::$_data[$key] ?? $default;
+        }
+
 
         $get = $_GET;
         $post = $_POST;
@@ -113,7 +121,29 @@ class ShmUtils
             $requestBody = json_decode($body, true);
         }
 
-        return [...$get, ...$post, ...$request, ...$requestBody];
+        self::$_data = [...$get, ...$post, ...$request, ...$requestBody];
+        return self::$_data[$key] ?? $default;
+    }
+
+    public static function allRequest()
+    {
+
+        if (self::$_data !== null) {
+            return self::$_data;
+        }
+
+
+        $get = $_GET;
+        $post = $_POST;
+        $request = $_REQUEST;
+        $requestBody = [];
+        $body = file_get_contents('php://input');
+        if ($body) {
+            $requestBody = json_decode($body, true);
+        }
+
+        self::$_data  = [...$get, ...$post, ...$request, ...$requestBody];
+        return self::$_data;
     }
 
     public static function privateAccess($valid_username, $valid_password)

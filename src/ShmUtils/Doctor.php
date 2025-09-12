@@ -228,17 +228,18 @@ class Doctor
 
         $dir = ShmInit::$rootDir . '/app/FieldClasses/';
 
+
         if (is_dir($dir)) {
             foreach (scandir($dir) as $item) {
                 if ($item === '.' || $item === '..') {
                     continue;
                 }
 
-                $path = $dir . DIRECTORY_SEPARATOR . $item;
+                //  $path = $dir . DIRECTORY_SEPARATOR . $item;
 
-                if (is_file($path)) {
-                    unlink($path);
-                }
+                //   if (is_file($path)) {
+                //       unlink($path);
+                //  }
             }
         }
 
@@ -261,11 +262,11 @@ class Doctor
                     continue;
                 }
 
-                $path = $dir . DIRECTORY_SEPARATOR . $item;
+                //  $path = $dir . DIRECTORY_SEPARATOR . $item;
 
-                if (is_file($path)) {
-                    unlink($path);
-                }
+                // if (is_file($path)) {
+                //    unlink($path);
+                //  }
             }
         }
 

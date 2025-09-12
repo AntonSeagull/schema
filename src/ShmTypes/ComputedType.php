@@ -2,6 +2,7 @@
 
 namespace Shm\ShmTypes;
 
+use Shm\Shm;
 use Shm\ShmRPC\ShmRPC;
 use Shm\ShmTypes\BaseType;
 
@@ -53,7 +54,7 @@ class ComputedType extends BaseType
         }
 
         if (isset($computedParams['args']) && !$computedParams['args'] instanceof BaseType) {
-            throw new \Exception('"args" must be an instance of BaseType or null.');
+            $computedParams['args'] = Shm::structure($computedParams['args']);
         }
 
         $this->computedResolve = $computedParams['resolve'];

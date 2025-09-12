@@ -74,6 +74,9 @@ class ComputedType extends BaseType
     public function computed($params)
     {
 
+        if ($this->computedArgs) {
+            $params = $this->computedArgs->normalize($params);
+        }
 
         $result = call_user_func($this->computedResolve, [
             'root' => $this->computedReturnType,

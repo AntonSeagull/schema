@@ -163,13 +163,13 @@ class CmdSchedule
             }
 
             $tasksForNow = self::getTasksForNow();
-            self::log(json_encode($tasksForNow));
+            // self::log(json_encode($tasksForNow));
             foreach ($tasksForNow as $task) {
                 if (isset($task['command'])) {
 
                     $command = "php ./index.php " . escapeshellarg($task['command']);
 
-                    self::log($command);
+                    // self::log($command);
 
                     if (!function_exists('exec')) {
                         $error = new \RuntimeException("Function exec() is disabled");

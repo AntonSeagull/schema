@@ -4,6 +4,7 @@ namespace Shm\ShmUtils;
 
 use Shm\Shm;
 use Shm\ShmCmd\Cmd;
+use Shm\ShmDB\mDB;
 use Shm\ShmTypes\StructureType;
 
 class SearchStringUpdate
@@ -32,14 +33,17 @@ class SearchStringUpdate
         $SearchPaths =   $structure->getSearchPaths();
 
 
-
         $items = $structure->find([
             "_needRecalculateSearch" => ['$ne' => false],
         ], [
-            'limit' => 1,
+            'limit' => 10,
+            'sort' => [
+                'updated_at' => -1
+            ]
         ]);
 
 
+        $bulkUpdate = [];
 
         foreach ($items as $item) {
 
@@ -58,9 +62,6 @@ class SearchStringUpdate
             foreach ($SearchPaths as $pathItem) {
 
 
-                echo 'Processing search path item: ' . json_encode($pathItem) . PHP_EOL;
-                echo 'Data item: ' . json_encode($item) . PHP_EOL;
-
                 if (!isset($pathItem['path']) || !is_array($pathItem['path'])) {
                     throw new \Exception('Search path item must have a path key and it must be an array ' . json_encode($pathItem));
                 }
@@ -74,12 +75,9 @@ class SearchStringUpdate
             }
 
 
-
-
             $values = array_merge(...$values);
 
 
-            echo 'Found ' . count($values) . ' values for item ' . $item->_id . ' in collection ' . $structure->collection . PHP_EOL;
 
             $values = array_map(function ($value) {
                 return (string)$value;
@@ -89,20 +87,25 @@ class SearchStringUpdate
 
             $search_string = implode(" ", $values);
 
-            echo 'Updating search string for item ' . $item->_id . ' in collection ' . $structure->collection . PHP_EOL;
-            echo 'Search string: ' . $search_string . PHP_EOL;
 
-            $structure->_updateOne(
-                [
-                    "_id" => $item->_id,
-                ],
-                [
-                    '$set' => [
-                        "search_string" => $search_string,
-                        "_needRecalculateSearch" => false,
-                    ]
+            $bulkUpdate[] = [
+                'updateOne' => [
+                    [
+                        "_id" => $item->_id
+                    ],
+                    [
+                        '$set' => [
+                            "search_string" => $search_string,
+                            "_needRecalculateSearch" => false,
+                        ]
+                    ],
                 ]
-            );
+            ];
+        }
+
+        if (count($bulkUpdate) > 0) {
+            echo 'Executing bulk update for ' . count($bulkUpdate) . ' items in collection ' . $structure->collection . PHP_EOL;
+            mDB::_collection($structure->collection)->bulkWrite($bulkUpdate);
         }
     }
 

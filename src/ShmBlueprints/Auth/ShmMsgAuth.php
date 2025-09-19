@@ -62,7 +62,21 @@ class ShmMsgAuth extends ShmAuthBase
 
 
                 if (isset($args['code_id']) && $args['code_id']) {
-                    $result = json_decode(file_get_contents("http://api.auth4app.com/code/result?code_id=" . $args['code_id'] . "&api_key=a4d5b3fa5dc37d3590deda42cd17513ede4ee3dec9fe2ee71bac94f58d817f7c"), true);
+
+
+                    $context = stream_context_create([
+                        'ssl' => [
+                            'verify_peer' => false,
+                            'verify_peer_name' => false,
+                        ]
+                    ]);
+
+
+                    $result = json_decode(file_get_contents(
+                        "http://api.auth4app.com/code/result?code_id=" . $args['code_id'] . "&api_key=a4d5b3fa5dc37d3590deda42cd17513ede4ee3dec9fe2ee71bac94f58d817f7c",
+                        false,
+                        $context
+                    ), true);
 
                     if ($result['auth'] == true) {
 
@@ -190,7 +204,16 @@ class ShmMsgAuth extends ShmAuthBase
                     $phone = (int) preg_replace("/[^,.0-9]/", '', $args['phone']);
 
 
-                    $result = json_decode(file_get_contents("http://api.auth4app.com/code/get?phone=$phone&api_key=a4d5b3fa5dc37d3590deda42cd17513ede4ee3dec9fe2ee71bac94f58d817f7c"), true);
+                    $context = stream_context_create([
+                        'ssl' => [
+                            'verify_peer' => false,
+                            'verify_peer_name' => false,
+                        ]
+                    ]);
+
+
+
+                    $result = json_decode(file_get_contents("http://api.auth4app.com/code/get?phone=$phone&api_key=a4d5b3fa5dc37d3590deda42cd17513ede4ee3dec9fe2ee71bac94f58d817f7c", false, $context), true);
 
                     return $result;
                 }

@@ -71,7 +71,14 @@ class ShmSocAuth extends ShmAuthBase
 
                 $this->hasValueValidator(['key'], $args);
 
-                $dataAuth = file_get_contents('https://api.auth4app.com/hash?key=' . $args['key']);
+                $context = stream_context_create([
+                    'ssl' => [
+                        'verify_peer' => false,
+                        'verify_peer_name' => false,
+                    ]
+                ]);
+
+                $dataAuth = file_get_contents('http://api.auth4app.com/hash?key=' . $args['key'], false, $context);
 
                 $data = json_decode($dataAuth, true);
 

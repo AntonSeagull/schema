@@ -48,7 +48,7 @@ class ShmPassportAuth extends ShmAuthBase
                 ];
 
                 $context = stream_context_create($options);
-                $url = 'https://api.auth4app.com/auth/passport/response';
+                $url = 'http://api.auth4app.com/auth/passport/response';
 
                 $response = file_get_contents($url, false, $context);
 

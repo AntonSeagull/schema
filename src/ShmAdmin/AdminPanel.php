@@ -362,7 +362,12 @@ class AdminPanel
 
         $icon = self::$schema->assets['icon'] ?? null;
         $color = self::$schema->assets['color'] ?? "#000000";
-        $url = (string) self::url();
+        $apiUrl =  self::url() . $_SERVER['REQUEST_URI'];
+
+
+        $url = self::url();
+
+
 
         $js =  $url . "/static/js/main.js?shm=" . ShmInit::$shmVersionHash;
         $css = $url . "/static/css/main.css?shm=" . ShmInit::$shmVersionHash;
@@ -404,7 +409,7 @@ class AdminPanel
     <div id="root"></div>
 </body>
 
-<script url="' . $url . '" src="' . $js . '"></script>
+<script url="' . $apiUrl . '" src="' . $js . '"></script>
 
 <style>
     .init-loader {
@@ -588,8 +593,7 @@ class AdminPanel
 
 
 
-
-                    $root['type']  = $structure;
+                    $root->setType($structure);
 
 
 
@@ -696,7 +700,7 @@ class AdminPanel
                     "*" => Shm::mixed(),
                 ]),
                 'args' => Shm::structure([
-
+                    'clone' => Shm::ID()->default(null),
                     "collection" => Shm::nonNull(Shm::string()),
                 ]),
                 'resolve' => function ($root, $args) {
@@ -719,9 +723,34 @@ class AdminPanel
                     }
 
 
-                    $root['type'] = $structure;
+                    $root->setType($structure);
 
-                    $root['type']->updateKeys("type");
+
+
+
+
+                    $clone = $args['clone'] ?? null;
+                    if ($clone) {
+                        $cloneData = $structure->findOne([
+                            '_id' => mDB::id($clone)
+                        ]);
+
+                        if ($cloneData) {
+
+                            $cloneData = $structure->removeOtherItems($cloneData);
+
+
+                            $cloneData = $structure->removeValuesByCriteria(function ($_this) {
+                                return  !$_this->editable;
+                            }, $cloneData);
+
+                            $cloneData = $structure->normalize($cloneData, true);
+
+
+
+                            return $cloneData;
+                        }
+                    }
 
 
 
@@ -1098,9 +1127,10 @@ class AdminPanel
                     }
 
 
-                    $root['type']->items['data'] = Shm::arrayOf($structure);
+                    $rootType = $root->getType();
+                    $rootType->items['data'] = Shm::arrayOf($structure);
 
-                    $root['type']->items['data']->updateKeys("data");
+                    $root->setType($rootType);
 
                     $pipeline = $structure->getPipeline();
 
@@ -1567,9 +1597,13 @@ class AdminPanel
                     }
 
 
-                    $root['type']->items['data'] = Shm::arrayOf($structure);
+                    $rootType = $root->getType();
+                    $rootType->items['data'] = Shm::arrayOf($structure);
 
-                    $root['type']->items['data']->updateKeys("data");
+                    $root->setType($rootType);
+
+
+
 
 
                     $values = $args['values'] ?? null;

@@ -147,6 +147,7 @@ class ShmFileUploadUtils
 
         $dir =  ShmInit::$rootDir . '/storage/files/' . $fin_dir;
 
+
         if (!is_dir($dir)) {
             mkdir($dir, 0777, true); // создать все вложенные папки
         }

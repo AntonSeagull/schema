@@ -326,12 +326,19 @@ class Doctor
 
                 foreach ($values as $enumKey => $enumValue) {
                     $enumConstName = strtoupper(str_replace('.', '__', self::toSnakeCase($prefix) . $key . '_ENUM_' . self::toSnakeCase($enumKey)));
+                    $enumConstSecondName = strtoupper(str_replace('.', '__', self::toSnakeCase($prefix) . self::toSnakeCase($key) . '_ENUM_' . self::toSnakeCase($enumKey)));
+
                     $enumConstValue = $enumKey;
 
                     try {
                         $class->addConstant($enumConstName, $enumConstValue)
                             ->setVisibility('public')
-                            ->setComment("Enum {$key}: {$enumValue}");
+                            ->setComment($enumConstName !== $enumConstSecondName ? "@deprecated Enum {$key}: {$enumValue}" : "Enum {$key}: {$enumValue}");
+
+                        if ($enumConstName !== $enumConstSecondName)
+                            $class->addConstant($enumConstSecondName, $enumConstValue)
+                                ->setVisibility('public')
+                                ->setComment("Enum {$key}: {$enumValue}");
                     } catch (\Throwable $error) {
                         // логировать по желанию
                     }
@@ -339,12 +346,18 @@ class Doctor
 
 
                 $enumConstName = strtoupper(str_replace('.', '__', self::toSnakeCase($prefix) . $key . '_ENUM_ALL_KEYS'));
+                $enumConstSecondName = strtoupper(str_replace('.', '__', self::toSnakeCase($prefix) . self::toSnakeCase($key) . '_ENUM_ALL_KEYS'));
                 $enumConstValue = array_keys($values);
 
                 try {
                     $class->addConstant($enumConstName, $enumConstValue)
                         ->setVisibility('public')
-                        ->setComment("Enum {$key}");
+                        ->setComment($enumConstName !== $enumConstSecondName ? "@deprecated Enum {$key}" : "Enum {$key}");
+
+                    if ($enumConstName !== $enumConstSecondName)
+                        $class->addConstant($enumConstSecondName, $enumConstValue)
+                            ->setVisibility('public')
+                            ->setComment("Enum {$key}");
                 } catch (\Throwable $error) {
                     // логировать по желанию
                 }

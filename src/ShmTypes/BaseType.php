@@ -1179,6 +1179,29 @@ abstract class BaseType
 
 
 
+    public function removeValuesByCriteria(string|callable $criteria, $values): mixed
+    {
+        $pred = $this->makePredicate($criteria);
+
+        if ($this->type == 'structure' && isset($this->items)) {
+            foreach ($this->items as $key => $item) {
+
+                if ($pred($item)) {
+                    unset($values[$key]);
+                } else {
+                    $values[$key] = $item->removeValuesByCriteria($pred, $values[$key] ?? null);
+                }
+            }
+        }
+
+
+
+        return $values;
+    }
+
+
+
+
 
     public function fullCleanDefault(): static
     {
@@ -1226,24 +1249,6 @@ abstract class BaseType
             $this->keyIfNot($rootKey);
     }
 
-
-
-
-    public function phpGetter(): Method
-    {
-
-        if ($this->key === null) {
-            throw new \LogicException('Key must be set before generating PHP getter.');
-        }
-
-        $method = new Method($this->key);
-        $method->setReturnType('mixed');
-        $method->setBody('return DeepAccess::safeGet("' . $this->key . '", $this->data);');
-        $method->addComment('Get the value of ' . $this->key);
-        $method->addComment('@return mixed|null');
-        $method->addComment('Returns the value of ' . $this->key . ' or null if not set.');
-        return $method;
-    }
 
 
 
@@ -1343,6 +1348,9 @@ abstract class BaseType
 
         if (($this instanceof IDType || $this instanceof IDsType)) {
 
+
+
+
             if ($this->document && $this->document->collection == $collection) {
                 return [
                     [
@@ -1360,6 +1368,7 @@ abstract class BaseType
 
         if (isset($this->items)) {
             foreach ($this->items as $key => $item) {
+
 
 
 
@@ -1382,6 +1391,7 @@ abstract class BaseType
 
         if (isset($this->items)) {
             foreach ($this->items as $key => $item) {
+
 
 
 

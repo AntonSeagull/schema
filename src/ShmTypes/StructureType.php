@@ -1051,6 +1051,7 @@ class StructureType extends BaseType
 
 
 
+
         foreach ($pathsByCollections as $collection => $collectionPaths) {
 
             Response::startTraceTiming("externalData-" .  $collection);

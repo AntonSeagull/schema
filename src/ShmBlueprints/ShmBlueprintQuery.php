@@ -219,7 +219,7 @@ class ShmBlueprintQuery
         $result = [
             'type' => $dataType,
             'args' =>  $argsStructure,
-            'resolve' => function ($root, $args, $context, $info) use ($_this, $structure, $withoutData, $argsStructure) {
+            'resolve' => function ($root, $args) use ($_this, $structure, $withoutData, $argsStructure) {
 
 
 

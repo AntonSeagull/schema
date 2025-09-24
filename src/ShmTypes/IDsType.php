@@ -300,6 +300,7 @@ class IDsType extends BaseType
 
 
 
+
         if ($this->document && !$this->document->hide) {
             return [
                 [

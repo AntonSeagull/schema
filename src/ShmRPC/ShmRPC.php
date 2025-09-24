@@ -20,6 +20,8 @@ use Shm\ShmUtils\ShmUtils;
 use Shm\ShmBlueprints\FileUpload\ShmFileUpload;
 use Shm\ShmBlueprints\Geo\ShmIPGeolocation;
 use Shm\ShmBlueprints\Geocoding\ShmGeocoding;
+use Shm\ShmRPC\ShmRPCUtils\ShmRPCContext;
+use Shm\ShmRPC\ShmRPCUtils\ShmRPCLazy;
 use Shm\ShmTypes\BaseType;
 use Shm\ShmUtils\RedisCache;
 
@@ -256,32 +258,15 @@ class ShmRPC
 
         $request = self::getRequestData();
 
+
         $method = $request['method'] ?? null;
 
-        $params = $request['params'] ?? [];
-
-        $context = $request['context'] ?? null;
-
-        if ($context && is_string($params)) {
-
-            $params = self::xor_decrypt($params, $context);
-
-            try {
-                $params = \json_decode($params, true);
-            } catch (\Exception $e) {
-                Response::validation("Ошибка выполнения запроса");
-            }
-        }
-
 
         if ($method === null) {
             throw new \Exception("Method is required.");
         }
 
 
-        if ($method === null) {
-            throw new \Exception("Method is required.");
-        }
 
         $schemaMethod = $schemaParams[$method] ?? null;
 
@@ -289,145 +274,22 @@ class ShmRPC
             Response::notFound("Method '{$method}' not found.");
         }
 
-        if (is_object($schemaMethod) && method_exists($schemaMethod, 'make')) {
-            $schemaMethod = $schemaMethod->make();
+
+
+
+        $methodContext = new ShmRPCContext($method, $schemaMethod, $request);
+
+
+
+        if ($methodContext->isCached()) {
+            $methodContext->cachedResponse();
         }
 
 
-        $cache = isset($request['cache']) ? $request['cache'] : true;
-
-
-
-        if ($cache && ($schemaMethod['cache'] ?? 0) > 0) {
-            $cache = RedisCache::get($method . json_encode($params));
-            if ($cache) {
-                if ($cache !== null) {
-
-                    $result = json_decode($cache, true);
-
-
-
-                    if ($context) {
-                        $result = json_encode($result);
-                        $result = self::xor_encrypt($result, $context);
-                    }
-
-                    Response::cache();
-                    $result = mDB::replaceObjectIdsToString($result);
-                    Response::success($result);
-                }
-            }
-        }
-
-        self::callRpcMethod($schemaMethod, $method);
+        $methodContext->callMethod();
     }
 
-    public static function callRpcMethod($schemaMethod, $method)
-    {
 
-        $request = self::getRequestData();
-
-        $params = $request['params'] ?? [];
-
-        $context = $request['context'] ?? null;
-
-        if ($context && is_string($params)) {
-
-            $params = self::xor_decrypt($params, $context);
-
-            try {
-                $params = \json_decode($params, true);
-            } catch (\Exception $e) {
-                Response::validation("Ошибка выполнения запроса");
-            }
-        }
-
-
-
-
-        Response::startTraceTiming('transformSchemaParams');
-        $schemaMethod = self::transformSchemaParams($schemaMethod, $method);
-        Response::endTraceTiming('transformSchemaParams');
-        if ($schemaMethod === null) {
-            Response::notFound("Method '{$method}' not found.");
-        }
-
-        Response::startTraceTiming("executeMethod");
-        $result = self::executeMethod($schemaMethod, $params);
-        Response::endTraceTiming("executeMethod");
-
-
-        Response::startTraceTiming("normalize");
-
-
-
-
-
-        $result = $schemaMethod['type']->normalize($result, false);
-
-
-
-
-        $result = $schemaMethod['type']->toOutput($result);
-
-
-
-
-        $result = $schemaMethod['type']->removeOtherItems($result);
-
-
-
-
-        $result = $schemaMethod['type']->normalizePrivate($result);
-
-        Response::endTraceTiming("normalize");
-
-
-
-        $onlyDisplayRelations = $schemaMethod['onlyDisplayRelations'] ?? false;
-
-
-        if ($result) {
-
-
-
-
-
-            if ($schemaMethod['type'] instanceof StructureType || $schemaMethod['type'] instanceof \Shm\ShmTypes\ArrayOfType) {
-                $schemaMethod['type']->expand();
-
-
-                Response::startTraceTiming("externalData");
-                $result = $schemaMethod['type']->externalData($result, $onlyDisplayRelations);
-                Response::endTraceTiming("externalData");
-            }
-        }
-
-        if ($result)
-            $result = mDB::replaceObjectIdsToString($result);
-
-        $end = microtime(true);
-
-
-
-
-
-        if ($result && ($schemaMethod['cache'] ?? 0) > 0) {
-            RedisCache::set($method . json_encode($params), json_encode($result), $schemaMethod['cache']);
-        }
-
-
-
-        if ($context) {
-            $result = json_encode($result);
-            $result = self::xor_encrypt($result, $context);
-        }
-
-
-
-
-        Response::success($result);
-    }
 
     public static function geocoding(): ShmGeocoding
     {
@@ -453,5 +315,10 @@ class ShmRPC
     {
 
         Response::validation($message);
+    }
+
+    public static function lazy($callback): ShmRPCLazy
+    {
+        return new ShmRPCLazy($callback);
     }
 }

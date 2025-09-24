@@ -90,6 +90,7 @@ class ShmInit
         SearchStringUpdate::cmdInit();
 
 
+        ShmMetrics::init();
 
 
 

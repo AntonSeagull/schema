@@ -643,8 +643,8 @@ class Doctor
     {
 
         $links = [
-            ShmInit::$rootDir . '/public/static/js/main.js' => ShmInit::$shmDir . '/../assets/admin/static/js/main.js',
-            ShmInit::$rootDir . '/public/static/css/main.css' => ShmInit::$shmDir . '/../assets/admin/static/css/main.css',
+            ShmInit::$rootDir . '/public/static/main.js' => ShmInit::$shmDir . '/../assets/admin/static/main.js',
+            ShmInit::$rootDir . '/public/static/main.css' => ShmInit::$shmDir . '/../assets/admin/static/main.css',
         ];
 
         $isCli = (php_sapi_name() === 'cli');

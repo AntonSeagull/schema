@@ -96,6 +96,12 @@ class Collection
     }
 
 
+    public static function collection()
+    {
+        $_this = new static();
+        return mDB::collection($_this->collection);
+    }
+
     public static function _collection()
     {
         $_this = new static();

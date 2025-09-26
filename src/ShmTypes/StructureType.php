@@ -2087,6 +2087,7 @@ class StructureType extends BaseType
             ],
         ], $pipeline);
 
+
         return mDB::collection($this->collection)->aggregate($pipeline);
     }
 

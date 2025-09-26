@@ -12,6 +12,7 @@ use Shm\ShmTypes\BaseType;
 use Shm\ShmTypes\ColorType;
 use Shm\ShmTypes\CompositeTypes\CodeType;
 use Shm\ShmTypes\CompositeTypes\FileTypes\FileAnyType;
+use Shm\ShmTypes\CompositeTypes\FileTypes\FileAudioLinkType;
 use Shm\ShmTypes\CompositeTypes\FileTypes\FileAudioType;
 use Shm\ShmTypes\CompositeTypes\FileTypes\FileDocumentType;
 use Shm\ShmTypes\CompositeTypes\FileTypes\FileIDType;
@@ -44,6 +45,7 @@ use Shm\ShmTypes\SupportTypes\StageType;
 use Shm\ShmTypes\UnixDateTimeType;
 use Shm\ShmTypes\Utils\JsonLogicBuilder;
 use Shm\ShmTypes\UUIDType;
+use Shm\ShmUtils\Response;
 
 class Shm
 {
@@ -212,6 +214,11 @@ class Shm
         return new FileImageLinkType();
     }
 
+    public static function fileAudioLink(): FileAudioLinkType
+    {
+        return new FileAudioLinkType();
+    }
+
     public static function fileImage(): FileImageType
     {
         return new FileImageType();
@@ -357,5 +364,16 @@ class Shm
     public static function static(mixed $staticValue): StaticType
     {
         return new StaticType($staticValue);
+    }
+
+
+    public static function error($message)
+    {
+        Response::validation($message);
+    }
+
+    public static function unauthorizedError()
+    {
+        Response::unauthorized();
     }
 }

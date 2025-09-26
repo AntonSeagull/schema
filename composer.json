@@ -39,7 +39,9 @@
         "predis/predis": "^3.0",
         "php-school/cli-menu": "^4.3",
         "geoip2/geoip2": "^3.2",
-        "jenssegers/blade": "^2.0"
+        "jenssegers/blade": "^2.0",
+        "griffinledingham/php-apple-signin": "^1.1",
+        "nette/mail": "^4.0"
     },
     "prefer-stable": true
 }

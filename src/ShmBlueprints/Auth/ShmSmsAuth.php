@@ -76,6 +76,7 @@ class ShmSmsAuth extends ShmAuthBase
 
                 "phone" => Shm::nonNull(Shm::string()),
                 'code' => Shm::string(),
+                "deviceInfo" => $this->deviceInfoStructure()
 
             ]),
             'resolve' => function ($root, $args) {
@@ -180,13 +181,13 @@ class ShmSmsAuth extends ShmAuthBase
 
                         $user = $authStructure->insertOne($insertData);
 
-                        return  Auth::genToken($authStructure, $user->getInsertedId());
+                        return  $this->authToken($authStructure, $user->getInsertedId(), $args);
                     } else {
 
                         if (!$userStructure) {
                             Response::validation("Пользователь не найден");
                         }
-                        return Auth::genToken($userStructure, $user->_id);
+                        return $this->authToken($userStructure, $user->_id, $args);
                     }
                 } else {
 

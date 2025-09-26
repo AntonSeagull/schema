@@ -53,6 +53,7 @@ class ShmMsgAuth extends ShmAuthBase
                 'set' => Shm::boolean(),
                 'phone' =>  Shm::nonNull(Shm::string()),
                 'code_id' => Shm::string(),
+                "deviceInfo" => $this->deviceInfoStructure()
 
             ]),
             'resolve' => function ($root, $args) {
@@ -185,15 +186,17 @@ class ShmMsgAuth extends ShmAuthBase
                                     $phoneField => (int) $phone,
                                 ]);
 
+
                                 return [
-                                    "token" => Auth::genToken($authStructure, $user->getInsertedId()),
+                                    "token" => $this->authToken($authStructure, $user->getInsertedId(), $args),
                                     "auth" => true,
                                 ];
                             } else {
 
 
+
                                 return [
-                                    "token" => Auth::genToken($userStructure, $user->_id),
+                                    "token" => $this->authToken($userStructure, $user->_id, $args),
                                     "auth" => true,
                                 ];
                             }

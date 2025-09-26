@@ -87,6 +87,7 @@ class ShmLoginAuth extends ShmAuthBase
             'args' => Shm::structure([
                 'login' => Shm::nonNull(Shm::string()),
                 "password" => Shm::string(),
+                "deviceInfo" => $this->deviceInfoStructure()
             ]),
             'resolve' => function ($root, $args) {
 
@@ -140,7 +141,8 @@ class ShmLoginAuth extends ShmAuthBase
 
 
 
-                    return Auth::genToken($userStructure, $user['_id']);
+
+                    return $this->authToken($userStructure, $user['_id'], $args);
                 } else {
                     Response::validation('Неверная пара логин и пароль');
                 }

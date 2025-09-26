@@ -479,25 +479,6 @@ class CollectionEvents
 class mDB
 {
 
-    /*
-    protected static array $config = [
-        'host' => 'localhost',
-        'port' => 27017,
-        'username' => '',
-        'password' => '',
-        'database' => '',
-        'authSource' => 'admin',
-        'poolSize' => 1000,
-        'ssl' => false,
-        "connectTimeoutMS" => 360000,
-        "socketTimeoutMS" => 360000,
-    ];
-
-    public static function setConfig(array $config): void
-    {
-        self::$config = array_merge(self::$config, $config);
-    }
-*/
 
 
     public static  function validatePipeline(array $pipeline): void
@@ -646,13 +627,75 @@ class mDB
 
 
         $params = [
-            'username' => Config::get("mongodb.username"),
-            'password' => Config::get("mongodb.password"),
-            'authSource' => Config::get("mongodb.authSource", "admin"),
-            'connectTimeoutMS' => Config::get("mongodb.connectTimeoutMS", 360000),
-            'socketTimeoutMS' =>  Config::get("mongodb.socketTimeoutMS", 360000),
-            'poolSize' => Config::get("mongodb.poolSize", 1000),
-            'ssl' => Config::get("mongodb.ssl", false),
+            // Имя пользователя MongoDB
+            'username' => Config::get('mongodb.username'),
+
+            // Пароль пользователя MongoDB
+            'password' => Config::get('mongodb.password'),
+
+            // База аутентификации, где хранится пользователь (часто "admin")
+            'authSource' => Config::get('mongodb.authSource', 'admin'),
+
+            // ====== Аутентификация ======
+            // Имя пользователя MongoDB
+            'username' => Config::get('mongodb.username'),
+
+            // Пароль пользователя MongoDB
+            'password' => Config::get('mongodb.password'),
+
+            // База аутентификации, где хранится пользователь (часто "admin")
+            'authSource' => Config::get('mongodb.authSource', 'admin'),
+
+            // ====== Сетевые таймауты и выбор сервера ======
+            // Таймаут установления TCP-соединения (мс). 5–10 сек достаточно для продакшна.
+            'connectTimeoutMS' => Config::get('mongodb.connectTimeoutMS', 10000),
+
+            // Таймаут выбора сервера кластера (мс). Сколько ждать доступного узла (primary/secondary).
+            // Помогает быстрее «падать» при недоступности кластера.
+            'serverSelectionTimeoutMS' => Config::get('mongodb.serverSelectionTimeoutMS', 10000),
+
+            // Таймаут бездействия запроса по сокету (мс). 30–60 сек — типичный диапазон для веб-бэкенда.
+            'socketTimeoutMS' => Config::get('mongodb.socketTimeoutMS', 60000),
+
+            // ====== Пул соединений ======
+            // Максимальный размер пула соединений на один процесс/воркер приложения.
+            // Начните с 50 (или 20–100) и корректируйте по метрикам.
+            'maxPoolSize' => Config::get('mongodb.maxPoolSize', 50),
+
+            // Минимальный размер пула — помогает прогреть коннекты, но без нужды держать 0–5.
+            'minPoolSize' => Config::get('mongodb.minPoolSize', 0),
+
+            // Максимальное время простоя соединения в пуле (мс), после которого соединение закрывается.
+            'maxIdleTimeMS' => Config::get('mongodb.maxIdleTimeMS', 60000),
+
+            // ====== Надёжность и политика чтения/записи ======
+            // Повторять операции записи при временных сетевых сбоях (idempotent/безопасные места).
+            'retryWrites' => Config::get('mongodb.retryWrites', true),
+
+            // Повторять операции чтения при временных сбоях.
+            'retryReads'  => Config::get('mongodb.retryReads', true),
+
+            // Предпочтение чтения. Для транзакционной целостности используйте 'primary'.
+            // В случаях аналитики/реплик — 'secondary' или 'primaryPreferred' по осознанной необходимости.
+            'readPreference' => Config::get('mongodb.readPreference', 'primary'),
+
+            // Уровень подтверждения записи. 'majority' — баланс надёжности и производительности.
+            'w' => Config::get('mongodb.w', 'majority'),
+
+            // Требовать журналирования записи (journaling). true — повышает устойчивость к сбоям.
+            'journal' => Config::get('mongodb.journal', true),
+
+
+            // ====== Безопасность и производительность ======
+            // Шифрование трафика (TLS). Для продакшна обязательно true.
+            // В новых драйверах ключ называется 'tls', старое 'ssl' алиасно. Укажем оба для ясности.
+            'tls' => Config::get('mongodb.tls', false),
+            'ssl' => Config::get('mongodb.ssl', false), // совместимость
+            // Сжатие сетевого трафика. Zstd обычно эффективнее, затем Snappy.
+            'compressors' => Config::get('mongodb.compressors', 'zstd,snappy'),
+
+
+
         ];
 
 

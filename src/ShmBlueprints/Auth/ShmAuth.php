@@ -53,6 +53,11 @@ class ShmAuth
     }
 
 
+    public function apple(): ShmAppleAuth
+    {
+        return new ShmAppleAuth(...$this->authStructures);
+    }
+
 
 
     public function passport(): ShmPassportAuth

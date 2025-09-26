@@ -113,6 +113,11 @@ class ShmRPC
         return new ShmBlueprintMutation($strucutre);
     }
 
+    public static function makeMutationOneRow(StructureType $strucutre): ShmBlueprintMutation
+    {
+        return (new ShmBlueprintMutation($strucutre))->oneRow(true);
+    }
+
 
     public static function makeQuery(StructureType $strucutre): ShmBlueprintQuery
     {

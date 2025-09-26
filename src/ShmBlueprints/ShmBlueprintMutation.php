@@ -20,6 +20,13 @@ class ShmBlueprintMutation
         $this->structure = $structure;
     }
 
+    public $oneRow = false;
+
+    public function oneRow(bool $oneRow): static
+    {
+        $this->oneRow = $oneRow;
+        return $this;
+    }
 
 
     public $delete = true;
@@ -114,13 +121,16 @@ class ShmBlueprintMutation
     {
 
 
+        $args = [];
+        if (!$this->oneRow) {
+            $args = [
+                "_id" => Shm::ID(),
+            ];
+        }
 
-        $args = [
-            "_id" => Shm::ID(),
-        ];
 
 
-        if ($this->delete) {
+        if ($this->delete  && !$this->oneRow) {
             $args['delete'] = Shm::boolean();
         }
 
@@ -158,7 +168,7 @@ class ShmBlueprintMutation
         }
 
 
-        if ($this->structure->manualSort) {
+        if ($this->structure->manualSort && !$this->oneRow) {
 
             $args['move'] = Shm::structure([
                 'aboveId' => Shm::ID(),
@@ -182,9 +192,35 @@ class ShmBlueprintMutation
             "args" => $argsStructure,
             'resolve' => function ($root, $args) use ($_this, $structure, $argsStructure) {
 
-
-
                 $pipeline = $_this->getPipeline();
+
+                if ($_this->oneRow) {
+
+                    if (!$pipeline || count($pipeline) == 0) {
+                        Response::validation('Ошибка доступа');
+                    }
+
+
+
+                    $find = $structure->aggregate([
+                        ...$pipeline,
+                        ['$limit' => 1]
+                    ])->toArray();
+
+                    if (!$find) {
+                        Response::validation('Ошибка доступа');
+                    }
+
+
+                    $args['_id'] =  $find[0]->_id ?? null;
+
+                    if (!$args['_id']) {
+                        Response::validation('Ошибка доступа');
+                    }
+                }
+
+
+
 
                 $pipeline = [
                     ...$pipeline,
@@ -194,6 +230,9 @@ class ShmBlueprintMutation
 
                 $originalArgs = $args;
                 $args = $argsStructure->normalize($args, true);
+
+
+
 
                 $_id = $args['_id'] ?? null;
                 if (isset($_id)) {
@@ -218,7 +257,7 @@ class ShmBlueprintMutation
 
 
 
-                    if ($args['delete'] == true) {
+                    if (!$_this->oneRow && $args['delete'] == true) {
                         $structure->deleteOne([
                             "_id" => mDB::id($_id)
                         ]);
@@ -303,6 +342,11 @@ class ShmBlueprintMutation
                         ]);
                     }
                 } else {
+
+                    if ($_this->oneRow) {
+                        Shm::error('Ошибка доступа');
+                    }
+
                     if (isset($args['fields'])) {
 
                         $inserValue = $argsStructure->items['fields']->normalize($originalArgs['fields']);

@@ -25,13 +25,7 @@ class ShmSocAuth extends ShmAuthBase
                 'set' => Shm::bool(),
 
                 "key" => Shm::string(),
-                "deviceInfo" => Shm::structure([
-                    'name' => Shm::string(),
-                    'model' => Shm::string(),
-                    'platform' => Shm::string(),
-                    'uuid' => Shm::string(),
-
-                ]),
+                "deviceInfo" => $this->deviceInfoStructure()
 
             ]),
             'resolve' => function ($root, $args) {
@@ -64,7 +58,7 @@ class ShmSocAuth extends ShmAuthBase
                         ],
                     ]);
 
-                    return Auth::genToken($authModel, Auth::getAuthOwner());
+                    return $this->authToken($authModel, Auth::getAuthOwner(), $args);
                 }
 
 
@@ -140,7 +134,7 @@ class ShmSocAuth extends ShmAuthBase
                         '$push' => [$socialField  => $userSoc],
                     ]);
 
-                    return  Auth::genToken($authModel, Auth::getAuthOwner());
+                    return  $this->authToken($authModel, Auth::getAuthOwner(), $args);
                 } else {
 
                     $user = null;
@@ -206,7 +200,7 @@ class ShmSocAuth extends ShmAuthBase
 
 
 
-                        return Auth::genToken($userStructure, $user['_id']);
+                        return $this->authToken($userStructure, $user['_id'], $args);
                     } else {
 
                         $authStructure = $this->authStructures[0];
@@ -279,7 +273,7 @@ class ShmSocAuth extends ShmAuthBase
                         }
 
 
-                        return Auth::genToken($authStructure, $user->getInsertedId());
+                        return $this->authToken($authStructure, $user->getInsertedId(), $args);
                     }
                 }
             }

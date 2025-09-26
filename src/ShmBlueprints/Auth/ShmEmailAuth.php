@@ -80,6 +80,48 @@ class ShmEmailAuth extends ShmAuthBase
     }
 
 
+    private function sendEmail($mailTo, $subject, $body)
+    {
+
+
+        if (!$mailTo || !$subject || !$body) {
+            return;
+        }
+
+
+        $host  = Config::get('smtp.host', null);
+        $port  =  Config::get('smtp.port', null);
+        $username  = Config::get('smtp.username', null);
+        $password  = Config::get('smtp.password', null);
+        $encryption  = Config::get('smtp.encryption', null);
+        $from_email  = Config::get('smtp.from_email', null);
+        $from_name  = Config::get('smtp.from_name', null);
+
+        if (!$host || !$port || !$username || !$password) {
+
+            return;
+        }
+
+
+
+
+        $mail = new \Nette\Mail\Message;
+        $mail->setFrom($from_email, $from_name)
+            ->addTo($mailTo)
+            ->setSubject($subject)
+            ->setHtmlBody($body);
+
+        $mailer = new \Nette\Mail\SmtpMailer(
+            host: $host,
+            port: $port,
+            username: $username,
+            password: $password,
+            encryption: $encryption
+        );
+        $mailer->send($mail);
+    }
+
+
 
 
     public function make(): array
@@ -96,6 +138,7 @@ class ShmEmailAuth extends ShmAuthBase
                 "email" => Shm::nonNull(Shm::string()),
 
                 "password" => Shm::string(),
+                "deviceInfo" => $this->deviceInfoStructure()
 
             ]),
             'resolve' => function ($root, $args) {
@@ -194,7 +237,8 @@ class ShmEmailAuth extends ShmAuthBase
                                 ]
                             );
 
-                            return Auth::genToken($userStructure, $user['_id']);
+
+                            return $this->authToken($userStructure, $user['_id'], $args);
                         }
                     } else {
 
@@ -250,7 +294,8 @@ class ShmEmailAuth extends ShmAuthBase
                                 ]
                             );
 
-                            // Utils::send($args['email'], "Password recovery", (string) Core::view("lumus::mail.recovery_email", ["code" => $code, "logo" => Core::$logo]));
+
+                            $this->recoveryEmail($args['email'], $code);
                         } else {
 
 
@@ -276,7 +321,7 @@ class ShmEmailAuth extends ShmAuthBase
                                 "code_created_at" => time(),
                             ]);
 
-                            //   Utils::send($args['email'], "Confirmation of registration", (string) Core::view("lumus::mail.confirmation_email", ["code" => $code, "logo" => Core::$logo]));
+                            $this->confirmationEmail($args['email'], $code);
                         }
                     }
                 } else {
@@ -377,12 +422,191 @@ class ShmEmailAuth extends ShmAuthBase
                     if ($user && $userStructure) {
 
 
-                        return Auth::genToken($userStructure, $user['_id']);
+
+                        return $this->authToken($userStructure, $user['_id'], $args);
                     } else {
                         Response::validation('Данные для входа неверны');
                     }
                 }
             }
         ];
+    }
+
+
+    private function recoveryEmail($email, $code)
+    {
+
+        $body = '<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Password recovery</title>
+    <style>
+        body {
+            text-align: center;
+            font-family: Arial, sans-serif;
+            margin: 40px;
+        }
+
+        .container {
+            background-color: #f7f7f7;
+            padding: 20px;
+            border-radius: 5px;
+        }
+
+        .code {
+            font-weight: bold;
+            font-size: 24px;
+            margin: 20px 0;
+        }
+
+        .notice {
+            color: red;
+            margin-top: 20px;
+        }
+
+        .ru {
+            font-size: 12px;
+
+        }
+
+        .logo {
+            display: block;
+            margin: 0 auto 20px auto;
+            border-radius: 20px;
+            max-width: 100px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+       
+
+        <h2>Password recovery<br />
+            <p class="ru">Восстановление пароля</p>
+        </h2>
+
+
+        <p>You have requested password recovery! To complete the recovery process, please enter the following
+            confirmation
+            code:
+
+            <br /><span class="ru">Вы запросили восстановление пароля! Для завершения процесса восстановления,
+                пожалуйста,
+                введите следующий код подтверждения:</span>
+        </p>
+
+
+        <div class="code">' . $code . '</div>
+
+        <p>This code is valid for 15 minutes.<br /><span class="ru">Этот код действителен в течение 15 минут.</span>
+        </p>
+
+        <div class="notice">
+            <p>If you did not request password recovery and received this email by mistake, ignore it.<br /><span
+                    class="ru">Если вы не запрашивали восстановление пароля и получили это письмо по
+                    ошибке, проигнорируйте его.</span></p>
+        </div>
+    </div>
+</body>
+
+</html>
+';
+
+        $subject = "Password recovery / Восстановление пароля";
+
+        $this->sendEmail($email, $subject, $body);
+    }
+
+    private function confirmationEmail($email, $code)
+    {
+
+        $body = '<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Confirmation of registration</title>
+    <style>
+        body {
+            text-align: center;
+            font-family: Arial, sans-serif;
+            margin: 40px;
+        }
+
+        .container {
+            background-color: #f7f7f7;
+            padding: 20px;
+            border-radius: 5px;
+        }
+
+        .code {
+            font-weight: bold;
+            font-size: 24px;
+            margin: 20px 0;
+        }
+
+        .notice {
+            color: red;
+            margin-top: 20px;
+        }
+
+        .ru {
+            font-size: 12px;
+
+        }
+
+        .logo {
+            display: block;
+            margin: 0 auto 20px auto;
+            border-radius: 20px;
+            max-width: 100px;
+            /* Вы можете изменить размеры по своему усмотрению */
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+       
+
+        <h2>Confirmation of registration<br />
+            <p class="ru">Подтверждение регистрации</p>
+        </h2>
+
+
+        <p>Thank you for registering! To complete the registration process, please enter the following confirmation
+            code:
+
+            <br /><span class="ru">Благодарим за регистрацию! Для завершения процесса регистрации, пожалуйста,
+                введите следующий код подтверждения:</span>
+        </p>
+
+
+        <div class="code">' . $code . '</div>
+
+        <p>This code is valid for 15 minutes.<br /><span class="ru">Этот код действителен в течение 15 минут.</span>
+        </p>
+
+        <div class="notice">
+            <p>If you have not registered and received this email by mistake, please ignore
+                it.<br /><span class="ru">Если вы не регистрировались и получили это письмо по
+                    ошибке, проигнорируйте его.</span></p>
+        </div>
+    </div>
+</body>
+
+</html>
+';
+
+        $subject = "Confirmation of registration / Подтверждение регистрации";
+
+        $this->sendEmail($email, $subject, $body);
     }
 }

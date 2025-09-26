@@ -23,13 +23,7 @@ class ShmPassportAuth extends ShmAuthBase
             'description' => 'Авторизация через Auth4App Passport',
             'args' => Shm::structure([
                 "accessToken" => Shm::nonNull(Shm::string()),
-                "deviceInfo" => Shm::structure([
-                    'name' => Shm::string(),
-                    'model' => Shm::string(),
-                    'platform' => Shm::string(),
-                    'uuid' => Shm::string(),
-
-                ]),
+                "deviceInfo" => $this->deviceInfoStructure()
 
             ]),
             'resolve' => function ($root, $args) {
@@ -150,7 +144,7 @@ class ShmPassportAuth extends ShmAuthBase
                     }
 
 
-                    return  Auth::genToken($authStructure, $user->getInsertedId());
+                    return  $this->authToken($authStructure, $user->getInsertedId(), $args);
                 } else {
 
 
@@ -184,7 +178,7 @@ class ShmPassportAuth extends ShmAuthBase
                     }
 
 
-                    return Auth::genToken($userStructure, $user->_id);
+                    return $this->authToken($userStructure, $user->_id, $args);
                 }
             }
         ];

@@ -48,6 +48,7 @@ class ShmCallAuth extends ShmAuthBase
             'args' => Shm::structure([
                 "phone" => Shm::nonNull(Shm::string()),
                 'code' => Shm::string(),
+                "deviceInfo" => $this->deviceInfoStructure()
             ]),
             'resolve' => function ($root, $args) {
 
@@ -124,11 +125,12 @@ class ShmCallAuth extends ShmAuthBase
                             $phoneField => (int) $phone,
                         ]);
 
-                        return  Auth::genToken($authStructure, $user->getInsertedId());
+                        return  $this->authToken($authStructure, $user->getInsertedId(), $args);
                     } else {
 
 
-                        return Auth::genToken($userStructure, $user->_id);
+
+                        return $this->authToken($userStructure, $user->_id, $args);
                     }
                 } else {
 

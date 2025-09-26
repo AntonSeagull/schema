@@ -126,6 +126,7 @@ class AdminPanel
         'fileImageID',
         'fileVideoID',
         'fileAudioID',
+        'fileAudioLink',
         'fileDocumentID',
         'fileImageLink',
         'fileImage',
@@ -369,8 +370,8 @@ class AdminPanel
 
 
 
-        $js =  $url . "/static/js/main.js?shm=" . ShmInit::$shmVersionHash;
-        $css = $url . "/static/css/main.css?shm=" . ShmInit::$shmVersionHash;
+        $js =  $url . "/static/main.js?shm=" . ShmInit::$shmVersionHash;
+        $css = $url . "/static/main.css?shm=" . ShmInit::$shmVersionHash;
 
         $html = '<!DOCTYPE html>
 <html lang="en">

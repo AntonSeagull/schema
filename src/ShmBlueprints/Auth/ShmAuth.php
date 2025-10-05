@@ -10,15 +10,11 @@ class ShmAuth
 {
 
 
-    public $authStructures = null;
 
-    public function __construct(StructureType ...$authStructures)
+    public function __construct()
     {
 
 
-
-
-        $this->authStructures = $authStructures;
 
 
         return $this;
@@ -28,45 +24,75 @@ class ShmAuth
 
     public function sms(): ShmSmsAuth
     {
-        return new ShmSmsAuth(...$this->authStructures);
+
+
+
+
+        return (new ShmSmsAuth());
     }
 
 
     public function msg(): ShmMsgAuth
     {
-        return new ShmMsgAuth(...$this->authStructures);
+
+
+
+        return new ShmMsgAuth();
     }
 
     public function email(): ShmEmailAuth
     {
-        return new ShmEmailAuth(...$this->authStructures);
+
+
+
+
+        return new ShmEmailAuth();
     }
+
+
+
 
     public function login(): ShmLoginAuth
     {
-        return new ShmLoginAuth(...$this->authStructures);
+
+
+
+
+        return new ShmLoginAuth();
     }
 
     public function soc(): ShmSocAuth
     {
-        return new ShmSocAuth(...$this->authStructures);
+
+
+
+
+        return new ShmSocAuth();
     }
 
 
     public function apple(): ShmAppleAuth
     {
-        return new ShmAppleAuth(...$this->authStructures);
+
+
+
+        return new ShmAppleAuth();
     }
 
 
 
     public function passport(): ShmPassportAuth
     {
-        return new ShmPassportAuth(...$this->authStructures);
+
+
+        return new ShmPassportAuth();
     }
 
     public function call(): ShmCallAuth
     {
-        return new ShmCallAuth(...$this->authStructures);
+
+
+
+        return new ShmCallAuth();
     }
 }

@@ -17,6 +17,10 @@ class ShmMsgAuth extends ShmAuthBase
 
     public function make(): array
     {
+        if (count($this->_authStructures) === 0) {
+            //ERROR PHP
+            throw new \Exception("No auth structures defined for Msg Auth");
+        }
 
 
         return [
@@ -101,7 +105,7 @@ class ShmMsgAuth extends ShmAuthBase
                                 Response::validation("Авторизация по телефону не поддерживается");
                             }
 
-                            foreach ($this->authStructures as $authStructure) {
+                            foreach ($this->_authStructures as $authStructure) {
 
 
                                 $phoneFieldLocal = $authStructure->findItemByType(Shm::phone())?->key;
@@ -137,69 +141,28 @@ class ShmMsgAuth extends ShmAuthBase
                         } else {
 
 
-                            $user = null;
-                            $userStructure = null;
 
-                            foreach ($this->authStructures as $authStructure) {
+                            $findAuthUserAndStructure =  $this->findAuthUserAndStructure(Shm::phone(), (int) $phone, []);
 
-                                if ($user) break;
+                            if (!$findAuthUserAndStructure) {
 
+                                $regNewUser = $this->regNewUser(Shm::phone(), (int) $phone, []);
 
-
-                                $phoneField = $authStructure->findItemByType(Shm::phone())?->key;
-
-                                if (!$phoneField) continue;
-
-                                $match = [
-
-                                    $phoneField => (int) $phone,
-                                ];
-
-                                $user = $authStructure->findOne($match);
-                                if ($user) {
-                                    $userStructure = $authStructure;
-                                }
-                            }
-
-
-
-
-                            if (!$user) {
-
-                                $authStructure = $this->authStructures[0];
-
-                                if ($authStructure->onlyAuth) {
-                                    Response::validation($this->errorAccountNotFound);
-                                }
-
-
-
-
-                                $phoneField = $authStructure->findItemByType(Shm::phone())?->key;
-
-                                if (!$phoneField) {
-                                    Response::validation("Авторизация по телефону не поддерживается");
-                                }
-
-                                $user = $authStructure->insertOne([
-
-                                    $phoneField => (int) $phone,
-                                ]);
-
+                                [$user, $regStructure] = $regNewUser;
 
                                 return [
-                                    "token" => $this->authToken($authStructure, $user->getInsertedId(), $args),
-                                    "auth" => true,
-                                ];
-                            } else {
-
-
-
-                                return [
-                                    "token" => $this->authToken($userStructure, $user->_id, $args),
+                                    "token" => $this->authToken($regStructure, $user->_id, $args),
                                     "auth" => true,
                                 ];
                             }
+
+                            [$user, $userStructure] = $findAuthUserAndStructure;
+
+
+                            return [
+                                "token" => $this->authToken($userStructure, $user->_id, $args),
+                                "auth" => true,
+                            ];
                         }
                     }
                 } else {

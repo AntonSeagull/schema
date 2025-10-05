@@ -5,6 +5,7 @@ namespace Shm\ShmTypes;
 use Sentry\Util\Str;
 use Shm\Shm;
 use Shm\ShmDB\mDB;
+use Shm\ShmDB\mDBRedis;
 use Shm\ShmRPC\ShmRPCCodeGen\TSType;
 use Shm\ShmUtils\DeepAccess;
 use Shm\ShmUtils\Response;
@@ -228,27 +229,54 @@ class ArrayOfType extends BaseType
                 continue;
             }
 
+
+            $documentsById = [];
+
+
+
+            foreach ($allIds as $index => $id) {
+
+                //Находим в redis если есть
+                $redisDoc = mDBRedis::get($collection, (string)$id);
+                if ($redisDoc) {
+                    $documentsById[(string)$id] = $redisDoc;
+
+                    unset($allIds[$index]);
+                }
+            }
+
+            $allIds = array_values(array_unique($allIds));
+
+
+
+
             $pathItem = $collectionPaths[0];
 
 
+            $mongoDocs = [];
+            if (count($allIds) > 0) {
 
 
 
+                $mongoDocs = mDB::collection($pathItem['document']->collection)->aggregate([
 
-            $mongoDocs = mDB::collection($pathItem['document']->collection)->aggregate([
+                    ...$pathItem['document']->getPipeline(),
+                    [
+                        '$match' => [
+                            '_id' => ['$in' => $allIds]
+                        ]
+                    ],
 
-                ...$pathItem['document']->getPipeline(),
-                [
-                    '$match' => [
-                        '_id' => ['$in' => $allIds]
-                    ]
-                ],
+                ])->toArray();
 
-            ])->toArray();
+                mDBRedis::updateCacheAfterChange($collection, [
+                    '_id' => ['$in' => $allIds]
+                ]);
+            }
 
 
 
-            if (count($mongoDocs) == 0) {
+            if (count($mongoDocs) == 0 && count($documentsById) == 0) {
                 continue;
             }
 
@@ -260,7 +288,7 @@ class ArrayOfType extends BaseType
 
 
 
-            $documentsById = [];
+
             foreach ($mongoDocs as $doc) {
 
 

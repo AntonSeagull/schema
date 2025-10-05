@@ -46,7 +46,13 @@ class AdminPanel
     /**
      * @var StructureType[]
      */
-    public static array $users = [];
+    public static array $authStructures = [];
+
+
+    /**
+     * @var StructureType[]
+     */
+    public static array $regStructures = [];
 
     /**
      * @param AdminType $schema
@@ -56,12 +62,20 @@ class AdminPanel
         self::$schema = $schema->type("admin");
     }
 
-    public static function setUsers(StructureType  ...$users): void
+    public static function setAuthStructures(array $authStructures): void
     {
-        self::$users = [
-            ...$users,
+
+
+
+        self::$authStructures = [
+            ...$authStructures,
             SubAccountsSchema::baseStructure()
         ];
+    }
+
+    public static function setRegStructure(array  $regStructures): void
+    {
+        self::$regStructures = $regStructures;
     }
 
     private static function fullSchema(): StructureType
@@ -271,8 +285,7 @@ class AdminPanel
                 "*" => Shm::string()
             ]),
 
-            'paymentBalance' => Shm::bool(),
-            'paymentCurrency' => Shm::arrayOf(Shm::string()),
+            'balanceRUB' => Shm::bool(),
 
 
             "apikey" => Shm::bool(),
@@ -311,6 +324,8 @@ class AdminPanel
                 'cover' => Shm::string(),
                 'color' => Shm::string(),
                 'subtitle' => Shm::string(),
+                'terms' => Shm::string(),
+                'privacy' => Shm::string(),
             ]),
             'group' => Shm::structure([
                 'key' => Shm::string(),
@@ -472,15 +487,16 @@ class AdminPanel
 
             'geolocation' => ShmRPC::IPGeolocation(),
 
-            'imageUpload' => ShmRPC::fileUpload()->image()->make(),
-            'videoUpload' => ShmRPC::fileUpload()->video()->make(),
-            'audioUpload' => ShmRPC::fileUpload()->audio()->make(),
-            'documentUpload' => ShmRPC::fileUpload()->document()->make(),
+            'imageUpload' => ShmRPC::fileUpload()->image(),
+            'videoUpload' => ShmRPC::fileUpload()->video(),
+            'audioUpload' => ShmRPC::fileUpload()->audio(),
+            'documentUpload' => ShmRPC::fileUpload()->document(),
 
 
-            'authEmail' =>  ShmRPC::auth(...self::$users)->email()->make(),
-            'authSoc' =>  ShmRPC::auth(...self::$users)->soc()->make(),
-            'authPhone' => ShmRPC::auth(...self::$users)->msg()->make(),
+            'authEmail' =>  ShmRPC::auth()->email()->auth(self::$authStructures)->reg(self::$regStructures),
+            'authEmailPrepare' =>  ShmRPC::auth()->email()->auth(self::$authStructures)->reg(self::$regStructures)->prepare(),
+            'authSoc' =>  ShmRPC::auth()->soc()->auth(self::$authStructures)->reg(self::$regStructures),
+            'authPhone' => ShmRPC::auth()->msg()->auth(self::$authStructures)->reg(self::$regStructures),
 
             'profile' =>  [
                 "type" => Shm::structure([
@@ -494,7 +510,7 @@ class AdminPanel
                 'resolve' => function ($root, $args) {
 
 
-                    Auth::authenticateOrThrow(...self::$users);
+                    Auth::authenticateOrThrow(...self::$authStructures);
 
 
                     if (Auth::subAccountAuth()) {
@@ -505,7 +521,7 @@ class AdminPanel
                         $findStructure = null;
 
 
-                        foreach (self::$users as $user) {
+                        foreach (self::$authStructures as $user) {
 
                             if ($user->collection == Auth::getAuthCollection()) {
                                 $findStructure = $user;
@@ -569,7 +585,7 @@ class AdminPanel
 
 
 
-                    Auth::authenticateOrThrow(...self::$users);
+                    Auth::authenticateOrThrow(...self::$authStructures);
 
 
                     if (Auth::subAccountAuth()) {
@@ -580,7 +596,7 @@ class AdminPanel
                         $structure = null;
 
 
-                        foreach (self::$users as $user) {
+                        foreach (self::$authStructures as $user) {
 
                             if ($user->collection == Auth::getAuthCollection()) {
                                 $structure = $user;
@@ -635,13 +651,15 @@ class AdminPanel
             'init' => [
                 'type' => Shm::structure([
 
+
+
                     'auth' => Shm::structure([
-                        'onlyAuth' => Shm::boolean(),
-                        'types' => Shm::arrayOf(Shm::enum([
-                            'email',
-                            'phone',
-                            'social'
-                        ])),
+                        'emailLogin' => Shm::boolean(),
+                        'phoneLogin' => Shm::boolean(),
+                        'socialLogin' => Shm::boolean(),
+                        'emailReg' => Shm::boolean(),
+                        'phoneReg' => Shm::boolean(),
+                        'socialReg' => Shm::boolean(),
                     ]),
                     'uid' => Shm::string(),
                     'reports' => self::baseStructure(),
@@ -659,22 +677,42 @@ class AdminPanel
 
 
 
-                    $authTypes = [];
-                    $onlyAuth = true;
-                    foreach (self::$users as $user) {
+
+
+                    $emailLogin = false;
+                    $phoneLogin = false;
+                    $socialLogin = false;
+
+                    $emailReg = false;
+                    $phoneReg = false;
+                    $socialReg = false;
+
+                    foreach (self::$authStructures as $user) {
 
                         if ($user->findItemByType(Shm::email())) {
-                            $authTypes[] = 'email';
+
+                            $emailLogin = true;
                         }
                         if ($user->findItemByType(Shm::phone())) {
-                            $authTypes[] = 'phone';
+                            $phoneLogin = true;
                         }
                         if ($user->findItemByType(Shm::social())) {
-                            $authTypes[] = 'social';
+                            $socialLogin = true;
                         }
+                    }
 
-                        if (!$user->onlyAuth) {
-                            $onlyAuth = false;
+
+                    foreach (self::$regStructures as $user) {
+
+                        if ($user->findItemByType(Shm::email())) {
+
+                            $emailReg = true;
+                        }
+                        if ($user->findItemByType(Shm::phone())) {
+                            $phoneReg = true;
+                        }
+                        if ($user->findItemByType(Shm::social())) {
+                            $socialReg = true;
                         }
                     }
 
@@ -682,8 +720,13 @@ class AdminPanel
 
                     return [
                         'auth' => [
-                            'onlyAuth' => $onlyAuth,
-                            'types' => $authTypes
+
+                            'emailLogin' => $emailLogin,
+                            'phoneLogin' => $phoneLogin,
+                            'socialLogin' => $socialLogin,
+                            'emailReg' => $emailReg,
+                            'phoneReg' => $phoneReg,
+                            'socialReg' => $socialReg,
                         ],
                         'structure' => $initData,
 
@@ -706,7 +749,7 @@ class AdminPanel
                 ]),
                 'resolve' => function ($root, $args) {
 
-                    Auth::authenticateOrThrow(...self::$users);
+                    Auth::authenticateOrThrow(...self::$authStructures);
 
                     if (!isset($args['collection'])) {
                         return [
@@ -791,7 +834,7 @@ class AdminPanel
                 ],
                 'resolve' => function ($root, $args) {
 
-                    Auth::authenticateOrThrow(...self::$users);
+                    Auth::authenticateOrThrow(...self::$authStructures);
 
                     $byCoordsLat = $args['byCoords']['latitude'] ?? null;
                     $byCoordsLon = $args['byCoords']['longitude'] ?? null;
@@ -869,7 +912,7 @@ class AdminPanel
                 ]),
                 'resolve' => function ($root, $args) {
 
-                    Auth::authenticateOrThrow(...self::$users);
+                    Auth::authenticateOrThrow(...self::$authStructures);
 
                     if (!isset($args['collection'])) {
                         Response::validation("Данные не доступны для просмотра");
@@ -926,7 +969,7 @@ class AdminPanel
 
 
 
-                    Auth::authenticateOrThrow(...self::$users);
+                    Auth::authenticateOrThrow(...self::$authStructures);
 
                     if (!isset($args['collection'])) {
                         Response::validation("Данные не доступны для просмотра");
@@ -1105,7 +1148,7 @@ class AdminPanel
 
 
 
-                    Auth::authenticateOrThrow(...self::$users);
+                    Auth::authenticateOrThrow(...self::$authStructures);
 
                     if (!isset($args['collection'])) {
                         Response::validation("Данные не доступны для просмотра");
@@ -1198,17 +1241,6 @@ class AdminPanel
                             ],
                         ];
 
-                        if ($args['table'] ?? false) {
-                            $hideProjection =  $structure->getProjection('inTable');
-
-
-
-                            if ($hideProjection) {
-                                $pipeline[] = [
-                                    '$project' => $hideProjection,
-                                ];
-                            }
-                        }
 
 
 
@@ -1231,6 +1263,7 @@ class AdminPanel
                             ];
                         }
                     }
+
 
 
                     if (isset($args['filter'])) {
@@ -1260,6 +1293,18 @@ class AdminPanel
                                 'search_string' => ['$regex' => mb_strtolower(trim($args['search'])), '$options' => 'i'],
                             ],
                         ];
+                    }
+
+
+                    if ($args['table'] ?? false) {
+                        $hideProjection =  $structure->getProjection('inTable');
+
+
+                        if ($hideProjection) {
+                            $pipeline[] = [
+                                '$project' => $hideProjection,
+                            ];
+                        }
                     }
 
 
@@ -1359,7 +1404,7 @@ class AdminPanel
                 ],
                 'resolve' => function ($root, $args) {
 
-                    Auth::authenticateOrThrow(...self::$users);
+                    Auth::authenticateOrThrow(...self::$authStructures);
 
                     if (!isset($args['collection'])) {
                         Response::validation("Данные не доступны для просмотра");
@@ -1382,7 +1427,7 @@ class AdminPanel
                 ])),
                 'resolve' => function ($root, $args) {
 
-                    Auth::authenticateOrThrow(...self::$users);
+                    Auth::authenticateOrThrow(...self::$authStructures);
 
                     $apikeys = mDB::collection(Auth::$apikey_collection)->find(
                         [
@@ -1426,7 +1471,7 @@ class AdminPanel
                 'resolve' => function ($root, $args) {
 
 
-                    Auth::authenticateOrThrow(...self::$users);
+                    Auth::authenticateOrThrow(...self::$authStructures);
 
                     $apikeyId = $args['_id'] ?? null;
 
@@ -1458,7 +1503,7 @@ class AdminPanel
                 ],
                 'resolve' => function ($root, $args) {
 
-                    Auth::authenticateOrThrow(...self::$users);
+                    Auth::authenticateOrThrow(...self::$authStructures);
 
                     $title = $args['title'] ?? null;
 
@@ -1489,7 +1534,7 @@ class AdminPanel
                 ]),
                 'resolve' => function ($root, $args) {
 
-                    Auth::authenticateOrThrow(...self::$users);
+                    Auth::authenticateOrThrow(...self::$authStructures);
 
                     if (!isset($args['collection'])) {
                         Response::validation("Изменения сортировки не доступна");
@@ -1576,7 +1621,7 @@ class AdminPanel
                 ]),
                 'resolve' => function ($root, $args) {
 
-                    Auth::authenticateOrThrow(...self::$users);
+                    Auth::authenticateOrThrow(...self::$authStructures);
 
                     if (!isset($args['collection'])) {
                         Response::validation("Данные не доступны для просмотра");
@@ -1736,7 +1781,7 @@ class AdminPanel
 
                 'resolve' => function ($root, $args) {
 
-                    Auth::authenticateOrThrow(...self::$users);
+                    Auth::authenticateOrThrow(...self::$authStructures);
 
                     $structure = self::fullSchema()->findItemByCollection($args['collection']);
 
@@ -1771,7 +1816,7 @@ class AdminPanel
                 ]),
                 'resolve' => function ($root, $args) {
 
-                    Auth::authenticateOrThrow(...self::$users);
+                    Auth::authenticateOrThrow(...self::$authStructures);
 
                     if (!isset($args['collection'])) {
                         Response::validation("Данные не доступны для просмотра");
@@ -1867,7 +1912,7 @@ class AdminPanel
                     '*' => Shm::string()
                 ]),
                 'resolve' => function ($root, $args) {
-                    Auth::authenticateOrThrow(...self::$users);
+                    Auth::authenticateOrThrow(...self::$authStructures);
 
                     $fieldDescription = mDB::collection("_adminDescriptions")->findOne([
                         "ownerCollection" => Auth::getAuthCollection()
@@ -1882,7 +1927,7 @@ class AdminPanel
                 'type' => Shm::structure([
 
                     'balances' => Shm::structure([
-                        "*" => Shm::float()
+                        "RUB" => Shm::float()
                     ])->staticBaseTypeName("PaymentsBalances"),
                     'data' => Shm::arrayOf(Shm::structure(
                         [
@@ -1896,7 +1941,7 @@ class AdminPanel
 
                 ])->staticBaseTypeName("Payments"),
                 'resolve' => function ($root, $args) {
-                    Auth::authenticateOrThrow(...self::$users);
+                    Auth::authenticateOrThrow(...self::$authStructures);
 
 
                     $paymentCollection = Auth::getAuthCollection() . "_payments";
@@ -1940,7 +1985,7 @@ class AdminPanel
 
 
                     return [
-                        'balances' =>        $balances,
+                        'balances' =>  $balances,
                         'data' => $data
                     ];
                 }
@@ -1956,7 +2001,7 @@ class AdminPanel
                     ]))
                 ],
                 'resolve' => function ($root, $args) {
-                    Auth::authenticateOrThrow(...self::$users);
+                    Auth::authenticateOrThrow(...self::$authStructures);
 
 
 

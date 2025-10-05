@@ -63,11 +63,16 @@ class ShmSmsAuth extends ShmAuthBase
      * Время жизни SMS кода в секундах
      * @var int
      */
-    private $timeLiveSmsCode = 60;
+    private $timeLiveSmsCode = 60 * 5;
 
 
     public function make(): array
     {
+
+        if (count($this->_authStructures) === 0) {
+            //ERROR PHP
+            throw new \Exception("No auth structures defined for Sms Auth");
+        }
 
 
         return [
@@ -107,88 +112,27 @@ class ShmSmsAuth extends ShmAuthBase
                     }
 
 
-
-                    $user = null;
-
-                    $userStructure = null;
-
-                    foreach ($this->authStructures as $authStructure) {
+                    $findAuthUserAndStructure =  $this->findAuthUserAndStructure(Shm::phone(), (int) $phone, []);
 
 
+                    if (!$findAuthUserAndStructure) {
 
 
-                        $phoneField = $authStructure->findItemByType('phone');
+                        $regNewUser = $this->regNewUser(Shm::phone(), (int) $phone, []);
 
-                        if (!$phoneField) {
-                            continue;
+                        if ($regNewUser) {
+                            [$user, $authStructure] = $regNewUser;
+                            return $this->authToken($authStructure, $user->_id, $args);
                         }
 
-                        $match = [
 
-                            $phoneField->key => (int) $phone,
-                        ];
-
-                        $user =  mDB::collection($authStructure->collection)->findOne($match, [
-                            'projection' => ['_id' => 1]
-                        ]);
-
-                        if ($user) {
-                            $userStructure = $authStructure;
-
-                            break;
-                        }
+                        Response::validation("Не найден аккаунт с таким номером телефона.");
                     }
 
+                    [$user, $userStructure] = $findAuthUserAndStructure;
 
 
-                    if (!$user) {
-
-
-
-                        $authStructure = $this->authStructures[0] ?? null;
-
-                        if (!$authStructure) {
-                            Response::validation("Регистрация по SMS недоступна");
-                        }
-
-
-                        if ($authStructure->onlyAuth) {
-                            Response::validation("Регистрация по SMS ограничена");
-                        }
-
-                        if (!$authStructure) {
-                            Response::validation("Регистрация по SMS недоступна");
-                        }
-
-
-
-                        $phoneField = $authStructure->findItemByType('phone');
-
-                        if (!$phoneField) {
-                            Response::validation("Регистрация по SMS не поддерживается");
-                        }
-
-
-
-                        $insertData = [
-
-                            $phoneField->key => (int) $phone,
-                        ];
-
-
-
-
-
-                        $user = $authStructure->insertOne($insertData);
-
-                        return  $this->authToken($authStructure, $user->getInsertedId(), $args);
-                    } else {
-
-                        if (!$userStructure) {
-                            Response::validation("Пользователь не найден");
-                        }
-                        return $this->authToken($userStructure, $user->_id, $args);
-                    }
+                    return $this->authToken($userStructure, $user->_id, $args);
                 } else {
 
 
@@ -205,6 +149,8 @@ class ShmSmsAuth extends ShmAuthBase
                         ]);
                         return null;
                     }
+
+
 
                     //Проверяем есть ли уже код с такого номера и IP в последние $timeLiveSmsCode секунд
                     $findAuthUser = mDB::collection($this->smsAuthCollection)->findOne([

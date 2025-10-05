@@ -301,9 +301,9 @@ class ShmRPC
         return new ShmGeocoding();
     }
 
-    public static function auth(StructureType ...$authStructures): ShmAuth
+    public static function auth(): ShmAuth
     {
-        return (new ShmAuth(...$authStructures));
+        return (new ShmAuth());
     }
 
     public static function fileUpload(): ShmFileUpload

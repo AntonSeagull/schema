@@ -2,6 +2,7 @@
 
 namespace Shm\ShmUtils;
 
+use Shm\ShmAuth\Auth;
 use Shm\ShmCmd\Cmd;
 use Shm\ShmCmd\CmdSchedule;
 
@@ -85,6 +86,7 @@ class ShmInit
         self::updateTimezone();
         self::updateLang();
 
+        Auth::accountSessionRevoke();
 
         Doctor::cmdInit();
         SearchStringUpdate::cmdInit();

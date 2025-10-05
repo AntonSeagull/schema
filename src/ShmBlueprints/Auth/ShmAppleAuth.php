@@ -27,7 +27,7 @@ class ShmAppleAuth extends ShmAuthBase
 
 
 
-                foreach ($this->authStructures as $authStructure) {
+                foreach ($this->_authStructures as $authStructure) {
 
                     if ($authStructure instanceof StructureType) {
 
@@ -59,10 +59,14 @@ class ShmAppleAuth extends ShmAuthBase
     public function make(): array
     {
 
+        if (count($this->_authStructures) === 0) {
+            //ERROR PHP
+            throw new \Exception("No auth structures defined for Apple Auth");
+        }
+
 
         return [
             'type' => Shm::string(),
-            'description' => 'Авторизация через Apple',
             'args' => [
                 'timezone' => Shm::string(),
 
@@ -75,7 +79,6 @@ class ShmAppleAuth extends ShmAuthBase
 
                 "key" => Shm::string(),
                 "deviceInfo" => $this->deviceInfoStructure()
-
 
 
             ],
@@ -103,52 +106,28 @@ class ShmAppleAuth extends ShmAuthBase
 
 
 
-                $user = null;
-                $currentAuthStructure = null;
+                $authUserAndStructure = $this->findAuthUserAndStructure(null, null, [
 
-                foreach ($this->authStructures as $authStructure) {
+                    $this->appleField => $appleSignInPayload->getUser()
 
-                    if ($user) break;
-
+                ]);
 
 
+                if ($authUserAndStructure) {
+                    [$user, $currentAuthStructure] = $authUserAndStructure;
 
-
-                    $match = [
-
-                        $this->appleField => $appleSignInPayload->getUser()
-                    ];
-
-
-
-
-                    $user = $authStructure->findOne($match);
-                    if ($user) {
-                        $currentAuthStructure = $authStructure;
-                        break;
-                    }
+                    return $this->authToken($currentAuthStructure, $user->_id, $args);
                 }
 
 
+                $regNewUser = $this->regNewUser(null, null, [
 
+                    $this->appleField => $appleSignInPayload->getUser()
 
-                if (!$user) {
+                ]);
 
-                    $currentAuthStructure = $this->authStructures[0];
-
-                    if ($currentAuthStructure->onlyAuth) {
-                        Shm::error($this->errorAccountNotFound);
-                    }
-
-
-                    $user = $currentAuthStructure()->insertOne([
-                        $this->appleField => $appleSignInPayload->getUser(),
-                    ]);
-
-
-                    return $this->authToken($currentAuthStructure, $user->_id, $args);
-                } else {
-
+                if ($regNewUser) {
+                    [$user, $currentAuthStructure] = $regNewUser;
 
                     return $this->authToken($currentAuthStructure, $user->_id, $args);
                 }

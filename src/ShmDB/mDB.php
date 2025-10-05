@@ -9,6 +9,7 @@ use \MongoDB\Collection;
 use \MongoDB\Driver\WriteConcern;
 use Shm\ShmAuth\Auth;
 use Shm\ShmUtils\Config;
+use Shm\ShmUtils\RedisStorage;
 use Traversable;
 
 class CollectionEvents
@@ -39,10 +40,11 @@ class CollectionEvents
 
         $filter['deleted_at'] = ['$exists' => false];
 
-        return $this->collection->find($filter, $options);
+        $find = $this->collection->find($filter, $options);
 
+        mDBRedis::updateCacheAfterChange($this->collection->getCollectionName(), $filter);
 
-        return $result;
+        return $find;
     }
 
     /**
@@ -61,7 +63,11 @@ class CollectionEvents
         $filter['deleted_at'] = ['$exists' => false];
 
 
-        return $this->collection->findOne($filter, $options);
+        $findOne = $this->collection->findOne($filter, $options);
+
+        mDBRedis::updateCacheAfterChange($this->collection->getCollectionName(), $filter);
+
+        return  $findOne;
     }
 
     /**
@@ -229,20 +235,8 @@ class CollectionEvents
 
         $result = $this->collection->updateMany($filter, $update, $options);
 
-        if ($result->getModifiedCount() > 0 && mDB::hasListener($this->collection->getCollectionName(), 'update')) {
+        mDBRedis::updateCacheAfterChange($this->collection->getCollectionName(), $filter);
 
-            // Используем проекцию для получения только поля _id
-            $projection = ['_id' => 1];
-            // Извлеките идентификаторы документов, которые были обновлены
-            $documentsToUpdate = $this->collection->find($filter, ['projection' => $projection]);
-
-            $idsToUpdate = [];
-            foreach ($documentsToUpdate as $document) {
-                $idsToUpdate[] = $document['_id'];
-            }
-
-            mDB::notifyListeners($this->collection->getCollectionName(), 'update', $idsToUpdate);
-        }
         return $result;
     }
 
@@ -263,20 +257,7 @@ class CollectionEvents
 
         $result = $this->collection->updateOne($filter, $update, $options);
 
-        if ($result->getModifiedCount() > 0 && mDB::hasListener($this->collection->getCollectionName(), 'update')) {
-
-            // Используем проекцию для получения только поля _id
-            $projection = ['_id' => 1];
-            // Извлеките идентификаторы документов, которые были обновлены
-            $documentsToUpdate = $this->collection->find($filter, ['projection' => $projection]);
-
-            $idsToUpdate = [];
-            foreach ($documentsToUpdate as $document) {
-                $idsToUpdate[] = $document['_id'];
-            }
-
-            mDB::notifyListeners($this->collection->getCollectionName(), 'update', $idsToUpdate);
-        }
+        mDBRedis::updateCacheAfterChange($this->collection->getCollectionName(), $filter);
 
         return $result;
     }
@@ -291,9 +272,11 @@ class CollectionEvents
     public function deleteOne(array $filter = [], array $options = [])
     {
 
-        return $this->updateOne($filter, ['$set' => ['deleted_at' => time()]], $options);
+        $updateOne = $this->updateOne($filter, ['$set' => ['deleted_at' => time()]], $options);
 
-        //  return $this->collection->deleteOne($filter, $options);
+        mDBRedis::updateCacheAfterChange($this->collection->getCollectionName(), $filter);
+
+        return $updateOne;
     }
 
     /**
@@ -308,10 +291,14 @@ class CollectionEvents
 
 
         // Устанавливаем поле deleted_at для всех документов, соответствующих фильтру
-        return  $this->updateMany($filter, ['$set' => ['deleted_at' => time()]], $options);
 
 
-        //  return $this->collection->deleteMany($filter, $options);
+
+        $updateMany =  $this->updateMany($filter, ['$set' => ['deleted_at' => time()]], $options);
+
+        mDBRedis::updateCacheAfterChange($this->collection->getCollectionName(), $filter);
+
+        return $updateMany;
     }
 
     /**
@@ -429,6 +416,8 @@ class CollectionEvents
         $result = $this->collection->insertOne($document, $options);
 
 
+        mDBRedis::updateCacheAfterChange($this->collection->getCollectionName(), ['_id' => $result->getInsertedId()]);
+
         return $result;
     }
 
@@ -470,7 +459,8 @@ class CollectionEvents
         }
         $result = $this->collection->insertMany($documents, $options);
 
-        mDB::notifyListeners($this->collection->getCollectionName(), 'insert', $result->getInsertedIds());
+        mDBRedis::updateCacheAfterChange($this->collection->getCollectionName(), ['_id' => ['$in' => $result->getInsertedIds()]]);
+
 
         return $result;
     }
@@ -503,47 +493,7 @@ class mDB
         }
     }
 
-    /**
-     * @var array массив слушателей, где ключи - это имена коллекций,
-     * а значения - массивы с обратными вызовами
-     */
-    static $listeners = [];
 
-    /**
-     * Добавляет слушатель в реестр слушателей.
-     *
-     * @param string $collectionName Имя коллекции MongoDB.
-     * @param string $operation Тип операции (insert, update).
-     * @param callable $callback Обратный вызов, который будет выполнен при уведомлении слушателей.
-     */
-    public static function addListener(string $collectionName, string $operation, callable $callback)
-    {
-        $validOperations = ['insert', 'update'];
-
-        if (!in_array($operation, $validOperations)) {
-            throw new \Exception("Invalid operation type. Allowed values are: " . implode(', ', $validOperations));
-        }
-
-        if (!isset(self::$listeners[$collectionName][$operation])) {
-            self::$listeners[$collectionName][$operation] = [];
-        }
-        self::$listeners[$collectionName][$operation][] = $callback;
-    }
-
-    /**
-     * Проверяет наличие слушателя для определенной операции и коллекции.
-     *
-     * @param string $collectionName Имя коллекции MongoDB.
-     * @param string $operation Тип операции (insert, update).
-     * @return bool
-     */
-    public static function hasListener(string $collectionName, string $operation): bool
-    {
-        if (isset(self::$listeners[$collectionName][$operation])) {
-            return true;
-        }
-        return false;
-    }
 
 
     /**
@@ -585,29 +535,6 @@ class mDB
 
 
 
-    /**
-     * Уведомляет всех слушателей о выполнении операции.
-     *
-     * @param string $collectionName Имя коллекции MongoDB.
-     * @param string $operation Тип операции (insert, update).
-     * @param array $ids Массив идентификаторов документов, над которыми была выполнена операция.
-     */
-    public static function notifyListeners(string $collectionName, string $operation, array $ids)
-    {
-        $validOperations = ['insert', 'update'];
-
-        if (!in_array($operation, $validOperations)) {
-            throw new \Exception("Invalid operation type. Allowed values are: " . implode(', ', $validOperations));
-        }
-
-        if (isset(self::$listeners[$collectionName][$operation])) {
-            foreach (self::$listeners[$collectionName][$operation] as $callback) {
-                if (is_callable($callback)) {
-                    call_user_func($callback, $ids);
-                }
-            }
-        }
-    }
 
     protected static $client;
     public static $database;
@@ -627,15 +554,6 @@ class mDB
 
 
         $params = [
-            // Имя пользователя MongoDB
-            'username' => Config::get('mongodb.username'),
-
-            // Пароль пользователя MongoDB
-            'password' => Config::get('mongodb.password'),
-
-            // База аутентификации, где хранится пользователь (часто "admin")
-            'authSource' => Config::get('mongodb.authSource', 'admin'),
-
             // ====== Аутентификация ======
             // Имя пользователя MongoDB
             'username' => Config::get('mongodb.username'),

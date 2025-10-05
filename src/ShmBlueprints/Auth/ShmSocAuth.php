@@ -17,6 +17,11 @@ class ShmSocAuth extends ShmAuthBase
     {
 
 
+        if (count($this->_authStructures) === 0) {
+            //ERROR PHP
+            throw new \Exception("No auth structures defined for Social Auth");
+        }
+
         return [
             'type' => Shm::string(),
             'args' => Shm::structure([
@@ -94,7 +99,7 @@ class ShmSocAuth extends ShmAuthBase
 
 
 
-                    foreach ($this->authStructures as $authStructureItem) {
+                    foreach ($this->_authStructures as $authStructureItem) {
 
 
                         $socialFieldLocal = $authStructureItem->findItemByType(Shm::social())?->key;
@@ -137,9 +142,12 @@ class ShmSocAuth extends ShmAuthBase
                     return  $this->authToken($authModel, Auth::getAuthOwner(), $args);
                 } else {
 
+
+
+
                     $user = null;
                     $userStructure = null;
-                    foreach ($this->authStructures as $authStructureItem) {
+                    foreach ($this->_authStructures as $authStructureItem) {
 
 
 
@@ -203,9 +211,9 @@ class ShmSocAuth extends ShmAuthBase
                         return $this->authToken($userStructure, $user['_id'], $args);
                     } else {
 
-                        $authStructure = $this->authStructures[0];
+                        $authStructure = $this->_regStructures[0] ?? null;
 
-                        if ($authStructure->onlyAuth) {
+                        if (!$authStructure) {
                             Response::validation($this->errorAccountNotFound);
                         }
 
@@ -242,35 +250,6 @@ class ShmSocAuth extends ShmAuthBase
 
 
                         $user = $authStructure->insertOne($insers);
-
-                        $deviceInfo = $args['deviceInfo'] ?? null;
-                        if ($deviceInfo) {
-
-                            try {
-
-                                mDB::collection("devices")->updateOne(
-                                    [
-
-                                        ...$deviceInfo,
-                                        'user' => mDB::id($user['_id'])
-                                    ],
-                                    [
-                                        '$set' => [
-
-                                            ...$deviceInfo,
-                                            'user' => mDB::id($user['_id'])
-
-                                        ],
-                                    ],
-                                    [
-                                        'upsert' => true,
-                                    ]
-                                );
-                            } catch (\Exception $e) {
-                                \Sentry\captureException($e);
-                                $deviceInfo = null;
-                            }
-                        }
 
 
                         return $this->authToken($authStructure, $user->getInsertedId(), $args);

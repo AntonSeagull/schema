@@ -17,6 +17,7 @@ use Shm\CachedType\CachedObjectType;
 use Shm\Shm;
 
 use Shm\ShmAdmin\Types\VisualGroupType;
+use Shm\ShmDB\mDBRedis;
 use Shm\ShmRPC\ShmRPCCodeGen\TSType;
 use Shm\ShmTypes\SupportTypes\StageType;
 use Shm\ShmTypes\Utils\JsonLogicBuilder;
@@ -46,16 +47,17 @@ class StructureType extends BaseType
 
     public bool $apikey = false;
 
-    public bool $paymentBalance = false;
-    public array $paymentCurrency = [];
 
-    public  function payment(bool $paymentBalance = true, array $paymentCurrency = []): static
+    public bool $balanceRUB = false;
+
+    public function balanceRUB($balanceRUB = true): static
     {
-
-        $this->paymentBalance = $paymentBalance;
-        $this->paymentCurrency = $paymentCurrency;
+        $this->balanceRUB = $balanceRUB;
         return $this;
     }
+
+
+
 
     public bool $manualSort = false;
 
@@ -1086,12 +1088,20 @@ class StructureType extends BaseType
 
 
 
+
+
                 if ($pathItem['document']->hasTrueValueDeep("display")) {
 
                     $displayProjection = $pathItem['document']->getProjection('display');
 
+
+
+
+
                     $aggregatePipeline[] = ['$project' => $displayProjection];
                 } else {
+
+
 
                     $displayProjection = $pathItem['document']->getProjection(function ($n) {
                         return in_array($n->type, ['string', 'phone', 'email']);
@@ -1104,15 +1114,48 @@ class StructureType extends BaseType
                 }
             }
 
-            $aggregatePipeline[] = [
-                '$match' => [
+            $documentsById = [];
+
+
+            foreach ($allIds as $index => $id) {
+
+                //Находим в redis если есть
+                $redisDoc = mDBRedis::get($collection, (string)$id);
+                if ($redisDoc) {
+                    $documentsById[(string)$id] = $redisDoc;
+
+
+                    unset($allIds[$index]);
+                }
+            }
+
+            $allIds = array_values(array_unique($allIds));
+
+
+            $mongoDocs = [];
+            if (count($allIds) > 0) {
+
+
+
+
+
+
+                $aggregatePipeline[] = [
+                    '$match' => [
+                        '_id' => ['$in' => $allIds]
+                    ]
+                ];
+
+                $mongoDocs =  mDB::collection($pathItem['document']->collection)->aggregate($aggregatePipeline)->toArray();
+
+
+                mDBRedis::updateCacheAfterChange($collection, [
                     '_id' => ['$in' => $allIds]
-                ]
-            ];
+                ]);
+            }
 
-            $mongoDocs =  mDB::collection($pathItem['document']->collection)->aggregate($aggregatePipeline)->toArray();
 
-            if (count($mongoDocs) == 0) {
+            if (count($mongoDocs) == 0 && count($documentsById) == 0) {
                 continue;
             }
 
@@ -1121,7 +1164,7 @@ class StructureType extends BaseType
 
 
 
-            $documentsById = [];
+
             foreach ($mongoDocs as $doc) {
 
 

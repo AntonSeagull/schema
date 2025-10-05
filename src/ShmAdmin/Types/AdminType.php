@@ -11,6 +11,25 @@ class AdminType extends StructureType
     public string $type = 'admin';
 
 
+
+
+    public function terms(string $terms): static
+    {
+        $this->assets([
+            'terms' => $terms,
+        ]);
+
+        return $this;
+    }
+    public function privacy(string $privacy): static
+    {
+        $this->assets([
+            'privacy' => $privacy,
+        ]);
+
+        return $this;
+    }
+
     public function icon(string $icon): static
     {
         $this->assets([

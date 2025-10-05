@@ -16,6 +16,10 @@ class ShmPassportAuth extends ShmAuthBase
 
     public function make(): array
     {
+        if (count($this->_authStructures) === 0) {
+            //ERROR PHP
+            throw new \Exception("No auth structures defined for Passport Auth");
+        }
 
 
         return [
@@ -63,123 +67,24 @@ class ShmPassportAuth extends ShmAuthBase
 
 
 
-                $user = null;
-                $userStructure = null;
+                $findAuthUserAndStructure =  $this->findAuthUserAndStructure(Shm::phone(), (int) $phone, []);
 
-                foreach ($this->authStructures as $authStructure) {
+                if (!$findAuthUserAndStructure) {
 
-                    if ($user) break;
+                    $regNewUser = $this->regNewUser(Shm::phone(), (int) $phone, []);
 
+                    [$user, $regStructure] = $regNewUser;
 
-
-                    $phoneField = $authStructure->findItemByType(Shm::phone())?->key;
-
-                    if (!$phoneField) {
-                        continue;
-                    }
-
-                    $match = [
-
-                        $phoneField => (int) $phone,
+                    return [
+                        "token" => $this->authToken($regStructure, $user->_id, $args),
+                        "auth" => true,
                     ];
-
-
-
-
-                    $user = $authStructure->findOne($match);
-                    if ($user) {
-                        $userStructure = $authStructure;
-                        break;
-                    }
                 }
 
-
-                if (!$user) {
-
-                    $authStructure = $this->authStructures[0];
-
-                    if ($authStructure->onlyAuth) {
-                        Response::validation($this->errorAccountNotFound);
-                    }
+                [$user, $userStructure] = $findAuthUserAndStructure;
 
 
-
-                    $phoneField = $authStructure->findItemByType(Shm::phone())?->key;
-
-                    $user = $authStructure->insertOne([
-
-                        $phoneField => (int) $phone,
-                    ]);
-
-                    $userId = $user->getInsertedId();
-
-                    $deviceInfo = $args['deviceInfo'] ?? null;
-                    if ($deviceInfo) {
-
-                        try {
-
-
-                            mDB::collection("devices")->updateOne(
-                                [
-
-                                    ...$deviceInfo,
-                                    'user' => $userId,
-                                ],
-                                [
-                                    '$set' => [
-
-                                        ...$deviceInfo,
-                                        'user' => $userId,
-
-                                    ],
-                                ],
-                                [
-                                    'upsert' => true,
-                                ]
-                            );
-                        } catch (\Exception $e) {
-                            \Sentry\captureException($e);
-                            $deviceInfo = null;
-                        }
-                    }
-
-
-                    return  $this->authToken($authStructure, $user->getInsertedId(), $args);
-                } else {
-
-
-
-                    $deviceInfo = $args['deviceInfo'] ?? null;
-                    if ($deviceInfo) {
-                        try {
-
-                            mDB::collection("devices")->updateOne(
-                                [
-
-                                    ...$deviceInfo,
-                                    'user' => $user->_id
-                                ],
-                                [
-                                    '$set' => [
-
-                                        ...$deviceInfo,
-                                        'user' => $user->_id
-
-                                    ],
-                                ],
-                                [
-                                    'upsert' => true,
-                                ]
-                            );
-                        } catch (\Exception $e) {
-                            \Sentry\captureException($e);
-                            $deviceInfo = null;
-                        }
-                    }
-
-
-                    return $this->authToken($userStructure, $user->_id, $args);
-                }
+                return $this->authToken($userStructure, $user->_id, $args);
             }
         ];
     }

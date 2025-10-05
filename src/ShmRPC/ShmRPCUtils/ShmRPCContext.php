@@ -29,6 +29,8 @@ class ShmRPCContext
 
     public $context = null;
 
+    public $onlyDisplayRelations = false;
+
 
     private   function xor_encrypt(string $text, string $key): string
     {
@@ -71,6 +73,7 @@ class ShmRPCContext
         $this->cache = $schemaMethod['cache'] ?? null;
         $this->type = $schemaMethod['type'] ?? null;
         $this->args = $schemaMethod['args'] ?? null;
+        $this->onlyDisplayRelations = $schemaMethod['onlyDisplayRelations'] ?? false;
 
         $this->resolve = $schemaMethod['resolve'] ?? null;
 
@@ -190,7 +193,8 @@ class ShmRPCContext
 
 
 
-        $onlyDisplayRelations = $schemaMethod['onlyDisplayRelations'] ?? false;
+        $onlyDisplayRelations = $this->onlyDisplayRelations;
+
 
 
         if ($result) {

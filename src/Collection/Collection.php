@@ -300,4 +300,47 @@ class Collection
     {
         return self::structure()->count($filter);
     }
+
+
+    public static function changeBalanceRUB($_id, $amount, $description = null)
+    {
+        return self::_changeBalance($_id, $amount, "RUB", $description);
+    }
+
+    private static function _changeBalance($_id, $amount, $currency, $description)
+    {
+        $_this = new static();
+
+        $user = mDB::collection($_this->collection)->findOne([
+            "_id" => mDB::id($_id),
+        ]);
+
+        if (!$user) return false;
+        if (!$amount) return false;
+        if (!$currency) return false;
+
+
+        $beforeBalance = $user['_balance'][$currency] ?? 0;
+
+        $afterBalance = $beforeBalance + (float) $amount;
+
+        mDB::collection($_this->collection . "_payments")->insertOne([
+            "manager" => $user->_id,
+            "amount" => (int) $amount,
+            "currency" => $currency,
+            "description" =>  $description ?? "Операция по балансу",
+            "created_at" => time(),
+            "beforeBalance" => $beforeBalance,
+            "afterBalance" => $afterBalance,
+
+        ]);
+
+        mDB::collection($_this->collection)->updateOne([
+            "_id" => mDB::id($_id),
+        ], [
+            '$set' => [
+                '_balance.' . $currency => $afterBalance
+            ]
+        ]);
+    }
 }

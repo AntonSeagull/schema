@@ -11,7 +11,7 @@ use Shm\ShmUtils\Response;
 class ShmCallAuth extends ShmAuthBase
 {
 
-
+    private $callAuthCollection = "_call_auth";
 
     private $testPhones = [
         79201111111,
@@ -19,6 +19,12 @@ class ShmCallAuth extends ShmAuthBase
     ];
     private $getCodeFunctionHandler = null;
 
+
+    /**
+     * Время жизни CALL кода в секундах
+     * @var int
+     */
+    private $timeLiveCallCode = 60 * 5;
 
     public function setGetCodeFunctionHandler($handler): static
     {
@@ -40,6 +46,11 @@ class ShmCallAuth extends ShmAuthBase
     public function make(): array
     {
 
+
+        if (count($this->_authStructures) === 0) {
+            //ERROR PHP
+            throw new \Exception("No auth structures defined for Call Auth");
+        }
 
 
         return [
@@ -63,75 +74,48 @@ class ShmCallAuth extends ShmAuthBase
                 if (isset($args['code'])) {
 
 
-                    $findAuthUser = mDB::collection("_call_auth")->findOne([
-                        "phone" => (int) $phone,
-                        "code" => (int) $args['code'],
-                        "created_at" => ['$gt' => time() - 60 * 5],
-                    ]);
+
+                    $findAuthUser = mDB::collection($this->callAuthCollection)->findOne(
+                        [
+                            "phone" => (int) $phone,
+                            "code" => (int) $args['code'],
+                            "created_at" => ['$gt' => $this->timeLiveCallCode],
+
+                        ],
+                        [
+                            "sort" => ["_id" => -1]
+                        ]
+                    );
 
 
 
                     if (!$findAuthUser) {
-                        Response::validation('Неверный код');
+
+                        Response::validation("Неверный код");
                     }
 
 
+                    $findAuthUserAndStructure =  $this->findAuthUserAndStructure(Shm::phone(), (int) $phone, []);
 
 
+                    if (!$findAuthUserAndStructure) {
 
 
-                    $user = null;
-                    $userStructure = null;
+                        $regNewUser = $this->regNewUser(Shm::phone(), (int) $phone, []);
 
-                    foreach ($this->authStructures as $authStructure) {
-
-                        if ($user) break;
-
-
-
-                        $phoneField = $authStructure->findItemByType(Shm::phone())?->key;
-
-                        $match = [
-                            $phoneField => (int) $phone,
-                        ];
-
-
-
-
-                        $user = $authStructure->findOne($match);
-                        if ($user) {
-                            $userStructure = $authStructure;
+                        if ($regNewUser) {
+                            [$user, $authStructure] = $regNewUser;
+                            return $this->authToken($authStructure, $user->_id, $args);
                         }
+
+
+                        Response::validation("Не найден аккаунт с таким номером телефона.");
                     }
 
-
-                    if (!$user) {
-
-                        $authStructure = $this->authStructures[0];
-
-                        if ($authStructure->onlyAuth) {
-                            Response::validation($this->errorAccountNotFound);
-                        }
+                    [$user, $userStructure] = $findAuthUserAndStructure;
 
 
-
-
-                        $phoneField = $authStructure->findItemByType(Shm::phone())?->key;
-                        if (!$phoneField) {
-                            Response::validation("Авторизация по телефону не поддерживается");
-                        }
-
-                        $user = $authStructure->insertOne([
-                            $phoneField => (int) $phone,
-                        ]);
-
-                        return  $this->authToken($authStructure, $user->getInsertedId(), $args);
-                    } else {
-
-
-
-                        return $this->authToken($userStructure, $user->_id, $args);
-                    }
+                    return $this->authToken($userStructure, $user->_id, $args);
                 } else {
 
                     if (in_array(+$phone, $this->testPhones)) {
@@ -140,7 +124,7 @@ class ShmCallAuth extends ShmAuthBase
                         $code =  $this->getCode((int) $phone);
                     }
 
-                    mDB::collection("_call_auth")->insertOne([
+                    mDB::collection($this->callAuthCollection)->insertOne([
                         "phone" => (int) $phone,
                         "code" => (int)$code,
                         "created_at" => time(),

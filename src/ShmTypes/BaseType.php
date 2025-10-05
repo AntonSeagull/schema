@@ -269,7 +269,7 @@ abstract class BaseType
     public BaseType | null $itemType = null;
 
 
-    public $onlyAuth = false;
+
 
     public  $key = null;
 
@@ -341,11 +341,6 @@ abstract class BaseType
     }
 
 
-    public function onlyAuth(bool $onlyAuth = true): static
-    {
-        $this->onlyAuth = $onlyAuth;
-        return $this;
-    }
 
 
 

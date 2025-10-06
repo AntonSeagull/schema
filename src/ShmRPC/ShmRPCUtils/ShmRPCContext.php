@@ -69,6 +69,8 @@ class ShmRPCContext
 
         $this->request = $request;
 
+        Response::setMethod($method);
+
         $this->method = $method;
         $this->cache = $schemaMethod['cache'] ?? null;
         $this->type = $schemaMethod['type'] ?? null;
@@ -142,6 +144,7 @@ class ShmRPCContext
 
                 Response::cache();
                 $result = mDB::replaceObjectIdsToString($result);
+
                 Response::success($result);
             }
         }

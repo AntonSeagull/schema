@@ -1151,7 +1151,7 @@ class StructureType extends BaseType
 
                 mDBRedis::updateCacheAfterChange($collection, [
                     '_id' => ['$in' => $allIds]
-                ]);
+                ], true);
             }
 
 

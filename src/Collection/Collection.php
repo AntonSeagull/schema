@@ -9,6 +9,7 @@ use Shm\Shm;
 use Shm\ShmAdmin\SchemaCollections\SubAccountsSchema;
 use Shm\ShmAuth\Auth;
 use Shm\ShmDB\mDB;
+use Shm\ShmDB\mDBRedis;
 use Shm\ShmTypes\IDsType;
 use Shm\ShmTypes\IDType;
 use Shm\ShmUtils\Response;
@@ -39,6 +40,10 @@ class Collection
 
         if (!$this->collection) {
             $this->collection = $this->getShortClassName();
+        }
+
+        if ($this->cacheInRedis) {
+            mDBRedis::addCachedCollection($this->collection);
         }
     }
 
@@ -172,6 +177,11 @@ class Collection
     }
 
 
+    //Кеширование записей в Redis
+    //Если коллекция в списке кешируемых, то после изменения записи в БД
+    //данные этой записи обновляются в Redis
+    public $cacheInRedis = false;
+
 
 
     public function schema(): StructureType | null
@@ -202,6 +212,10 @@ class Collection
             $this->collection = $this->getShortClassName();
         }
 
+
+        if ($this->cacheInRedis) {
+            mDBRedis::addCachedCollection($this->collection);
+        }
 
 
 

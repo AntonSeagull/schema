@@ -3,7 +3,7 @@
 namespace Shm\ShmUtils;
 
 use Shm\Shm;
-
+use Shm\ShmDB\mDB;
 
 class Response
 {
@@ -38,6 +38,8 @@ class Response
     private static $startTime = 0;
 
 
+    private static $method = null;
+
     private static $cache = false;
 
     public static function cache(bool $cache = true): void
@@ -50,6 +52,11 @@ class Response
         self::$startTime = microtime(true);
     }
 
+
+    public static function setMethod(?string $method): void
+    {
+        self::$method = $method;
+    }
 
     private static $traceTimingsStart = [];
     private static $traceTimingsResult = [];
@@ -96,11 +103,25 @@ class Response
 
         header('Content-Type: application/json; charset=utf-8');
 
+
+        $executionTime = self::$startTime ? round((microtime(true) - self::$startTime) * 1000) : null;
+
+
+        if ($executionTime &&  $executionTime > 1000) {
+
+            mDB::collection("_rpc_slow_requests")->insertOne([
+                'url' => $_SERVER['REQUEST_URI'] ?? '',
+                'method' => self::$method,
+                'executionTime' => $executionTime,
+            ]);
+        }
+
         echo json_encode([
             ...self::$baseResponse,
             'success' => true,
             'result' => $result,
-            'executionTime' => self::$startTime ? round((microtime(true) - self::$startTime) * 1000) : null,
+            'method' => self::$method,
+            'executionTime' => $executionTime,
             'traceTimings' => self::$traceTimingsResult,
             'cache' => self::$cache,
             'memoryUsage' => [

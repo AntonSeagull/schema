@@ -157,8 +157,11 @@ class DeepAccess
                 if ($results instanceof \MongoDB\BSON\ObjectId) {
                     $values[] = $results;
                 } else {
-                    foreach ($results as $res) {
-                        $values[] = $res;
+                    //Проверка что может быть массивом или что можно сделать foreach
+                    if (is_array($results) || $results instanceof \Traversable) {
+                        foreach ($results as $res) {
+                            $values[] = $res;
+                        }
                     }
                 }
             }

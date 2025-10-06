@@ -77,7 +77,7 @@ class CollectionEvents
         //Если в $options нет того что убирает поля например projection, то тогда кешируем
         if ($findOne && !isset($options['projection'])) {
 
-            mDBRedis::save($this->collection->getCollectionName(), (string)$findOne['_id'], $findOne);
+            //   mDBRedis::save($this->collection->getCollectionName(), (string)$findOne['_id'], $findOne);
         }
 
 
@@ -271,7 +271,13 @@ class CollectionEvents
 
         $update['$set']['updated_at'] = time();
 
+
+
+
         $result = $this->collection->updateOne($filter, $update, $options);
+
+
+
 
         mDBRedis::updateCacheAfterChange($this->collection->getCollectionName(), $filter);
 

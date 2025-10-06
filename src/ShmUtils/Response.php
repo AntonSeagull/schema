@@ -113,6 +113,11 @@ class Response
                 'url' => $_SERVER['REQUEST_URI'] ?? '',
                 'method' => self::$method,
                 'executionTime' => $executionTime,
+                'traceTimings' => self::$traceTimingsResult,
+                'memoryUsage' => [
+                    'used' => memory_get_usage(),
+                    'peak' => memory_get_peak_usage(),
+                ],
             ]);
         }
 

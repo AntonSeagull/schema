@@ -44,12 +44,12 @@ class CollectionEvents
 
 
         //Если в $options нет того что убирает поля например projection, то тогда кешируем
-        if ($find && !isset($options['projection'])) {
+        //  if ($find && !isset($options['projection'])) {
 
-            foreach ($find as $doc) {
-                mDBRedis::save($this->collection->getCollectionName(), (string)$doc['_id'], $doc);
-            }
-        }
+        //    foreach ($find as $doc) {
+        //   mDBRedis::save($this->collection->getCollectionName(), (string)$doc['_id'], $doc);
+        //    }
+        //}
 
 
 

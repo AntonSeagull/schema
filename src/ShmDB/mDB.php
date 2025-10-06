@@ -42,7 +42,16 @@ class CollectionEvents
 
         $find = $this->collection->find($filter, $options);
 
-        mDBRedis::updateCacheAfterChange($this->collection->getCollectionName(), $filter);
+
+        //Если в $options нет того что убирает поля например projection, то тогда кешируем
+        if ($find && !isset($options['projection'])) {
+
+            foreach ($find as $doc) {
+                mDBRedis::save($this->collection->getCollectionName(), (string)$doc['_id'], $doc);
+            }
+        }
+
+
 
         return $find;
     }
@@ -65,7 +74,14 @@ class CollectionEvents
 
         $findOne = $this->collection->findOne($filter, $options);
 
-        mDBRedis::updateCacheAfterChange($this->collection->getCollectionName(), $filter);
+        //Если в $options нет того что убирает поля например projection, то тогда кешируем
+        if ($findOne && !isset($options['projection'])) {
+
+            mDBRedis::save($this->collection->getCollectionName(), (string)$findOne['_id'], $findOne);
+        }
+
+
+
 
         return  $findOne;
     }

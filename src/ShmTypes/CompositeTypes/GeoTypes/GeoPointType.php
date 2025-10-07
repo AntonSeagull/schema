@@ -24,6 +24,7 @@ class GeoPointType extends StructureType
 
         parent::__construct(
             [
+                'uuid' => Shm::UUID(),
                 'address' => Shm::string(),
                 'lat' => Shm::float(),
                 'lng' => Shm::float(),

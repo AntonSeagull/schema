@@ -770,6 +770,9 @@ class StructureType extends BaseType
             }
         } else {
 
+
+
+
             if (!(is_array($value) || $value instanceof Traversable)) {
                 return null;
             }

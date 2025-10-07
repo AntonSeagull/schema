@@ -106,19 +106,23 @@ class Response
 
         $executionTime = self::$startTime ? round((microtime(true) - self::$startTime) * 1000) : null;
 
+        $slowRequestTime = Config::get("slowRequestTime", null);
 
-        if ($executionTime &&  $executionTime > 1000) {
 
-            mDB::collection("_rpc_slow_requests")->insertOne([
-                'url' => $_SERVER['REQUEST_URI'] ?? '',
-                'method' => self::$method,
-                'executionTime' => $executionTime,
-                'traceTimings' => self::$traceTimingsResult,
-                'memoryUsage' => [
-                    'used' => memory_get_usage(),
-                    'peak' => memory_get_peak_usage(),
-                ],
-            ]);
+        if ($slowRequestTime) {
+            if ($executionTime &&  $executionTime > $slowRequestTime) {
+
+                mDB::collection("_rpc_slow_requests")->insertOne([
+                    'url' => $_SERVER['REQUEST_URI'] ?? '',
+                    'method' => self::$method,
+                    'executionTime' => $executionTime,
+                    'traceTimings' => self::$traceTimingsResult,
+                    'memoryUsage' => [
+                        'used' => memory_get_usage(),
+                        'peak' => memory_get_peak_usage(),
+                    ],
+                ]);
+            }
         }
 
         echo json_encode([

@@ -163,6 +163,10 @@ class Doctor
                     ],
                 'validKey' => true,
 
+
+                //Время после которого RPC запрос считается медленным, записываются в коллекцию _rpc_slow_requests
+                'slowRequestTime' => 1000, //в миллисекундах
+
                 'smtp'=>[
                     'host' => 'smtp.example.com',
                     'port' => 587,

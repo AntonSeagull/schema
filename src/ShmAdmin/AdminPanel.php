@@ -95,6 +95,24 @@ class AdminPanel
         return $schema;
     }
 
+    public static function findCurrentAuthStructure(): ?StructureType
+    {
+        if (! Auth::isAuthenticated()) return null;
+
+        if (Auth::subAccountAuth()) {
+            return SubAccountsSchema::baseStructure();
+        }
+
+        foreach (self::$authStructures as $user) {
+
+            if ($user->collection == Auth::getAuthCollection()) {
+                return $user;
+            }
+        }
+
+        return null;
+    }
+
 
     public static function json()
     {
@@ -285,7 +303,7 @@ class AdminPanel
                 "*" => Shm::string()
             ]),
 
-            'balanceRUB' => Shm::bool(),
+
 
 
             "apikey" => Shm::bool(),
@@ -505,8 +523,22 @@ class AdminPanel
                     'data' => Shm::mixed(),
                     'changePassword' => Shm::boolean(),
                     'subAccount' => Shm::boolean(),
-                    'currencies' => Shm::arrayOf(Shm::enum(StructureType::ALLOWED_CURRENCIES)),
-                    'balances' => Shm::structure(array_combine(StructureType::ALLOWED_CURRENCIES, array_fill(0, count(StructureType::ALLOWED_CURRENCIES), Shm::float())))
+                    'currencies' => Shm::structure([
+                        '*' => Shm::structure([
+                            'currency' => Shm::string(),
+                            'gateways' => Shm::arrayOf(Shm::structure([
+                                'key' => Shm::string(),
+                                'title' => Shm::string(),
+                                'icon' => Shm::string(),
+                                'description' => Shm::string(),
+                                'minAmount' => Shm::float(),
+                                'maxAmount' => Shm::float(),
+                            ])),
+                        ])
+                    ]),
+                    'balances' => Shm::structure([
+                        '*' => Shm::float(),
+                    ])
                 ]),
 
                 'resolve' => function ($root, $args) {
@@ -558,6 +590,11 @@ class AdminPanel
                     }
 
 
+                    $currencies = [];
+
+                    foreach ($findStructure->currencies as $key => $currency) {
+                        $currencies[$key] = $currency->toArray();
+                    }
 
                     return [
                         'structure' => $findStructure->json(),
@@ -565,7 +602,7 @@ class AdminPanel
                             '_id' => Auth::subAccountAuth() ? Auth::getSubAccountID() :  Auth::getAuthOwner()
                         ]))),
                         'subAccount' => Auth::subAccountAuth(),
-                        'currencies' =>  Auth::subAccountAuth() ? [] :  $findStructure->currencies,
+                        'currencies' =>  Auth::subAccountAuth() ? [] :  $currencies,
                         'balances' =>  Auth::subAccountAuth() ? [] : $findStructure->balances(Auth::getAuthOwner()),
                         'changePassword' => $passwordField ? true : false,
                     ];
@@ -1574,7 +1611,7 @@ class AdminPanel
 
                 'type' => Shm::bool(),
                 'args' => Shm::structure([
-                    'currency' => Shm::nonNull(Shm::enum(StructureType::ALLOWED_CURRENCIES)),
+                    'currency' => Shm::nonNull(Shm::string()),
                 ]),
                 'resolve' => function ($root, $args) {
 
@@ -2182,23 +2219,15 @@ class AdminPanel
             'generatePaymentLink' => [
                 'type' => Shm::string(),
                 'args' => Shm::structure([
-                    'currency' => Shm::nonNull(Shm::enum(StructureType::ALLOWED_CURRENCIES)),
+                    'currency' =>  Shm::nonNull(Shm::string()),
+                    'gateway' => Shm::nonNull(Shm::string()),
                     'amount' => Shm::nonNull(Shm::float()),
                 ]),
                 'resolve' => function ($root, $args) {
 
                     Auth::authenticateOrThrow(...self::$authStructures);
 
-                    $findStructure = null;
-
-
-                    foreach (self::$authStructures as $user) {
-
-                        if ($user->collection == Auth::getAuthCollection()) {
-                            $findStructure = $user;
-                            break;
-                        }
-                    }
+                    $findStructure = self::findCurrentAuthStructure();
 
                     if (!$findStructure) {
                         Response::validation("Ошибка оплаты. Попробуйте позже");
@@ -2215,7 +2244,8 @@ class AdminPanel
                         Response::validation("Валюта не поддерживается");
                     }
 
-                    return $findStructure->generatePaymentLink(Auth::getAuthOwner(),  $currency, $amount);
+
+                    return $findStructure->getCurrency($currency)?->getGateway($args['gateway'])?->generatePaymentLink(Auth::getAuthOwner(), $amount);
                 }
             ],
 
@@ -2230,11 +2260,18 @@ class AdminPanel
                     ]
                 )->staticBaseTypeName("PaymentsData")),
                 'args' => [
-                    'currency' => Shm::nonNull(Shm::enum(StructureType::ALLOWED_CURRENCIES)),
+                    'currency' => Shm::nonNull(Shm::string()),
                 ],
                 'resolve' => function ($root, $args) {
                     Auth::authenticateOrThrow(...self::$authStructures);
-                    return StructureType::lastBalanceOperations(Auth::getAuthOwner(), Auth::getAuthCollection(), $args['currency']);
+
+                    $findStructure = self::findCurrentAuthStructure();
+
+                    if (!$findStructure) {
+                        return null;
+                    }
+
+                    return $findStructure->getCurrency($args['currency'])?->lastBalanceOperations(Auth::getAuthOwner()) ?? [];
                 }
             ],
 

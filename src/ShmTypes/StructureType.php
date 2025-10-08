@@ -21,9 +21,11 @@ use Shm\Shm;
 
 use Shm\ShmAdmin\Types\VisualGroupType;
 use Shm\ShmDB\mDBRedis;
+use Shm\ShmPayments\PaymentCurrency;
 use Shm\ShmRPC\ShmRPCCodeGen\TSType;
 use Shm\ShmTypes\SupportTypes\StageType;
 use Shm\ShmTypes\Utils\JsonLogicBuilder;
+
 use Shm\ShmUtils\AutoPostfix;
 use Shm\ShmUtils\DeepAccess;
 use Shm\ShmUtils\Inflect;
@@ -2214,41 +2216,27 @@ class StructureType extends BaseType
 
 
     /**
-     * @var array<string> $currencies Допустимые валюты: "USD", "EUR", "RUB", "KZT"
+     * @var array<PaymentCurrency> $currencies 
      */
     public $currencies = [];
 
 
     /**
-     * @param 'USD'|'EUR'|'RUB'|'KZT' $currency
+     * @param  PaymentCurrency $currency
      */
-    public function addCurrency($currency)
+    public function addCurrency(PaymentCurrency $val): static
     {
 
-        $currency = $this->normalizeCurrency($currency);
-
-        if (!in_array($currency, $this->currencies)) {
-            $this->currencies[] = $currency;
-        }
+        $val->collection = &$this->collection;
+        $this->currencies[$val->currency] = $val;
         return $this;
     }
 
-    /**
-     * @param 'USD'|'EUR'|'RUB'|'KZT' $currency
-     */
-    public function balanceFor($currency, $_id)
+
+    public function getCurrency($_currency): ?PaymentCurrency
     {
-
-        $currency = $this->normalizeCurrency($currency);
-
-        $user = mDB::collection($this->collection)->findOne([
-            "_id" => mDB::id($_id),
-        ]);
-
-        if (!$user) return 0;
-        return $user['_balance'][$currency] ?? 0;
+        return $this->currencies[$_currency] ?? null;
     }
-
 
     public function balances($_id): mixed
     {
@@ -2262,137 +2250,6 @@ class StructureType extends BaseType
     }
 
 
-    /**
-     * @param 'USD'|'EUR'|'RUB'|'KZT' $currency
-     */
-    public function addCurrencyBalance($_id, $amount, $currency, $description)
-    {
-
-        $currency = $this->normalizeCurrency($currency);
-
-        $user = mDB::collection($this->collection)->findOne([
-            "_id" => mDB::id($_id),
-        ]);
-
-        if (!$user) return false;
-        if (!$amount) return false;
-        if (!$currency) return false;
-
-
-        $beforeBalance = $user['_balance'][$currency] ?? 0;
-
-        $afterBalance = $beforeBalance + (float) $amount;
-
-        $key = Inflect::singularize($this->collection);
-
-        mDB::collection($this->collection . "_payments")->insertOne([
-
-            //@deprecated
-            "manager" => $user->_id,
-            $key => $user->_id,
-            "userCollection" => $this->collection,
-            "amount" => (int) $amount,
-            "currency" => $currency,
-            "description" =>  $description ?? "Операция по балансу",
-            "created_at" => time(),
-            "beforeBalance" => $beforeBalance,
-            "afterBalance" => $afterBalance,
-
-        ]);
-
-        mDB::collection($this->collection)->updateOne([
-            "_id" => mDB::id($_id),
-        ], [
-            '$set' => [
-                '_balance.' . $currency => $afterBalance
-            ]
-        ]);
-    }
-
-    /** Нормализуем валюту (регистр) и валидируем */
-    private function normalizeCurrency(string $currency): string
-    {
-        $currency = strtoupper(trim($currency));
-        if (!in_array($currency, self::ALLOWED_CURRENCIES)) {
-            throw new \InvalidArgumentException(
-                'Currency must be one of: ' . implode(', ', self::ALLOWED_CURRENCIES)
-            );
-        }
-        return $currency;
-    }
-
-    /** @var array<string, callable(string, string, float, string):string> */
-    private array $paymentLinkGenerators = [];
-
-    /**
-     * Зарегистрировать генератор ссылки для валюты.
-     * @param 'USD'|'EUR'|'RUB'|'KZT' $currency
-     * @param callable(string $_id, string $currency, float $amount): string $fn
-     */
-    public function setPaymentLinkGenerator(string $currency, callable $fn): static
-    {
-        $currency = $this->normalizeCurrency($currency);
-        $this->paymentLinkGenerators[$currency] = $fn;
-        return $this;
-    }
-
-    /**
-     * Создать платёжную ссылку, используя сохранённый генератор.
-     * @param 'USD'|'EUR'|'RUB'|'KZT' $currency
-     */
-    public function generatePaymentLink(string $_id, string $currency, $amount): string
-    {
-        $currency = $this->normalizeCurrency($currency);
-
-        $fn = $this->paymentLinkGenerators[$currency] ?? null;
-        if (!$fn) {
-            throw new \RuntimeException("Payment link generator for {$currency} is not set");
-        }
-
-        return $fn(mDB::id($_id), $currency, (float) $amount);
-    }
-
-    /**
-     * Вернуть последние N (по умолчанию 1000) операций по балансу для пользователя и валюты.
-     *
-     * @param string $_id  ID пользователя
-     * @param string $collection  Коллекция пользователя 
-     * @param 'USD'|'EUR'|'RUB'|'KZT' $currency
-     * @param int $limit
-     * @return array<int, array<string, mixed>>
-     */
-    public static function lastBalanceOperations(string $_id, string $collection, string $currency, int $limit = 1000): array
-    {
-        // нормализуем/валидируем валюту (используй твою normalizeCurrency, если она есть)
-        $currency = strtoupper(trim($currency));
-        if (!in_array($currency, self::ALLOWED_CURRENCIES, true)) {
-            throw new \InvalidArgumentException(
-                'Currency must be one of: ' . implode(', ', self::ALLOWED_CURRENCIES)
-            );
-        }
-
-        $key = Inflect::singularize($collection);
-
-        $filter = [
-            '$or' => [
-                [$key  => mDB::id($_id)],
-                ['manager' => mDB::id($_id)],
-            ],   // в платежи ты писал $user->_id
-            'currency' => $currency,
-            'deleted_at' => ['$exists' => false],
-        ];
-
-        // сортировка и лимит (последние по времени)
-        $options = [
-            'sort'   => ['created_at' => -1],
-            'limit'  => $limit,
-        ];
-
-        $cursor = mDB::collection($collection . '_payments')->find($filter, $options);
-
-        // если нужен обычный массив
-        return iterator_to_array($cursor, false);
-    }
 
 
 

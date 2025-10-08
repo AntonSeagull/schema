@@ -3,6 +3,7 @@
 namespace Shm\ShmTypes\CompositeTypes\FileTypes;
 
 use Shm\Shm;
+use Shm\ShmDB\mDB;
 use Shm\ShmTypes\IDType;
 
 
@@ -49,6 +50,23 @@ class FileIDType extends IDType
 
 
         parent::__construct($structure);
+    }
+
+
+    public function exportRow(mixed $value): string | array | null
+    {
+
+        if ($value) {
+
+            $val = mDB::collection('_files')->findOne(['_id' => mDB::id($value)]);
+            if ($val && isset($val['url'])) {
+                return (string)$val['url'];
+            } else {
+                return '';
+            }
+        } else {
+            return '';
+        }
     }
 
 

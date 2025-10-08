@@ -250,8 +250,12 @@ class ShmRPC
 
 
 
+            if (isset($_GET['php'])) {
+                ShmRPCCodeGen::php($schemaParams);
+            } else {
 
-            ShmRPCCodeGen::html($schemaParams, isset($_GET['json']));
+                ShmRPCCodeGen::html($schemaParams, isset($_GET['json']));
+            }
         };
 
 

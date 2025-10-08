@@ -363,4 +363,31 @@ class EnumType extends BaseType
 
         return $TSType;
     }
+
+
+    public function exportRow(mixed $value): string | array | null
+    {
+        if ($value) {
+            if (isset($this->values[$value])) {
+                return $this->values[$value];
+            } else {
+                return $value;
+            }
+        } else {
+            return "";
+        }
+    }
+
+    public function fallbackDisplayValues($value): array | string | null
+    {
+        if ($value) {
+            if (isset($this->values[$value])) {
+                return $this->values[$value];
+            } else {
+                return $value;
+            }
+        } else {
+            return "";
+        }
+    }
 }

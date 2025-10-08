@@ -68,6 +68,17 @@ class FileImageType extends StructureType
         ];
     }
 
+    public function exportRow(mixed $value): string | array | null
+    {
+
+        if (isset($value['url']) && $value['url']) {
+            return (string)$value['url'];
+        } else {
+            return '';
+        }
+    }
+
+
     public function filterType($safeMode = false): ?BaseType
     {
         return null;

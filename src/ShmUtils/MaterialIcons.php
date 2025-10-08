@@ -2,6 +2,8 @@
 
 namespace Shm\ShmUtils;
 
+use Shm\ShmCmd\Cmd;
+
 /**
  * @method static string AbTesting()
  * @method static string Abacus()
@@ -14423,7 +14425,7 @@ class MaterialIcons
     {
 
         //If is cli request do return
-        if (php_sapi_name() === 'cli') {
+        if (Cmd::cli()) {
             return;
         }
 

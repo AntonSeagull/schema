@@ -8,6 +8,14 @@ use Shm\ShmUtils\ShmInit;
 class Cmd
 {
 
+
+    // Проверяет, запущена ли команда из командной строки
+    public static function cli(): bool
+    {
+        return php_sapi_name() === 'cli';
+    }
+
+
     public static function command(string $cmd, callable $handler): self
     {
         return new self($cmd, $handler);
@@ -39,7 +47,7 @@ class Cmd
         $this->cmd = $cmd;
         $this->handler = $handler;
 
-        if (php_sapi_name() === 'cli') {
+        if (Cmd::cli()) {
             $argv = $_SERVER['argv'];
             $command = $argv[1] ?? null;
 

@@ -144,7 +144,7 @@ class CmdSchedule
 
 
         //If is cli request do return
-        if (php_sapi_name() === 'cli') {
+        if (Cmd::cli()) {
             return;
         }
 

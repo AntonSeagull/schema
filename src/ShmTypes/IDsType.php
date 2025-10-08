@@ -6,6 +6,7 @@ use InvalidArgumentException;
 use Shm\ShmDB\mDB;
 
 use Shm\Shm;
+use Shm\ShmDB\mDBRedis;
 use Shm\ShmRPC\ShmRPCCodeGen\TSType;
 use Shm\ShmRPC\RPCBuffer;
 use Traversable;
@@ -34,6 +35,13 @@ class IDsType extends BaseType
         return $this;
     }
 
+    public function unExpand(): static
+    {
+
+        $this->expanded = false;
+        $this->document = null;
+        return $this;
+    }
 
     public function expand(): static
     {
@@ -312,5 +320,68 @@ class IDsType extends BaseType
         }
 
         return [];
+    }
+
+
+    public function exportRow(mixed $value): string | array | null
+    {
+
+        if ($this->document && !$this->document->hide) {
+
+            if (is_array($value) || $value instanceof Traversable) {
+
+                $value = (array)$value;
+
+                if (count($value) === 0) {
+                    return "";
+                }
+
+
+                $docs = [];
+
+                foreach ($value as $index => $id) {
+                    $item = mDBRedis::get($this->document->collection, (string)$id);
+                    if ($item) {
+                        $docs[] = $item;
+                        unset($value[$index]);
+                    }
+                }
+
+
+                $value = array_values($value);
+
+                if (count($value) > 0) {
+                    $items = mDB::collection($this->document->collection)->find(['_id' => ['$in' => array_map(fn($id) => mDB::id($id), $value)]])->toArray();
+                    $docs = array_merge($docs, $items);
+                }
+
+                if (count($docs) === 0) {
+                    return "";
+                }
+
+                $displayValuesResult = [];
+                foreach ($docs as $index => $doc) {
+
+
+
+
+                    $displayValues = $this->document->displayValues($doc);
+                    if (is_array($displayValues) && count($displayValues) > 1) {
+                        $displayValuesResult[] = implode(', ', $displayValues);
+                    } else {
+                        $displayValues = $this->document->fallbackDisplayValues($doc);
+                        if (is_array($displayValues) && count($displayValues) > 1) {
+                            $displayValuesResult[] = implode(', ', $displayValues);
+                        }
+                    }
+                }
+
+                return implode(' | ', $displayValuesResult);
+            }
+        } else {
+            return "";
+        }
+
+        return "";
     }
 }

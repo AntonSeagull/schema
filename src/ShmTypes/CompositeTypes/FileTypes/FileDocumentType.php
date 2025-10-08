@@ -33,6 +33,16 @@ class FileDocumentType extends StructureType
         ];
     }
 
+    public function exportRow(mixed $value): string | array | null
+    {
+
+        if (isset($value['url']) && $value['url']) {
+            return (string)$value['url'];
+        } else {
+            return '';
+        }
+    }
+
 
     public function __construct()
     {

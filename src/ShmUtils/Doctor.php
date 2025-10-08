@@ -186,10 +186,6 @@ class Doctor
                     'dsn' => '',
                     'environment' => 'production',
                 ],
-                'socket' => [
-                    'domain' => '',
-                    'prefix' => 'test'
-                ],
                 's3' => [
                     'bucket' => '',
                     'version' => 'latest',
@@ -237,7 +233,7 @@ class Doctor
     private static function ensureSortWeightIndex()
     {
 
-        $isCli = (php_sapi_name() === 'cli');
+        $isCli = Cmd::cli();
 
         $structures = self::structures();
 
@@ -651,7 +647,7 @@ class Doctor
             ShmInit::$rootDir . '/public/static/main.css' => ShmInit::$shmDir . '/../assets/admin/static/main.css',
         ];
 
-        $isCli = (php_sapi_name() === 'cli');
+        $isCli = Cmd::cli();
 
         foreach ($links as $target => $source) {
             $targetDir = dirname($target);

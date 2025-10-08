@@ -5,7 +5,7 @@ namespace Shm\ShmBlueprints\Auth;
 use Shm\ShmDB\mDB;
 use Shm\Shm;
 use Shm\ShmAuth\Auth;
-
+use Shm\ShmTypes\StructureType;
 use Shm\ShmUtils\Response;
 
 
@@ -226,31 +226,35 @@ class ShmSocAuth extends ShmAuthBase
                             Response::validation("Социальные сети не поддерживаются");
                         }
 
-                        $nameField = $authStructure->findItemByKey('name');
-                        $surnameField = $authStructure->findItemByKey('surname');
-                        $photoField = $authStructure->findItemByType(Shm::fileImageLink());
+                        $nameField = $authStructure->findItemByKey('name')?->key;
+                        $surnameField = $authStructure->findItemByKey('surname')?->key;
+                        $photoField = $authStructure->findItemByType(Shm::fileImageLink())?->key;
 
-                        $insers = [
+                        $insert = [
 
                             $socialField => [$userSoc],
                         ];
 
+
                         if ($emailField) {
-                            $insers[$emailField] = $userSoc['mail'] ?? null;
+                            $insert[$emailField] = $userSoc['mail'] ?? null;
                         }
                         if ($nameField) {
-                            $insers[$nameField] = $userSoc['name'] ?? null;
+                            $insert[$nameField] = $userSoc['name'] ?? null;
                         }
                         if ($surnameField) {
-                            $insers[$surnameField] = $userSoc['surname'] ?? null;
+                            $insert[$surnameField] = $userSoc['surname'] ?? null;
                         }
                         if ($photoField) {
-                            $insers[$photoField] = $userSoc['photo'] ?? null;
+                            $insert[$photoField] = $userSoc['photo'] ?? null;
                         }
 
 
-                        $user = $authStructure->insertOne($insers);
 
+
+                        $user = $authStructure->insertOne($insert);
+
+                        $authStructure->callEvent(StructureType::EVENT_AFTER_REGISTER, $user->getInsertedId());
 
                         return $this->authToken($authStructure, $user->getInsertedId(), $args);
                     }

@@ -7,7 +7,7 @@ use GuzzleHttp\Client;
 use GuzzleHttp\Psr7\Request;
 use Shm\ShmDB\mDB;
 use Shm\Shm;
-
+use Shm\ShmAdmin\SchemaCollections\ShmExportCollection;
 use Shm\ShmAdmin\SchemaCollections\SubAccountsSchema;
 use Shm\ShmAdmin\Types\AdminType;
 use Shm\ShmAdmin\Types\GroupType;
@@ -505,6 +505,8 @@ class AdminPanel
                     'data' => Shm::mixed(),
                     'changePassword' => Shm::boolean(),
                     'subAccount' => Shm::boolean(),
+                    'currencies' => Shm::arrayOf(Shm::enum(StructureType::ALLOWED_CURRENCIES)),
+                    'balances' => Shm::structure(array_combine(StructureType::ALLOWED_CURRENCIES, array_fill(0, count(StructureType::ALLOWED_CURRENCIES), Shm::float())))
                 ]),
 
                 'resolve' => function ($root, $args) {
@@ -563,6 +565,8 @@ class AdminPanel
                             '_id' => Auth::subAccountAuth() ? Auth::getSubAccountID() :  Auth::getAuthOwner()
                         ]))),
                         'subAccount' => Auth::subAccountAuth(),
+                        'currencies' =>  Auth::subAccountAuth() ? [] :  $findStructure->currencies,
+                        'balances' =>  Auth::subAccountAuth() ? [] : $findStructure->balances(Auth::getAuthOwner()),
                         'changePassword' => $passwordField ? true : false,
                     ];
                 }
@@ -661,13 +665,10 @@ class AdminPanel
                         'phoneReg' => Shm::boolean(),
                         'socialReg' => Shm::boolean(),
                     ]),
-                    'uid' => Shm::string(),
+
                     'reports' => self::baseStructure(),
                     'structure' => self::baseStructure(),
-                    'socket' => Shm::structure([
-                        'domain' => Shm::string(),
-                        'prefix' => Shm::string(),
-                    ]),
+
 
                 ]),
                 'resolve' => function ($root, $args) {
@@ -730,9 +731,7 @@ class AdminPanel
                         ],
                         'structure' => $initData,
 
-                        'uid' => self::getUID(),
 
-                        "socket" => Config::get('socket'),
                     ];
                 }
 
@@ -949,7 +948,7 @@ class AdminPanel
             'hash' => [
                 'type' => Shm::string(),
                 'args' => Shm::structure([
-                    "_id" => Shm::string(),
+                    "_id" => Shm::ID(),
                     "collection" => Shm::nonNull(Shm::string()),
                     'limit' => Shm::int()->default(30),
                     'offset' =>  Shm::int()->default(0),
@@ -1097,6 +1096,8 @@ class AdminPanel
                     $pipeline[] = [
                         '$limit' => $args['limit'] ?? 20,
                     ];
+
+
 
 
                     Response::startTraceTiming("data_aggregate");
@@ -1250,9 +1251,8 @@ class AdminPanel
 
 
                         if (!$result) {
-                            return [
-                                'data' => [],
-                            ];
+
+                            Shm::error("Документ не найден или нет доступа");
                         } else {
 
 
@@ -1302,7 +1302,10 @@ class AdminPanel
 
                         if ($hideProjection) {
                             $pipeline[] = [
-                                '$project' => $hideProjection,
+                                '$project' => [
+                                    ...$hideProjection,
+                                    'updated_at' => 1
+                                ]
                             ];
                         }
                     }
@@ -1397,6 +1400,259 @@ class AdminPanel
 
             ],
 
+
+            'deleteExport' => [
+                'type' => Shm::bool(),
+                'args' => Shm::structure([
+                    "_id" => Shm::ID()->default(null),
+                ]),
+                'resolve' => function ($root, $args) {
+
+                    Auth::authenticateOrThrow(...self::$authStructures);
+
+                    $_id = $args['_id'] ?? null;
+
+                    if (!$_id) {
+                        Response::validation("Нет данных для удаления");
+                    }
+
+                    $export = ShmExportCollection::findOne([
+                        '_id' => mDB::id($_id)
+                    ]);
+                    if (!$export) {
+                        Response::validation("Экспорт не найден");
+                    }
+                    ShmExportCollection::structure()->deleteOne([
+                        '_id' => mDB::id($_id)
+                    ]);
+
+                    if (file_exists($export['filePath'])) {
+                        unlink($export['filePath']);
+                    }
+
+                    return true;
+                }
+            ],
+
+            'makeExport' => [
+
+                'type' => Shm::bool(),
+                'args' => Shm::structure([
+                    'title' => Shm::string(),
+                    "collection" => Shm::nonNull(Shm::string()),
+                    'filter' => Shm::mixed(),
+                    'stage' => Shm::string()
+                ]),
+                'resolve' => function ($root, $args) {
+
+
+
+                    Auth::authenticateOrThrow(...self::$authStructures);
+
+
+                    $currentExport = ShmExportCollection::findOne([
+                        'type' => 'data',
+                        'status' => ['$in' => ['pending', 'processing']]
+                    ]);
+
+                    if ($currentExport) {
+                        Response::validation("У вас уже есть активный экспорт. Подождите пока он завершится.");
+                    }
+
+
+                    if (!isset($args['title']) || !$args['title']) {
+                        Response::validation("Не указано название экспорта");
+                    } else {
+                        $args['title'] = trim($args['title']);
+                    }
+
+
+                    if (!isset($args['collection'])) {
+                        Response::validation("Данные не доступны для экспорта");
+                    }
+
+
+                    $structure = self::fullSchema()->findItemByCollection($args['collection']);
+
+
+
+
+                    $structure->inTableThis(true);
+
+
+                    if ($structure->single) {
+
+                        Response::validation("Данные не доступны для экспорта");
+                    }
+
+
+                    if (!$structure) {
+                        Response::validation("Данные не доступны для экспорта");
+                    }
+
+
+                    $rootType = $root->getType();
+                    $rootType->items['data'] = Shm::arrayOf($structure);
+
+                    $root->setType($rootType);
+
+                    $pipeline = $structure->getPipeline();
+
+
+                    if (isset($args['stage'])) {
+
+                        $stage = $structure->findStage($args['stage']);
+
+                        if ($stage) {
+                            $pipeline = [
+                                ...$pipeline,
+                                ...$stage->getPipeline(),
+                            ];
+                        }
+                    }
+
+
+
+
+                    if (isset($args['filter'])) {
+
+
+                        $pipelineFilter =  $structure->filterToPipeline($args['filter']);
+
+
+
+
+                        if ($pipelineFilter) {
+
+                            $pipeline = [
+                                ...$pipeline,
+                                ...$pipelineFilter,
+                            ];
+                        }
+                    };
+
+
+
+                    $timezone = date_default_timezone_get();
+
+                    $fileName = 'export_' . $structure->collection . '_' . $timezone . '_' . date('d_m_Y_H_i') . '_' . md5($args['title']) . '.xlsx';
+
+
+                    //Remove special chars from filename $fileName
+                    $fileName = preg_replace('/[^A-Za-z0-9_\-\.]/', '_', $fileName);
+
+                    $filePathDir = ShmInit::$rootDir . '/storage/exports';
+                    if (!file_exists($filePathDir)) {
+                        mkdir($filePathDir, 0755, true);
+                    }
+
+
+
+
+
+                    ShmExportCollection::insertOne([
+                        'type' => 'data',
+                        'timezone' => $timezone,
+                        'filePath' => $filePathDir . '/' . $fileName,
+                        'fileName' => $fileName,
+                        'title' => $args['title'],
+                        'token' => Auth::$currentRequestToken,
+                        'collection' => $structure->collection,
+                        'pipeline' => $pipeline,
+                        'status' => 'pending',
+                    ]);
+
+
+
+
+                    return true;
+                }
+
+            ],
+
+            'makeStatementExport' => [
+
+                'type' => Shm::bool(),
+                'args' => Shm::structure([
+                    'currency' => Shm::nonNull(Shm::enum(StructureType::ALLOWED_CURRENCIES)),
+                ]),
+                'resolve' => function ($root, $args) {
+
+
+
+                    Auth::authenticateOrThrow(...self::$authStructures);
+
+
+                    $currentExport = ShmExportCollection::findOne([
+                        'type' => 'statement',
+                        'status' => ['$in' => ['pending', 'processing']]
+                    ]);
+
+                    if ($currentExport) {
+                        Response::validation("У вас уже есть активный экспорт ведомости расчетов. Подождите пока он завершится.");
+                    }
+
+
+                    $timezone = date_default_timezone_get();
+
+                    $fileName = 'export_payment_report_' . $timezone . '_' . date('d_m_Y_H_i') . '_' . $args['currency'] . '.xlsx';
+
+
+                    //Remove special chars from filename $fileName
+                    $fileName = preg_replace('/[^A-Za-z0-9_\-\.]/', '_', $fileName);
+
+                    $filePathDir = ShmInit::$rootDir . '/storage/exports';
+                    if (!file_exists($filePathDir)) {
+                        mkdir($filePathDir, 0755, true);
+                    }
+
+
+                    $key = Inflect::singularize(Auth::getAuthCollection());
+
+                    $pipeline = [
+                        ['$match' =>  [
+                            'currency' => $args['currency'],
+                            '$or' => [
+                                ['manager' => Auth::getAuthOwner()],
+                                [$key => Auth::getAuthOwner()],
+                            ]
+                        ]],
+                        ['$sort' => ["created_at" => 1]],
+                        ['$limit' => 10000]
+                    ];
+
+                    ShmExportCollection::insertOne([
+                        'type' => 'statement',
+                        'timezone' => $timezone,
+                        'filePath' => $filePathDir . '/' . $fileName,
+                        'fileName' => $fileName,
+                        'title' => 'Ведомость расчетов в ' . $args['currency'] . ' на ' . date('d.m.Y H:i'),
+                        'token' => Auth::$currentRequestToken,
+                        'pipeline' => $pipeline,
+                        'status' => 'pending',
+                    ]);
+
+
+
+
+                    return true;
+                }
+
+            ],
+
+            'listExport' => [
+                'type' => Shm::arrayOf(ShmExportCollection::structure()),
+                'resolve' => function ($root, $args) {
+
+                    Auth::authenticateOrThrow(...self::$authStructures);
+
+                    return ShmExportCollection::find([], [
+                        'sort' => ['_id' => -1],
+                        'limit' => 3,
+                    ]);
+                }
+            ],
+
             'filter' => [
                 'type' => self::baseStructure(),
                 'args' => [
@@ -1466,7 +1722,7 @@ class AdminPanel
             'removeApiKey' => [
                 'type' => Shm::boolean(),
                 'args' => [
-                    '_id' => Shm::string(),
+                    '_id' => Shm::ID(),
                 ],
                 'resolve' => function ($root, $args) {
 
@@ -1912,7 +2168,7 @@ class AdminPanel
                     '*' => Shm::string()
                 ]),
                 'resolve' => function ($root, $args) {
-                    Auth::authenticateOrThrow(...self::$authStructures);
+
 
                     $fieldDescription = mDB::collection("_adminDescriptions")->findOne([
                         "ownerCollection" => Auth::getAuthCollection()
@@ -1923,71 +2179,62 @@ class AdminPanel
                 }
             ],
 
-            'payments' => [
-                'type' => Shm::structure([
-
-                    'balances' => Shm::structure([
-                        "RUB" => Shm::float()
-                    ])->staticBaseTypeName("PaymentsBalances"),
-                    'data' => Shm::arrayOf(Shm::structure(
-                        [
-
-                            "amount" => Shm::float(),
-                            "currency" => Shm::string(),
-                            "description" => Shm::string(),
-                            "created_at" => Shm::float(),
-                        ]
-                    )->staticBaseTypeName("PaymentsData")),
-
-                ])->staticBaseTypeName("Payments"),
+            'generatePaymentLink' => [
+                'type' => Shm::string(),
+                'args' => Shm::structure([
+                    'currency' => Shm::nonNull(Shm::enum(StructureType::ALLOWED_CURRENCIES)),
+                    'amount' => Shm::nonNull(Shm::float()),
+                ]),
                 'resolve' => function ($root, $args) {
+
                     Auth::authenticateOrThrow(...self::$authStructures);
 
-
-                    $paymentCollection = Auth::getAuthCollection() . "_payments";
-
-
-                    $key = Inflect::singularize(Auth::getAuthCollection());
-                    $filter = [
-                        '$or' => [
-                            ['manager' => Auth::getAuthOwner()],
-                            [$key => Auth::getAuthOwner()],
-                        ],
-                    ];
-
-                    $data = mDB::collection($paymentCollection)->find($filter, [
-                        'sort' => [
-                            "_id" => -1,
-                        ],
-                        'limit' => 1000,
-
-                    ]);
-
-                    $balancesData = mDB::collection($paymentCollection)->aggregate([
-                        ['$match' => $filter],
-                        ['$match' => ['deleted_at' => ['$exists' => false]]],
-
-                        [
-                            '$group' => [
-                                '_id' => '$currency',
-                                'value' => [
-                                    '$sum' => '$amount'
-                                ]
-                            ]
-                        ]
-                    ])->toArray();
+                    $findStructure = null;
 
 
-                    $balances = [];
-                    foreach ($balancesData as $balance) {
-                        $balances[$balance['_id']] = $balance['value'];
+                    foreach (self::$authStructures as $user) {
+
+                        if ($user->collection == Auth::getAuthCollection()) {
+                            $findStructure = $user;
+                            break;
+                        }
                     }
 
+                    if (!$findStructure) {
+                        Response::validation("Ошибка оплаты. Попробуйте позже");
+                    }
 
-                    return [
-                        'balances' =>  $balances,
-                        'data' => $data
-                    ];
+                    $amount = $args['amount'] ?? 0;
+                    $currency = $args['currency'] ?? null;
+
+                    if ($amount <= 0) {
+                        Response::validation("Сумма должна быть больше нуля");
+                    }
+
+                    if (!in_array($currency, StructureType::ALLOWED_CURRENCIES)) {
+                        Response::validation("Валюта не поддерживается");
+                    }
+
+                    return $findStructure->generatePaymentLink(Auth::getAuthOwner(),  $currency, $amount);
+                }
+            ],
+
+
+            'lastBalanceOperations' => [
+                'type' =>  Shm::arrayOf(Shm::structure(
+                    [
+                        "amount" => Shm::float(),
+                        "currency" => Shm::string(),
+                        "description" => Shm::string(),
+                        "created_at" => Shm::float(),
+                    ]
+                )->staticBaseTypeName("PaymentsData")),
+                'args' => [
+                    'currency' => Shm::nonNull(Shm::enum(StructureType::ALLOWED_CURRENCIES)),
+                ],
+                'resolve' => function ($root, $args) {
+                    Auth::authenticateOrThrow(...self::$authStructures);
+                    return StructureType::lastBalanceOperations(Auth::getAuthOwner(), Auth::getAuthCollection(), $args['currency']);
                 }
             ],
 

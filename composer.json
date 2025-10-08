@@ -41,7 +41,8 @@
         "geoip2/geoip2": "^3.2",
         "jenssegers/blade": "^2.0",
         "griffinledingham/php-apple-signin": "^1.1",
-        "nette/mail": "^4.0"
+        "nette/mail": "^4.0",
+        "phpoffice/phpspreadsheet": "^5.1"
     },
     "prefer-stable": true
 }

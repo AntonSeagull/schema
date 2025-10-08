@@ -239,6 +239,18 @@ class ShmUtils
         if (!$validKey) {
             return;
         }
+
+
+        /*       
+        $keys = ['_id', '_sortWeight'];
+
+
+        //Проверка что ключ не начинается с _ так как это системный ключ
+        if (str_starts_with($key, '_') && !in_array($key, $keys)) {
+            throw new \Exception("Key must not start with an underscore (_). Invalid key: {$key}");
+        }*/
+
+
         if (!preg_match('/^[a-zA-Z0-9_*]+$/', $key)) {
             throw new \Exception("Key must contain only letters, numbers, underscores, and asterisks (*). Invalid key: {$key}");
         }

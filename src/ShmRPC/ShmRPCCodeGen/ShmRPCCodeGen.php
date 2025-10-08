@@ -11,6 +11,137 @@ class ShmRPCCodeGen
 
     public static array $tsTypes = [];
 
+    public static function php(array $schema)
+    {
+
+
+
+        $REQUEST_URI = $_SERVER['REQUEST_URI'];
+
+        //Убарем GET параметры
+        $REQUEST_URI = explode('?', $REQUEST_URI)[0];
+        $baseEndpoint = $REQUEST_URI;
+        //Все / заменяем на _
+        $REQUEST_URI = str_replace('/', '_', $REQUEST_URI);
+
+
+        $dir =  ShmInit::$rootDir . '/_php_codegen/' . $REQUEST_URI . '/';
+        if (!is_dir($dir)) {
+            mkdir($dir, 0777, true);
+        }
+
+
+
+
+        $classFullName = "ApiService";
+
+        $class = new \Nette\PhpGenerator\ClassType($classFullName);
+
+
+        /*
+        
+        
+        //Добавляем метод для запроса схемы
+
+        private static $endpoint = 'http://localhost:8888/admin';
+
+
+    private static function request($method, $params)
+    {
+
+        $client = new Client();
+        $headers = [
+            'Content-Type' => 'application/json'
+        ];
+
+        $body = json_encode([
+            'method' => $method,
+            'params' => $params,
+        ]);
+
+        $request = new Request('POST', self::$endpoint, $headers, $body);
+        $res = $client->sendAsync($request)->wait();
+        $responseBody = $res->getBody();
+        $response = json_decode($responseBody, true);
+        return $response;
+    }*/
+
+
+        $class->addProperty('endpoint')
+            ->setStatic()
+            ->setVisibility('private')
+            ->setType('string')
+            ->setValue('http://localhost:8888/' . $baseEndpoint);
+
+        $method = $class->addMethod('request');
+        $method->setStatic();
+        $method->setVisibility('private');
+        $method->setReturnType('array');
+        $method->addParameter('method')->setType('string');
+        $method->addParameter('params')->setType('array');
+        $method->setBody('
+        $client = new \GuzzleHttp\Client();
+        $headers = [
+            \'Content-Type\' => \'application/json\'
+        ];
+        $body = json_encode([
+            \'method\' => $method,
+            \'params\' => $params,
+        ]);
+        $request = new \GuzzleHttp\Psr7\Request(\'POST\', self::$endpoint, $headers, $body);
+        $res = $client->sendAsync($request)->wait();
+        $responseBody = $res->getBody();
+        $response = json_decode($responseBody, true);
+        return $response;
+        ');
+
+
+        foreach ($schema  as $key => $field) {
+
+
+            $method = $class->addMethod($key);
+            $method->setStatic();
+
+            $paramsKeys = array_keys($field['args']->items ?? []);
+
+            $method->setBody('
+            return self::request(\'' . $key . '\', [' .  implode(', ', array_map(fn($k) => '"' . $k . '" => $' . $k, $paramsKeys)) . ']);
+            ');
+            $method->setReturnType('array');
+            if ($field['args'] ?? null) {
+
+                foreach ($field['args']->items as $argKey => $arg) {
+                    $param = $method->addParameter($argKey);
+                    $param->setType('mixed');
+                    if ($arg->default ?? null) {
+                        $param->setDefaultValue($arg->default);
+                    }
+                    if ($arg->nullable ?? null) {
+                        $param->setNullable();
+                    }
+                }
+            }
+            if ($field['formData'] ?? null) {
+                $method->addParameter('formData')->setType('array')->setNullable();
+            }
+        }
+
+
+        $filePath = $dir . $classFullName . '.php';
+
+
+        $output = "<?php\n\n"; // заголовок файла
+        $output .= "use GuzzleHttp\Client;;\n";
+        $output .= "use GuzzleHttp\Psr7\Request;\n";
+        $output .= "use GuzzleHttp\Psr7\Utils;\n";
+        $output .= "use GuzzleHttp\Exception\RequestException;\n\n";
+        $output .= $class . "\n\n"; // собираем все классы
+
+        file_put_contents($filePath, $output);
+
+        exit;
+    }
+
     public static function html(array $schema, $json = false)
     {
 

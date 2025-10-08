@@ -43,6 +43,7 @@ class ShmAppleAuth extends ShmAuthBase
                         if ($user) {
 
 
+
                             return $this->authToken($authStructure, $user->_id, $args);
                             break;
                         }
@@ -115,6 +116,7 @@ class ShmAppleAuth extends ShmAuthBase
 
                 if ($authUserAndStructure) {
                     [$user, $currentAuthStructure] = $authUserAndStructure;
+
 
                     return $this->authToken($currentAuthStructure, $user->_id, $args);
                 }

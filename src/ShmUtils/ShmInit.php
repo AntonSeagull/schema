@@ -106,7 +106,7 @@ class ShmInit
     {
 
         //Если запрос пришел из CLI, то не меняем таймзону
-        if (php_sapi_name() === 'cli') {
+        if (Cmd::cli()) {
             return;
         }
 
@@ -148,7 +148,7 @@ class ShmInit
 
     private static function updateLang()
     {
-        if (php_sapi_name() === 'cli') {
+        if (Cmd::cli()) {
             self::$lang = 'en';
             return;
         }

@@ -4,6 +4,9 @@ namespace Shm\ShmTypes;
 
 use DateTime;
 use Error;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Sentry\Util\Arr;
 use Sentry\Util\Str;
 use Shm\ShmDB\mDB;
@@ -48,13 +51,6 @@ class StructureType extends BaseType
     public bool $apikey = false;
 
 
-    public bool $balanceRUB = false;
-
-    public function balanceRUB($balanceRUB = true): static
-    {
-        $this->balanceRUB = $balanceRUB;
-        return $this;
-    }
 
 
 
@@ -221,6 +217,16 @@ class StructureType extends BaseType
         return $this;
     }
 
+    public function removeKeyInStages(string $key): static
+    {
+        if ($this->stages && isset($this->stages->items[$key])) {
+            unset($this->stages->items[$key]);
+            unset($this->publicStages[$key]);
+        }
+
+        return $this;
+    }
+
     public function findStage(string $key): ?StageType
     {
         if ($this->stages && isset($this->stages->items[$key])) {
@@ -299,6 +305,8 @@ class StructureType extends BaseType
     public function displayValues($values): array | string | null
     {
 
+
+
         $displayValues = [];
         foreach ($this->items as $key => $item) {
             if (isset($values[$key]) && $item->display) {
@@ -320,6 +328,42 @@ class StructureType extends BaseType
 
         return $displayValues;
     }
+
+
+    public function fallbackDisplayValues($values): array | string | null
+    {
+
+
+
+        $displayValues = [];
+        foreach ($this->items as $key => $item) {
+
+
+
+            if (isset($values[$key])) {
+
+
+                $val = $item->fallbackDisplayValues($values[$key]);
+
+
+                if ($val) {
+
+                    if (is_array($val)) {
+                        $displayValues = [
+                            ...$displayValues,
+                            ...$val
+                        ];
+                    } else {
+                        $displayValues[] = $val;
+                    }
+                }
+            }
+        }
+
+        return $displayValues;
+    }
+
+
 
     private function formatHeatmap(array $mongoResult): array
     {
@@ -674,11 +718,19 @@ class StructureType extends BaseType
 
             $key = ShmUtils::cleanKey($key);
 
+
+
+
             ShmUtils::isValidKey($key);
 
             if (!$field) {
                 continue;
             }
+
+            if ($key == '_id' && !($field instanceof IDType)) {
+                throw new \Exception("Field '_id' must be an instance of IDType.");
+            }
+
 
             if (!$field instanceof BaseType) {
 
@@ -2155,5 +2207,260 @@ class StructureType extends BaseType
             }
         }
         return $this;
+    }
+
+
+    public  const ALLOWED_CURRENCIES = ['USD', 'EUR', 'RUB', 'KZT'];
+
+
+    /**
+     * @var array<string> $currencies Допустимые валюты: "USD", "EUR", "RUB", "KZT"
+     */
+    public $currencies = [];
+
+
+    /**
+     * @param 'USD'|'EUR'|'RUB'|'KZT' $currency
+     */
+    public function addCurrency($currency)
+    {
+
+        $currency = $this->normalizeCurrency($currency);
+
+        if (!in_array($currency, $this->currencies)) {
+            $this->currencies[] = $currency;
+        }
+        return $this;
+    }
+
+    /**
+     * @param 'USD'|'EUR'|'RUB'|'KZT' $currency
+     */
+    public function balanceFor($currency, $_id)
+    {
+
+        $currency = $this->normalizeCurrency($currency);
+
+        $user = mDB::collection($this->collection)->findOne([
+            "_id" => mDB::id($_id),
+        ]);
+
+        if (!$user) return 0;
+        return $user['_balance'][$currency] ?? 0;
+    }
+
+
+    public function balances($_id): mixed
+    {
+
+
+        $user = mDB::collection($this->collection)->findOne([
+            "_id" => mDB::id($_id),
+        ]);
+
+        return $user['_balance'] ?? [];
+    }
+
+
+    /**
+     * @param 'USD'|'EUR'|'RUB'|'KZT' $currency
+     */
+    public function addCurrencyBalance($_id, $amount, $currency, $description)
+    {
+
+        $currency = $this->normalizeCurrency($currency);
+
+        $user = mDB::collection($this->collection)->findOne([
+            "_id" => mDB::id($_id),
+        ]);
+
+        if (!$user) return false;
+        if (!$amount) return false;
+        if (!$currency) return false;
+
+
+        $beforeBalance = $user['_balance'][$currency] ?? 0;
+
+        $afterBalance = $beforeBalance + (float) $amount;
+
+        $key = Inflect::singularize($this->collection);
+
+        mDB::collection($this->collection . "_payments")->insertOne([
+
+            //@deprecated
+            "manager" => $user->_id,
+            $key => $user->_id,
+            "userCollection" => $this->collection,
+            "amount" => (int) $amount,
+            "currency" => $currency,
+            "description" =>  $description ?? "Операция по балансу",
+            "created_at" => time(),
+            "beforeBalance" => $beforeBalance,
+            "afterBalance" => $afterBalance,
+
+        ]);
+
+        mDB::collection($this->collection)->updateOne([
+            "_id" => mDB::id($_id),
+        ], [
+            '$set' => [
+                '_balance.' . $currency => $afterBalance
+            ]
+        ]);
+    }
+
+    /** Нормализуем валюту (регистр) и валидируем */
+    private function normalizeCurrency(string $currency): string
+    {
+        $currency = strtoupper(trim($currency));
+        if (!in_array($currency, self::ALLOWED_CURRENCIES)) {
+            throw new \InvalidArgumentException(
+                'Currency must be one of: ' . implode(', ', self::ALLOWED_CURRENCIES)
+            );
+        }
+        return $currency;
+    }
+
+    /** @var array<string, callable(string, string, float, string):string> */
+    private array $paymentLinkGenerators = [];
+
+    /**
+     * Зарегистрировать генератор ссылки для валюты.
+     * @param 'USD'|'EUR'|'RUB'|'KZT' $currency
+     * @param callable(string $_id, string $currency, float $amount): string $fn
+     */
+    public function setPaymentLinkGenerator(string $currency, callable $fn): static
+    {
+        $currency = $this->normalizeCurrency($currency);
+        $this->paymentLinkGenerators[$currency] = $fn;
+        return $this;
+    }
+
+    /**
+     * Создать платёжную ссылку, используя сохранённый генератор.
+     * @param 'USD'|'EUR'|'RUB'|'KZT' $currency
+     */
+    public function generatePaymentLink(string $_id, string $currency, $amount): string
+    {
+        $currency = $this->normalizeCurrency($currency);
+
+        $fn = $this->paymentLinkGenerators[$currency] ?? null;
+        if (!$fn) {
+            throw new \RuntimeException("Payment link generator for {$currency} is not set");
+        }
+
+        return $fn(mDB::id($_id), $currency, (float) $amount);
+    }
+
+    /**
+     * Вернуть последние N (по умолчанию 1000) операций по балансу для пользователя и валюты.
+     *
+     * @param string $_id  ID пользователя
+     * @param string $collection  Коллекция пользователя 
+     * @param 'USD'|'EUR'|'RUB'|'KZT' $currency
+     * @param int $limit
+     * @return array<int, array<string, mixed>>
+     */
+    public static function lastBalanceOperations(string $_id, string $collection, string $currency, int $limit = 1000): array
+    {
+        // нормализуем/валидируем валюту (используй твою normalizeCurrency, если она есть)
+        $currency = strtoupper(trim($currency));
+        if (!in_array($currency, self::ALLOWED_CURRENCIES, true)) {
+            throw new \InvalidArgumentException(
+                'Currency must be one of: ' . implode(', ', self::ALLOWED_CURRENCIES)
+            );
+        }
+
+        $key = Inflect::singularize($collection);
+
+        $filter = [
+            '$or' => [
+                [$key  => mDB::id($_id)],
+                ['manager' => mDB::id($_id)],
+            ],   // в платежи ты писал $user->_id
+            'currency' => $currency,
+            'deleted_at' => ['$exists' => false],
+        ];
+
+        // сортировка и лимит (последние по времени)
+        $options = [
+            'sort'   => ['created_at' => -1],
+            'limit'  => $limit,
+        ];
+
+        $cursor = mDB::collection($collection . '_payments')->find($filter, $options);
+
+        // если нужен обычный массив
+        return iterator_to_array($cursor, false);
+    }
+
+
+
+    // Именованные константы для автодополнения и переиспользования
+    public const EVENT_AFTER_REGISTER = 'after_register';
+    public const EVENT_AFTER_LOGIN    = 'after_login';
+
+
+    /** Белый список событий, доступных в системе */
+    private const ALLOWED_EVENTS = [
+        self::EVENT_AFTER_REGISTER,
+        self::EVENT_AFTER_LOGIN,
+    ];
+
+    /** @var array<string, list<callable(string):void>> */
+    private array $eventHandlers = [];
+
+    private function normalizeEvent(string $event): string
+    {
+        $event = trim($event);
+        if ($event === '') {
+            throw new \InvalidArgumentException('Event name cannot be empty');
+        }
+
+        if (!in_array($event, self::ALLOWED_EVENTS, true)) {
+            throw new \InvalidArgumentException(
+                'Unknown event: ' . $event . '. Allowed: ' . implode(', ', self::ALLOWED_EVENTS)
+            );
+        }
+        return $event;
+    }
+
+
+    /**
+     * Зарегистрировать обработчик события.
+     * @param  $event
+     * @param callable(string $_id): void $handler
+     */
+    public function addEvent(string $event, callable $handler): static
+    {
+        $event = $this->normalizeEvent($event);
+        $this->eventHandlers[$event] ??= [];
+        $this->eventHandlers[$event][] = $handler;
+        return $this;
+    }
+
+    /**
+     * Вызвать обработчики события.
+     * @param  $event
+     */
+    public function callEvent(string $event, string $_id): void
+    {
+        $event = $this->normalizeEvent($event);
+        $handlers = $this->eventHandlers[$event] ?? [];
+        if (!$handlers) return;
+
+        foreach (array_values($handlers) as $handler) {
+            try {
+                $handler($_id);
+            } catch (\Throwable $e) {
+                \Sentry\captureException($e);
+            }
+        }
+    }
+
+    /** Получить список разрешённых событий*/
+    public static function allowedEvents(): array
+    {
+        return self::ALLOWED_EVENTS;
     }
 }

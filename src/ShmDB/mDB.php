@@ -407,6 +407,8 @@ class CollectionEvents
 
 
 
+
+
         if (!isset($document['created_at']) || !$document['created_at']) {
             $document['created_at'] = time();
         }

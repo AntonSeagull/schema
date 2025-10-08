@@ -105,7 +105,7 @@ class ShmCallAuth extends ShmAuthBase
 
                         if ($regNewUser) {
                             [$user, $authStructure] = $regNewUser;
-                            return $this->authToken($authStructure, $user->_id, $args);
+                            return $this->authToken($authStructure, $user->_id, $args, true);
                         }
 
 
@@ -115,7 +115,7 @@ class ShmCallAuth extends ShmAuthBase
                     [$user, $userStructure] = $findAuthUserAndStructure;
 
 
-                    return $this->authToken($userStructure, $user->_id, $args);
+                    return $this->authToken($userStructure, $user->_id, $args, false);
                 } else {
 
                     if (in_array(+$phone, $this->testPhones)) {

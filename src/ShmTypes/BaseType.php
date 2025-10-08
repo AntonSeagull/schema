@@ -162,6 +162,24 @@ abstract class BaseType
         return $this;
     }
 
+    public function unExpand(): static
+    {
+
+        $this->expanded = false;
+
+        if (isset($this->items)) {
+            foreach ($this->items as $key => $item) {
+                $item->unExpand();
+            }
+        }
+        if (isset($this->itemType)) {
+            $this->itemType->unExpand();
+        }
+
+
+        return $this;
+    }
+
     public function expand(): static
     {
         $this->expanded = true;
@@ -268,7 +286,16 @@ abstract class BaseType
 
     public BaseType | null $itemType = null;
 
+    public function fallbackDisplayValues($values): array | string | null
+    {
+        return null;
+    }
 
+
+    public function exportRow(mixed $value): string | array | null
+    {
+        return "Error " . $this->key . ":  Export not implemented for " . $this->type;
+    }
 
 
     public  $key = null;
@@ -522,7 +549,7 @@ abstract class BaseType
     }
 
 
-    public function icon(string $icon): static
+    public function icon(string | null $icon): static
     {
         $this->assets([
             'icon' => $icon,

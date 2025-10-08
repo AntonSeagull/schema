@@ -112,4 +112,13 @@ class UnixDateTimeType extends BaseType
 
         return $TSType;
     }
+
+    public function exportRow(mixed $value): string | array | null
+    {
+        if ($value) {
+            return date('d.m.Y H:i', $value);
+        } else {
+            return null;
+        }
+    }
 }

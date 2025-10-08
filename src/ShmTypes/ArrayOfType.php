@@ -346,4 +346,21 @@ class ArrayOfType extends BaseType
 
         return $data;
     }
+
+    public function exportRow(mixed $value): string | array | null
+    {
+        if (is_array($value) || $value instanceof Traversable) {
+            $result = [];
+            foreach ($value as $item) {
+                $result[] = $this->itemType->exportRow($item);
+            }
+
+            if (count($result) == 0) {
+                return "";
+            }
+
+            return $result;
+        }
+        return "";
+    }
 }

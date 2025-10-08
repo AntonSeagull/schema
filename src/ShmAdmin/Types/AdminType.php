@@ -30,7 +30,7 @@ class AdminType extends StructureType
         return $this;
     }
 
-    public function icon(string $icon): static
+    public function icon(string | null $icon): static
     {
         $this->assets([
             'icon' => $icon,

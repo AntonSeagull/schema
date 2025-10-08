@@ -99,4 +99,18 @@ class StringType extends BaseType
             ]
         ];
     }
+
+    public function exportRow(mixed $value): string | array | null
+    {
+        if ($value) {
+            return (string)$value;
+        } else {
+            return "";
+        }
+    }
+
+    public function fallbackDisplayValues($values): array | string | null
+    {
+        return $values;
+    }
 }

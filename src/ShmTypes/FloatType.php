@@ -325,4 +325,13 @@ class FloatType extends BaseType
             ]
         ];
     }
+
+    public function exportRow(mixed $value): string | array | null
+    {
+        if ($value) {
+            return (string)$value;
+        } else {
+            return 0;
+        }
+    }
 }

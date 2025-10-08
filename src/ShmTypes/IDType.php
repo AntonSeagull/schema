@@ -7,6 +7,7 @@ use Shm\ShmDB\mDB;
 
 
 use Shm\Shm;
+use Shm\ShmDB\mDBRedis;
 use Shm\ShmRPC\ShmRPCCodeGen\TSType;
 use Shm\ShmRPC\RPCBuffer;
 
@@ -30,6 +31,14 @@ class IDType extends BaseType
             return $this->document->expand()->depth($this->depth - 1);
         }
 
+        return $this;
+    }
+
+    public function unExpand(): static
+    {
+
+        $this->expanded = false;
+        $this->document = null;
         return $this;
     }
 
@@ -409,5 +418,48 @@ class IDType extends BaseType
         }
 
         return [];
+    }
+
+
+    public function exportRow(mixed $value): string | array | null
+    {
+
+        if ($this->document && !$this->document->hide) {
+
+            if ($value) {
+
+                $item = mDBRedis::get($this->document->collection, (string)$value);
+
+                if (!$item) {
+                    $item = $this->document->findOne(['_id' => mDB::id($value)]);
+                }
+
+
+                if ($item) {
+
+                    $displayValues = $this->document->displayValues($item);
+
+
+                    if (is_array($displayValues) && count($displayValues) > 1) {
+                        return implode(', ', $displayValues);
+                    } else {
+                        $displayValues = $this->document->fallbackDisplayValues($item);
+
+
+                        if (is_array($displayValues) && count($displayValues) > 1) {
+                            return  implode(', ', $displayValues);
+                        }
+                    }
+
+                    return (string)$value;
+                } else {
+                    return null;
+                }
+            } else {
+                return null;
+            }
+        } else {
+            return (string)$value;
+        }
     }
 }

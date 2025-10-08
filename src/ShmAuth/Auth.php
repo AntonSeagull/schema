@@ -3,6 +3,7 @@
 namespace Shm\ShmAuth;
 
 use Shm\ShmAdmin\SchemaCollections\SubAccountsSchema;
+use Shm\ShmCmd\Cmd;
 use Shm\ShmDB\mDB;
 use Shm\ShmTypes\StructureType;
 use Shm\ShmUtils\Response;
@@ -15,7 +16,7 @@ class Auth
     {
 
         //Если запрос пришел из CLI, то не меняем таймзону
-        if (php_sapi_name() === 'cli') {
+        if (Cmd::cli()) {
             return;
         }
 
@@ -168,10 +169,18 @@ class Auth
     private static $initialized = false;
 
 
-    private static function init()
+    public static $currentRequestToken = null;
+
+
+    public static function setManualToken($token)
+    {
+        self::init($token);
+    }
+
+    private static function init($manualToken = null)
     {
 
-        $token = self::getRequestKey(['token', 'authorization', 'x-auth-token']);
+        $token = $manualToken ?: self::getRequestKey(['token', 'authorization', 'x-auth-token']);
 
 
 
@@ -193,6 +202,8 @@ class Auth
 
 
             if ($findToken && isset($findToken->collection) && isset($findToken->owner)) {
+
+                self::$currentRequestToken = $token;
 
                 if ($findToken->collection === SubAccountsSchema::$collection) {
 

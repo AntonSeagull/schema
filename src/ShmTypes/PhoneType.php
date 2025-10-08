@@ -60,4 +60,22 @@ class PhoneType extends BaseType
             ]
         ];
     }
+
+    public function exportRow(mixed $value): string | array | null
+    {
+        if ($value) {
+            return (string)$value;
+        } else {
+            return null;
+        }
+    }
+
+    public function fallbackDisplayValues($value): array | string | null
+    {
+
+        if ($value) {
+            return  (string)$value;
+        }
+        return "";
+    }
 }

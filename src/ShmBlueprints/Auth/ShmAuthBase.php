@@ -114,6 +114,9 @@ class ShmAuthBase
     public function  authToken(StructureType $structure,  $_id, $args): string
     {
 
+
+
+
         $deviceInfo = $args['deviceInfo'] ?? null;
         if ($deviceInfo) {
 
@@ -166,6 +169,10 @@ class ShmAuthBase
                 );
             }
         }
+
+        $structure->callEvent(StructureType::EVENT_AFTER_LOGIN, $_id);
+
+
         return Auth::genToken($structure, $_id, $cancelKey);
     }
 
@@ -392,6 +399,8 @@ class ShmAuthBase
 
         $insert = $regStructure->insertOne($set);
 
+
+
         $user = $regStructure->findOne(
             [
                 "_id" => $insert->getInsertedId()
@@ -399,6 +408,9 @@ class ShmAuthBase
         );
 
         if ($user) {
+
+            $regStructure->callEvent(StructureType::EVENT_AFTER_REGISTER, $user->_id);
+
 
             return [$user, $regStructure];
         }

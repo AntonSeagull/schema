@@ -42,6 +42,17 @@ class BoolType extends BaseType
     }
 
 
+
+    public function exportRow(mixed $value): string | array | null
+    {
+        if ($value) {
+            return "Да";
+        } else {
+            return "Нет";
+        }
+    }
+
+
     public function computedReport(StructureType | null $root = null, $path = [], $pipeline = [])
     {
 

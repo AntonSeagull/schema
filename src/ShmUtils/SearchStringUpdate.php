@@ -3,6 +3,7 @@
 namespace Shm\ShmUtils;
 
 use Shm\Shm;
+use Shm\ShmAdmin\SchemaCollections\ShmExportCollection;
 use Shm\ShmCmd\Cmd;
 use Shm\ShmDB\mDB;
 use Shm\ShmTypes\StructureType;
@@ -112,6 +113,12 @@ class SearchStringUpdate
     public static function cmdInit()
     {
 
+
+
+        Cmd::command("exportStep", function () {
+
+            ShmExportCollection::exportStep();
+        })->everyMinute();
 
         Cmd::command("searchIndex", function () {
 

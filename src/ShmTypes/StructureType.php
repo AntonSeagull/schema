@@ -793,6 +793,8 @@ class StructureType extends BaseType
 
 
 
+
+
     public function normalize(mixed $value, $addDefaultValues = false, string | null $processId = null): mixed
     {
 

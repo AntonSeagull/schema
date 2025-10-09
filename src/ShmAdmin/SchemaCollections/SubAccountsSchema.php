@@ -225,7 +225,7 @@ class SubAccountsSchema
 
 
                             // Вариант 1: если есть готовый enum со списком документов
-                            'allowedDocs' => Shm::IDs($item->unExpand())->expand()->inAdmin()->editable()->title($item->title)
+                            'allowedDocs' => Shm::IDs($item->clone()->unExpand())->expand()->inAdmin()->editable()->title($item->title)
                                 ->cond(
                                     Shm::cond()
                                         ->equals($item->collection . '.limitDocs', true)

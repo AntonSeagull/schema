@@ -1901,4 +1901,26 @@ abstract class BaseType
 
         return $data;
     }
+
+
+    public function clone(): static
+    {
+        $clone = clone $this;
+
+        if (isset($this->items)) {
+            $clone->items = [];
+            foreach ($this->items as $key => $item) {
+                if ($item instanceof BaseType) {
+                    $clone->items[$key] = $item->clone();
+                } else {
+                    $clone->items[$key] = $item;
+                }
+            }
+        }
+        if (isset($this->itemType) && $this->itemType instanceof BaseType) {
+            $clone->itemType = $this->itemType->clone();
+        }
+
+        return $clone;
+    }
 }

@@ -729,9 +729,9 @@ class StructureType extends BaseType
                 continue;
             }
 
-            if ($key == '_id' && !($field instanceof IDType)) {
+            /* if ($key == '_id' && !($field instanceof IDType)) {
                 throw new \Exception("Field '_id' must be an instance of IDType.");
-            }
+            }*/
 
 
             if (!$field instanceof BaseType) {

@@ -2372,9 +2372,12 @@ class AdminPanel
 
 
 
-                    $updateData = []; // Создайте массив для хранения данных обновления
+                    $updateData = [];
                     foreach ($args['data'] as $item) {
 
+                        if (!$item || !is_string($item)) {
+                            continue;
+                        }
 
                         $key = md5($item);
 

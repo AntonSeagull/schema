@@ -75,6 +75,8 @@ class FileDocumentType extends StructureType
 
     public function baseTypeName()
     {
+
+
         return  ShmUtils::onlyLetters($this->type) . 'File';
     }
 

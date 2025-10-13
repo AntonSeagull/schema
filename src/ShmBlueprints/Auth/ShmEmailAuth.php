@@ -218,7 +218,7 @@ class ShmEmailAuth extends ShmAuthBase
                     }
 
                     if (!$authUserAndStructureEmail && !$authUserAndStructureLogin) {
-                        Shm::error('Не найден аккаунт с таким email или логином, либо неверный пароль.');
+                        Shm::error('Пароль указан неверно.');
                     }
 
                     if ($authUserAndStructureEmail) {

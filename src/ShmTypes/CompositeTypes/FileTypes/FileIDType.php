@@ -4,8 +4,9 @@ namespace Shm\ShmTypes\CompositeTypes\FileTypes;
 
 use Shm\Shm;
 use Shm\ShmDB\mDB;
+use Shm\ShmDB\mDBRedis;
 use Shm\ShmTypes\IDType;
-
+use Shm\ShmUtils\ShmUtils;
 
 class FileIDType extends IDType
 {
@@ -22,6 +23,8 @@ class FileIDType extends IDType
             $this->type = 'fileImageID';
 
             $structure = Shm::structure(FileImageType::items())->collection('_files');
+
+            $structure->staticBaseTypeName('fileImageFile');
         }
 
         if ($type == 'video') {
@@ -29,18 +32,21 @@ class FileIDType extends IDType
             $this->type = 'fileVideoID';
 
             $structure = Shm::structure(FileVideoType::items())->collection('_files');
+            $structure->staticBaseTypeName('fileVideoFile');
         }
         if ($type == 'audio') {
 
             $this->type = 'fileAudioID';
 
             $structure = Shm::structure(FileAudioType::items())->collection('_files');
+            $structure->staticBaseTypeName('fileAudioFile');
         }
         if ($type == 'document') {
 
             $this->type = 'fileDocumentID';
 
             $structure = Shm::structure(FileDocumentType::items())->collection('_files');
+            $structure->staticBaseTypeName('fileDocumentFile');
         }
 
         if (!$structure) {
@@ -49,8 +55,13 @@ class FileIDType extends IDType
 
 
 
+
+
         parent::__construct($structure);
     }
+
+
+
 
 
     public function exportRow(mixed $value): string | array | null
@@ -58,8 +69,21 @@ class FileIDType extends IDType
 
         if ($value) {
 
+            $val =  mDBRedis::get("_files", $value);
+
+            if ($val) {
+                if ($val && isset($val['url'])) {
+                    return (string)$val['url'];
+                } else {
+                    return '';
+                }
+            }
+
             $val = mDB::collection('_files')->findOne(['_id' => mDB::id($value)]);
             if ($val && isset($val['url'])) {
+
+                mDBRedis::save("_files", $value, $val);
+
                 return (string)$val['url'];
             } else {
                 return '';

@@ -1894,6 +1894,14 @@ class StructureType extends BaseType
             $pipeline[] = [
                 '$sort' => $options['sort']
             ];
+        } else {
+
+            if ($this->manualSort) {
+
+                $pipeline[] = [
+                    '$sort' => ["_sortWeight" => -1]
+                ];
+            }
         }
         if (isset($options['limit']) && is_int($options['limit'])) {
             $pipeline[] = [
@@ -2188,6 +2196,8 @@ class StructureType extends BaseType
                 ]
             ],
         ], $pipeline);
+
+
 
 
         return mDB::collection($this->collection)->aggregate($pipeline);

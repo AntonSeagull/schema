@@ -158,6 +158,13 @@ class ShmRPCCodeGen
         $keysGraph = [];
         foreach ($schema  as $key => $field) {
 
+
+            if ($_GET['method'] ?? null) {
+                if ($key !== $_GET['method']) {
+                    continue;
+                }
+            }
+
             //     $keysGraph[$key . 'type'] = $field['type']->getKeysGraph();
 
             //   if (isset($field['args'])) {

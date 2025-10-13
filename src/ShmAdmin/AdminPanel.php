@@ -1333,22 +1333,14 @@ class AdminPanel
                     }
 
 
-                    if ($args['table'] ?? false) {
-                        $hideProjection =  $structure->getProjection('inTable');
 
 
-                        if ($hideProjection) {
-                            $pipeline[] = [
-                                '$project' => [
-                                    ...$hideProjection,
-                                    'updated_at' => 1
-                                ]
-                            ];
-                        }
-                    }
+
 
 
                     $total = 0;
+
+
 
                     Response::startTraceTiming("total_count");
                     $total =  $structure->aggregate([
@@ -1386,6 +1378,7 @@ class AdminPanel
 
                         if ($structure->manualSort) {
 
+
                             $pipeline[] = [
                                 '$sort' => [
                                     "_sortWeight" => -1,
@@ -1413,6 +1406,22 @@ class AdminPanel
                     $pipeline[] = [
                         '$limit' => $args['limit'] ?? 20,
                     ];
+
+                    if ($args['table'] ?? false) {
+                        $hideProjection =  $structure->getProjection('inTable');
+
+
+                        if ($hideProjection) {
+                            $pipeline[] = [
+                                '$project' => [
+                                    ...$hideProjection,
+                                    'updated_at' => 1
+                                ]
+                            ];
+                        }
+                    }
+
+
 
 
                     Response::startTraceTiming("data_aggregate");
@@ -1582,6 +1591,9 @@ class AdminPanel
                     if (!file_exists($filePathDir)) {
                         mkdir($filePathDir, 0755, true);
                     }
+
+
+
 
 
 

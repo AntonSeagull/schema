@@ -25,7 +25,16 @@ class GeoPointType extends StructureType
         parent::__construct(
             [
                 'uuid' => Shm::UUID(),
-                'address' => Shm::string(),
+                'address' => Shm::string(), //Устарвевшее поле, оставлено для совместимости, используйте 'name'
+                'name' => Shm::string(),    // Полный адрес, если известен
+                'context' => Shm::string(),      // Контекст адреса, общее описание, страна, город и т. д.
+                'meta' => Shm::structure([
+                    'label' => Shm::string(),        // человеко-понятная подпись, например "Главный офис", "Склад №2"
+                    'floor' => Shm::string(),          // этаж ("3", "цоколь", "мансарда")
+                    'entrance' => Shm::string(),       // описание входа ("через арку", "с торца здания" или подъезд №3)
+                    'apartment' => Shm::string(),      // квартира / офис / помещение
+                    'comment' => Shm::string(),        // произвольное примечание
+                ]),
                 'lat' => Shm::float(),
                 'lng' => Shm::float(),
                 'location' => Shm::mongoPoint(),
@@ -40,6 +49,15 @@ class GeoPointType extends StructureType
 
 
         if ($value) {
+
+            //Установка полей address и name для совместимости
+            if (empty($value['name']) && !empty($value['address'])) {
+                $value['name'] = $value['address'];
+            }
+            if (empty($value['address']) && !empty($value['name'])) {
+                $value['address'] = $value['name'];
+            }
+
 
             $lat = $value['lat'] ?? null;
             $lng = $value['lng'] ?? null;

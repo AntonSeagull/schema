@@ -165,6 +165,14 @@ class ShmRPCCodeGen
                 }
             }
 
+
+
+            $ignore = $field['ignore'] ?? false;
+            if ($ignore) {
+
+                continue;
+            }
+
             //     $keysGraph[$key . 'type'] = $field['type']->getKeysGraph();
 
             //   if (isset($field['args'])) {

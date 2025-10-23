@@ -42,8 +42,31 @@ class GeoPointType extends StructureType
         );
     }
 
+    public function equals(mixed $a, mixed $b): bool
+    {
+
+        $nameA = $a['name'] ?? null;
+        $latA = $a['lat'] ?? null;
+        $lngA = $a['lng'] ?? null;
+
+        $nameB = $b['name'] ?? null;
+        $latB = $b['lat'] ?? null;
+        $lngB = $b['lng'] ?? null;
+
+
+        return $nameA === $nameB && $latA === $latB && $lngA === $lngB;
+    }
+
     public function normalize(mixed $value, $addDefaultValues = false, string | null $processId = null): mixed
     {
+
+        $lat = $value['lat'] ?? null;
+        $lng = $value['lng'] ?? null;
+
+        if (!$lat && !$lng) {
+            return null;
+        }
+
 
         $value = parent::normalize($value, $addDefaultValues, $processId);
 

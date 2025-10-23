@@ -30,6 +30,16 @@ abstract class BaseType
     public $description = null;
 
 
+    public bool $draft = false;
+
+    public function draft($draft = true): static
+    {
+        $this->draft = $draft;
+
+
+        return $this;
+    }
+
 
     public int $depth = 0;
 
@@ -422,6 +432,10 @@ abstract class BaseType
 
 
 
+    public function equals(mixed $a, mixed $b): bool
+    {
+        return $a === $b;
+    }
 
 
     public function computedReport(StructureType | null $root = null, $path = [], $pipeline = [])

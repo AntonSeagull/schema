@@ -43,6 +43,16 @@ class ShmBlueprintMutation
 
     private $pipelineFunction = null;
 
+
+    private $beforeResolveFunction = null;
+
+    public function beforeResolve(callable $callback): static
+    {
+        $this->beforeResolveFunction = $callback;
+        return $this;
+    }
+
+
     public function pipeline($pipeline = null): static
     {
         if ($pipeline === null) {
@@ -62,6 +72,14 @@ class ShmBlueprintMutation
         }
 
         return $this;
+    }
+
+    public function callBeforeResolve($root, &$args)
+    {
+        if ($this->beforeResolveFunction !== null) {
+            $callback = $this->beforeResolveFunction;
+            $callback($root, $args);
+        }
     }
 
     public function getPipeline(): array
@@ -117,6 +135,9 @@ class ShmBlueprintMutation
     }
 
 
+
+
+
     public function make()
     {
 
@@ -134,7 +155,9 @@ class ShmBlueprintMutation
             $args['delete'] = Shm::boolean();
         }
 
-        $args['fields'] = $this->structure->editable();
+        $args['fields'] = $this->structure->editableThis();
+
+
 
         $editableKeys = array_values(array_filter(array_keys($this->structure->items), function ($key) {
             return isset($this->structure->items[$key]->editable) && $this->structure->items[$key]->editable;
@@ -179,6 +202,10 @@ class ShmBlueprintMutation
 
 
 
+
+
+
+
         $_this = $this;
 
         $argsStructure = Shm::structure($args);
@@ -192,7 +219,14 @@ class ShmBlueprintMutation
             "args" => $argsStructure,
             'resolve' => function ($root, $args) use ($_this, $structure, $argsStructure) {
 
+
+                $_this->callBeforeResolve($root, $args);
+
                 $pipeline = $_this->getPipeline();
+
+
+
+
 
                 if ($_this->oneRow) {
 
@@ -229,12 +263,13 @@ class ShmBlueprintMutation
 
 
                 $originalArgs = $args;
-                $args = $argsStructure->normalize($args, true);
+                $args = $argsStructure->normalize($args);
 
 
 
 
                 $_id = $args['_id'] ?? null;
+
                 if (isset($_id)) {
 
 
@@ -256,8 +291,9 @@ class ShmBlueprintMutation
                     }
 
 
+                    $delete = $args['delete'] ?? null;
 
-                    if (!$_this->oneRow && $args['delete'] == true) {
+                    if (!$_this->oneRow && $delete == true) {
                         $structure->deleteOne([
                             "_id" => mDB::id($_id)
                         ]);
@@ -269,10 +305,10 @@ class ShmBlueprintMutation
 
 
 
-                        if ($originalArgs['fields']) {
-
+                        if (isset($originalArgs['fields'])) {
 
                             $setValue = $argsStructure->items['fields']->normalize($originalArgs['fields']);
+
 
                             $structure->updateOne(
                                 [
@@ -285,6 +321,8 @@ class ShmBlueprintMutation
                         }
 
                         if (isset($args['addToSet'])) {
+
+
 
                             $addToSet = [];
 
@@ -337,11 +375,17 @@ class ShmBlueprintMutation
 
 
 
+
+
                         return  $structure->findOne([
                             "_id" => mDB::id($_id)
                         ]);
                     }
                 } else {
+
+
+
+
 
                     if ($_this->oneRow) {
                         Shm::error('Ошибка доступа');
@@ -349,7 +393,10 @@ class ShmBlueprintMutation
 
                     if (isset($args['fields'])) {
 
-                        $inserValue = $argsStructure->items['fields']->normalize($originalArgs['fields']);
+
+
+                        $inserValue = $argsStructure->items['fields']->normalize($originalArgs['fields'], true);
+
 
 
                         $insert =  $structure->insertOne($inserValue);

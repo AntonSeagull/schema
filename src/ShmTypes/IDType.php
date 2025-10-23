@@ -3,6 +3,7 @@
 namespace Shm\ShmTypes;
 
 use InvalidArgumentException;
+use Nette\Utils\Strings;
 use Shm\ShmDB\mDB;
 
 
@@ -21,6 +22,8 @@ class IDType extends BaseType
 
 
     public int $defaultValue = 0;
+
+
 
 
     public function depthExpand(): BaseType | static
@@ -72,6 +75,14 @@ class IDType extends BaseType
 
             $this->documentResolver = $documentResolver;
         }
+    }
+
+
+    public function equals(mixed $a, mixed $b): bool
+    {
+
+
+        return (string) $a === (string) $b;
     }
 
 

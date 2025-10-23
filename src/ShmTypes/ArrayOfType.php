@@ -33,6 +33,11 @@ class ArrayOfType extends BaseType
 
 
 
+    public function equals(mixed $a, mixed $b): bool
+    {
+        return json_encode($a) === json_encode($a);
+    }
+
 
     public function normalize(mixed $value, $addDefaultValues = false, string|null $processId = null): mixed
     {

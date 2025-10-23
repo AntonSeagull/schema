@@ -761,6 +761,8 @@ class StructureType extends BaseType
         }
 
 
+
+
         $this->items =  $_items;
     }
 

@@ -106,6 +106,7 @@ class Collection extends CollectionCollection
         $delete = $access['delete'] ?? false;
         $add = $access['add'] ?? false;
 
+
         if ($update) {
             $schema->canUpdate();
         }

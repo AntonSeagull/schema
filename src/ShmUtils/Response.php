@@ -5,29 +5,40 @@ namespace Shm\ShmUtils;
 use Shm\Shm;
 use Shm\ShmDB\mDB;
 
+/**
+ * Response utility class for handling HTTP responses
+ * 
+ * This class provides methods for sending different types of HTTP responses
+ * including HTML, JSON, and error responses.
+ */
 class Response
 {
-
-
-    public static function html($html, $status = 200, array $headers = [])
+    /**
+     * Send HTML response
+     * 
+     * @param string $html HTML content
+     * @param int $status HTTP status code
+     * @param array $headers Additional headers
+     */
+    public static function html(string $html, int $status = 200, array $headers = []): never
     {
-
         header("Content-Type: text/html;charset=utf-8");
-
         http_response_code($status);
-
         echo $html;
         exit;
     }
 
-
-    public  static function json($data, $status = 200, array $headers = [])
+    /**
+     * Send JSON response
+     * 
+     * @param mixed $data Data to encode as JSON
+     * @param int $status HTTP status code
+     * @param array $headers Additional headers
+     */
+    public static function json(mixed $data, int $status = 200, array $headers = []): never
     {
-
         header("Content-Type: application/json;charset=utf-8");
-
         http_response_code($status);
-
         echo json_encode($data);
         exit;
     }
@@ -35,18 +46,23 @@ class Response
 
 
 
-    private static $startTime = 0;
+    private static float $startTime = 0.0;
+    private static ?string $method = null;
+    private static bool $cache = false;
 
-
-    private static $method = null;
-
-    private static $cache = false;
-
+    /**
+     * Set cache flag
+     * 
+     * @param bool $cache Whether to enable caching
+     */
     public static function cache(bool $cache = true): void
     {
         self::$cache = $cache;
     }
 
+    /**
+     * Start timing for performance measurement
+     */
     public static function startTime(): void
     {
         self::$startTime = microtime(true);

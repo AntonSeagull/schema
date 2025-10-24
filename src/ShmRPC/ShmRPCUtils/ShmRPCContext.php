@@ -217,8 +217,12 @@ class ShmRPCContext
             }
         }
 
+
+
         if ($result)
             $result = mDB::replaceObjectIdsToString($result);
+
+
 
         $end = microtime(true);
 

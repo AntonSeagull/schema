@@ -140,7 +140,7 @@ class BoolType extends BaseType
     }
 
 
-    public $columnsWidth = 100;
+    // $columnsWidth is inherited from BaseType
 
     public function filterToPipeline($filter, array | null $absolutePath = null): ?array
     {

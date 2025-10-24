@@ -26,7 +26,10 @@ class ShmDocumentUpload
             'formData' => true,
 
             'resolve' => function ($root, $args) {
-
+                // Check if file is uploaded
+                if (!isset($_FILES['file']) || $_FILES['file']['error'] !== UPLOAD_ERR_OK) {
+                    throw new \Exception('No file uploaded or upload error occurred');
+                }
 
                 $document = $_FILES['file'];
 

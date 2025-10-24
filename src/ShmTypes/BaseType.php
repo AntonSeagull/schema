@@ -13,36 +13,34 @@ use Shm\ShmUtils\ShmInit;
 use Shm\ShmUtils\ShmUtils;
 use Traversable;
 
+/**
+ * Base class for all schema types
+ * 
+ * This abstract class provides common functionality for all schema types
+ * including validation, normalization, and metadata management.
+ */
 abstract class BaseType
 {
-
-    public $hide = false;
-
-
-    public $unique = false;
-
-    public $globalUnique = false;
-
-    public $expanded = false;
-
-
-
-    public $description = null;
-
-
+    public bool $hide = false;
+    public bool $unique = false;
+    public bool $globalUnique = false;
+    public bool $expanded = false;
+    public ?string $description = null;
     public bool $draft = false;
+    public int $depth = 0;
 
-    public function draft($draft = true): static
+    /**
+     * Set draft status for this type
+     */
+    public function draft(bool $draft = true): static
     {
         $this->draft = $draft;
-
-
         return $this;
     }
 
-
-    public int $depth = 0;
-
+    /**
+     * Set depth for nested operations
+     */
     public function depth(int $depth): static
     {
         $this->depth = $depth;
@@ -51,17 +49,17 @@ abstract class BaseType
 
 
     /**
-     * Трансформеры «перед отдачей в RPC».
+     * Output transformers that are applied before sending data to RPC
      * @var callable[]
      */
     public array $outputTransformers = [];
 
     /**
-     * Устанавливает обработчик «перед отдачей в RPC» значения.
-     * Если $enabled = false, обработчик не регистрируется.
+     * Set an output transformer that will be applied before sending data to RPC
+     * If $enabled = false, the transformer will not be registered
      *
      * @param callable $fn function(mixed $root, mixed $value): mixed
-     * @param bool $enabled
+     * @param bool $enabled Whether to enable the transformer
      */
     public function onOutput(callable $fn, bool $enabled = true): static
     {
@@ -698,9 +696,7 @@ abstract class BaseType
 
 
             if ($this->itemType instanceof StructureType && !$this->itemType->collection && !$this->itemType->haveItemByKey('_id')) {
-
-
-
+                /** @var StructureType $this->itemType */
                 $this->itemType->addFieldIfNotExists('uuid', Shm::uuid());
             }
 
@@ -1508,8 +1504,6 @@ abstract class BaseType
                 ];
             }
             return $keys;
-
-            return [$this->key => $keys];
         }
 
         if (isset($this->itemType)) {

@@ -19,3 +19,7 @@ composer.lock
 
 phpstan-errors.txt
 run-phpstan.sh
+CODE_QUALITY_METRICS.md
+/docs/
+/examples/
+/IMPROVEMENTS.md

@@ -240,6 +240,7 @@ class ShmEmailAuth extends ShmAuthBase
             'type' => Shm::structure([
                 'find' => Shm::boolean(),
                 'isEmail' => Shm::boolean(),
+                'canRegister' => Shm::boolean(),
             ]),
             'description' => 'Подготовка к авторизации через Email (или логин)',
             'args' => Shm::structure([
@@ -251,10 +252,13 @@ class ShmEmailAuth extends ShmAuthBase
 
                 $login = trim($args['login'] ?? '');
 
+                $canRegister =  isset($this->_regStructures[0]) ? true : false;
+
                 if (!$login) {
                     return [
                         'find' => false,
                         'isEmail' => false,
+                        'canRegister' => $canRegister,
                     ];
                 }
 
@@ -273,16 +277,25 @@ class ShmEmailAuth extends ShmAuthBase
                 $authUserAndStructureLogin =  $this->findAuthUserAndStructure(Shm::login(),  $login, []);
 
                 if ($authUserAndStructureLogin) {
+
+
+
+
                     return [
                         'find' => true,
                         'isEmail' => false,
+                        'canRegister' => $canRegister
                     ];
                 }
+
+
+
 
 
                 return [
                     'find' => false,
                     'isEmail' =>  $this->isEmail($login ?? null),
+                    'canRegister' => $canRegister,
                 ];
             }
         ];

@@ -13,34 +13,44 @@ use Shm\ShmRPC\ShmRPCCodeGen\TSType;
 use Shm\ShmUtils\AutoPostfix;
 use Shm\ShmUtils\ShmUtils;
 
+/**
+ * Enum type for schema definitions
+ * 
+ * This class represents an enum type with predefined values
+ * and optional color associations for UI display.
+ */
 class EnumType extends BaseType
 {
     public string $type = 'enum';
+    public array $valuesColor = [];
 
-
+    /**
+     * Constructor
+     * 
+     * @param array $values Enum values (associative or simple array)
+     * @throws \Exception If values are invalid
+     */
     public function __construct(array $values)
     {
-
         if (is_numeric(array_keys($values)[0]) && array_keys($values)[0] == 0) {
-
-
             $values = array_combine($values, $values);
             if ($values === false) {
                 throw new \Exception("Values must be an associative array or a simple array.");
             }
         }
 
-
-
-
         $this->values = $values;
     }
 
-    public array $valuesColor;
-
-    public function color(string | array $key, $color): EnumType
+    /**
+     * Set color for enum values
+     * 
+     * @param string|array $key Key or array of keys
+     * @param mixed $color Color value
+     * @return static
+     */
+    public function color(string|array $key, $color): static
     {
-
         if (is_array($key)) {
             foreach ($key as $k) {
                 $this->valuesColor[$k] = $color;
@@ -52,14 +62,19 @@ class EnumType extends BaseType
         return $this;
     }
 
-    public function normalize(mixed $value, $addDefaultValues = false, string | null $processId = null): mixed
+    /**
+     * Normalize enum value
+     * 
+     * @param mixed $value Value to normalize
+     * @param bool $addDefaultValues Whether to add default values
+     * @param string|null $processId Process ID for tracking
+     * @return mixed Normalized value
+     */
+    public function normalize(mixed $value, $addDefaultValues = false, string|null $processId = null): mixed
     {
-
-        if ($addDefaultValues &&  $value === null && $this->defaultIsSet) {
+        if ($addDefaultValues && $value === null && $this->defaultIsSet) {
             return $this->default;
         }
-
-
 
         if (is_string($value) && isset($this->values[$value])) {
             return $value;
@@ -67,7 +82,12 @@ class EnumType extends BaseType
         return null;
     }
 
-
+    /**
+     * Validate enum value
+     * 
+     * @param mixed $value Value to validate
+     * @throws \Exception If validation fails
+     */
     public function validate(mixed $value): void
     {
         parent::validate($value);

@@ -4,45 +4,48 @@
 namespace Shm\ShmDB;
 
 use InvalidArgumentException;
-use \MongoDB\Client;
-use \MongoDB\Collection;
-use \MongoDB\Driver\WriteConcern;
+use MongoDB\Client;
+use MongoDB\Collection;
+use MongoDB\Driver\WriteConcern;
+use MongoDB\Driver\Cursor;
+use MongoDB\BSON\ObjectId;
 use Shm\ShmAuth\Auth;
 use Shm\ShmUtils\Config;
 use Shm\ShmUtils\RedisStorage;
 use Traversable;
 
+/**
+ * Collection events handler for MongoDB operations
+ * 
+ * This class provides event handling for MongoDB collection operations
+ * including find, insert, update, and delete operations.
+ */
 class CollectionEvents
 {
+    private Collection $collection;
 
     /**
-     * @var \MongoDB\Collection
+     * Constructor
+     * 
+     * @param Collection $collection MongoDB collection instance
      */
-    private $collection;
-
-    public function __construct($collection)
+    public function __construct(Collection $collection)
     {
         $this->collection = $collection;
     }
 
     /**
-     * Найти документы в коллекции
+     * Find documents in collection
      *
-     * @param array $filter Фильтр для поиска
-     * @param array $options Опции для поиска
-     * @return \MongoDB\Driver\Cursor
+     * @param array $filter Filter for search
+     * @param array $options Search options
+     * @return Cursor
      */
     public function find(array $filter = [], array $options = [])
     {
-
-
-
-
         $filter['deleted_at'] = ['$exists' => false];
 
         $find = $this->collection->find($filter, $options);
-
-
 
         if ($find) {
             mDBRedis::updateCacheAfterChange($this->collection->getCollectionName(), $filter);
@@ -52,20 +55,15 @@ class CollectionEvents
     }
 
     /**
-     * Найти один документ в коллекции
+     * Find one document in collection
      *
-     * @param array $filter Фильтр для поиска
-     * @param array $options Опции для поиска
+     * @param array $filter Filter for search
+     * @param array $options Search options
      * @return array|object|null
      */
     public function findOne(array $filter = [], array $options = [])
     {
-
-
-
-
         $filter['deleted_at'] = ['$exists' => false];
-
 
         $findOne = $this->collection->findOne($filter, $options);
 
@@ -73,10 +71,7 @@ class CollectionEvents
             mDBRedis::updateCacheAfterChange($this->collection->getCollectionName(), $filter);
         }
 
-
-
-
-        return  $findOne;
+        return $findOne;
     }
 
     /**
@@ -160,7 +155,7 @@ class CollectionEvents
      *
      * @param array $pipeline Команды агрегации
      * @param array $options Опции для агрегации
-     * @return \MongoDB\Driver\Cursor
+     * @return Cursor
      */
     public function aggregate(array $pipeline = [], array $options = [])
     {
@@ -282,11 +277,10 @@ class CollectionEvents
      *
      * @param array $filter Фильтр для удаления
      * @param array $options Опции для удаления
-     * @return \MongoDB\DeleteResult
+     * @return \MongoDB\UpdateResult
      */
     public function deleteOne(array $filter = [], array $options = [])
     {
-
         $updateOne = $this->updateOne($filter, ['$set' => ['deleted_at' => time()]], $options);
 
         mDBRedis::updateCacheAfterChange($this->collection->getCollectionName(), $filter);
@@ -299,17 +293,12 @@ class CollectionEvents
      *
      * @param array $filter Фильтр для удаления
      * @param array $options Опции для удаления
-     * @return \MongoDB\DeleteResult
+     * @return \MongoDB\UpdateResult
      */
     public function deleteMany(array $filter = [], array $options = [])
     {
-
-
-        // Устанавливаем поле deleted_at для всех документов, соответствующих фильтру
-
-
-
-        $updateMany =  $this->updateMany($filter, ['$set' => ['deleted_at' => time()]], $options);
+        // Set deleted_at field for all documents matching the filter
+        $updateMany = $this->updateMany($filter, ['$set' => ['deleted_at' => time()]], $options);
 
         mDBRedis::updateCacheAfterChange($this->collection->getCollectionName(), $filter);
 
@@ -536,7 +525,7 @@ class mDB
      * Получить все индексы коллекции
      *
      * @param string $collectionName Имя коллекции MongoDB.
-     * @return \MongoDB\Driver\Cursor
+     * @return Cursor
      */
 
     public static function getIndexes(string $collectionName)
@@ -649,11 +638,11 @@ class mDB
 
     public function isValid($value)
     {
-        if ($value instanceof \MongoDB\BSON\ObjectID) {
+        if ($value instanceof \MongoDB\BSON\ObjectId) {
             return true;
         }
         try {
-            new \MongoDB\BSON\ObjectID($value);
+            new \MongoDB\BSON\ObjectId($value);
             return true;
         } catch (\Exception $e) {
 
@@ -677,7 +666,7 @@ class mDB
             $id = (string) $id;
 
             if (preg_match('/^[0-9a-f]{24}$/i', $id) === 1) {
-                return $id ? new \MongoDB\BSON\ObjectID($id) : new \MongoDB\BSON\ObjectID();
+                return $id ? new \MongoDB\BSON\ObjectId($id) : new \MongoDB\BSON\ObjectId();
             } else {
                 return false;
             }
@@ -741,7 +730,7 @@ class mDB
                 $data[$key] = self::replaceObjectIdsToString($value->getArrayCopy());
             } elseif ($value instanceof \MongoDB\Model\BSONDocument) {
                 $data[$key] = self::replaceObjectIdsToString($value->getArrayCopy());
-            } elseif ($value instanceof \MongoDB\BSON\ObjectID) {
+            } elseif ($value instanceof \MongoDB\BSON\ObjectId) {
                 $data[$key] = (string) $value;
             } else if (is_array($value)) {
                 $data[$key] = self::replaceObjectIdsToString($value);
@@ -788,7 +777,7 @@ class mDB
                 $data[$key] = self::replaceStringToObjectIds($value);
             } else {
                 if (is_string($value) && preg_match('/^[0-9a-f]{24}$/', $value)) {
-                    $data[$key] = new \MongoDB\BSON\ObjectID($value);
+                    $data[$key] = new \MongoDB\BSON\ObjectId($value);
                 }
             }
         }

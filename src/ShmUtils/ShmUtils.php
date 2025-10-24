@@ -5,12 +5,23 @@ namespace Shm\ShmUtils;
 use Shm\Shm;
 use Shm\ShmTypes\StructureType;
 
+/**
+ * Utility class for common operations
+ * 
+ * This class provides various utility methods for data validation,
+ * transliteration, and other common operations.
+ */
 class ShmUtils
 {
-
-    public static function validate(array $schema, $data = null)
+    /**
+     * Validate data against schema
+     * 
+     * @param array $schema Schema definition
+     * @param mixed $data Data to validate (optional, uses request data if null)
+     * @throws \Exception If validation fails
+     */
+    public static function validate(array $schema, $data = null): void
     {
-
         $schema = Shm::structure($schema);
 
         if ($data === null) {
@@ -20,89 +31,111 @@ class ShmUtils
         $schema->validate($data);
     }
 
+    /**
+     * Transliterate Cyrillic text to Latin
+     * 
+     * @param string $input Input text
+     * @return string Transliterated text
+     */
+    /**
+     * Transliteration map for Cyrillic to Latin characters
+     */
+    private static array $translitMap = [
+        'а' => 'a',
+        'б' => 'b',
+        'в' => 'v',
+        'г' => 'g',
+        'д' => 'd',
+        'е' => 'e',
+        'ё' => 'yo',
+        'ж' => 'zh',
+        'з' => 'z',
+        'и' => 'i',
+        'й' => 'y',
+        'к' => 'k',
+        'л' => 'l',
+        'м' => 'm',
+        'н' => 'n',
+        'о' => 'o',
+        'п' => 'p',
+        'р' => 'r',
+        'с' => 's',
+        'т' => 't',
+        'у' => 'u',
+        'ф' => 'f',
+        'х' => 'kh',
+        'ц' => 'ts',
+        'ч' => 'ch',
+        'ш' => 'sh',
+        'щ' => 'shch',
+        'ъ' => '',
+        'ы' => 'y',
+        'ь' => '',
+        'э' => 'e',
+        'ю' => 'yu',
+        'я' => 'ya',
+        'А' => 'A',
+        'Б' => 'B',
+        'В' => 'V',
+        'Г' => 'G',
+        'Д' => 'D',
+        'Е' => 'E',
+        'Ё' => 'Yo',
+        'Ж' => 'Zh',
+        'З' => 'Z',
+        'И' => 'I',
+        'Й' => 'Y',
+        'К' => 'K',
+        'Л' => 'L',
+        'М' => 'M',
+        'Н' => 'N',
+        'О' => 'O',
+        'П' => 'P',
+        'Р' => 'R',
+        'С' => 'S',
+        'Т' => 'T',
+        'У' => 'U',
+        'Ф' => 'F',
+        'Х' => 'Kh',
+        'Ц' => 'Ts',
+        'Ч' => 'Ch',
+        'Ш' => 'Sh',
+        'Щ' => 'Shch',
+        'Ъ' => '',
+        'Ы' => 'Y',
+        'Ь' => '',
+        'Э' => 'E',
+        'Ю' => 'Yu',
+        'Я' => 'Ya'
+    ];
+
+    /**
+     * Transliterate Cyrillic text to Latin
+     * 
+     * @param string $input Input text
+     * @return string Transliterated text
+     */
     public static function translitIfCyrillic(string $input): string
     {
-        $translit_map = [
-            'а' => 'a',
-            'б' => 'b',
-            'в' => 'v',
-            'г' => 'g',
-            'д' => 'd',
-            'е' => 'e',
-            'ё' => 'yo',
-            'ж' => 'zh',
-            'з' => 'z',
-            'и' => 'i',
-            'й' => 'y',
-            'к' => 'k',
-            'л' => 'l',
-            'м' => 'm',
-            'н' => 'n',
-            'о' => 'o',
-            'п' => 'p',
-            'р' => 'r',
-            'с' => 's',
-            'т' => 't',
-            'у' => 'u',
-            'ф' => 'f',
-            'х' => 'kh',
-            'ц' => 'ts',
-            'ч' => 'ch',
-            'ш' => 'sh',
-            'щ' => 'shch',
-            'ъ' => '',
-            'ы' => 'y',
-            'ь' => '',
-            'э' => 'e',
-            'ю' => 'yu',
-            'я' => 'ya',
-            'А' => 'A',
-            'Б' => 'B',
-            'В' => 'V',
-            'Г' => 'G',
-            'Д' => 'D',
-            'Е' => 'E',
-            'Ё' => 'Yo',
-            'Ж' => 'Zh',
-            'З' => 'Z',
-            'И' => 'I',
-            'Й' => 'Y',
-            'К' => 'K',
-            'Л' => 'L',
-            'М' => 'M',
-            'Н' => 'N',
-            'О' => 'O',
-            'П' => 'P',
-            'Р' => 'R',
-            'С' => 'S',
-            'Т' => 'T',
-            'У' => 'U',
-            'Ф' => 'F',
-            'Х' => 'Kh',
-            'Ц' => 'Ts',
-            'Ч' => 'Ch',
-            'Ш' => 'Sh',
-            'Щ' => 'Shch',
-            'Ъ' => '',
-            'Ы' => 'Y',
-            'Ь' => '',
-            'Э' => 'E',
-            'Ю' => 'Yu',
-            'Я' => 'Ya'
-        ];
-
-        // Проверяем, есть ли хотя бы одна кириллическая буква
+        // Check if there's at least one Cyrillic character
         if (preg_match('/[\p{Cyrillic}]/u', $input)) {
-            return strtr($input, $translit_map);
+            return strtr($input, self::$translitMap);
         }
 
-        // Возвращаем оригинал, если кириллицы нет
+        // Return original if no Cyrillic characters found
         return $input;
     }
 
 
-    private static $_data = null;
+    private static ?array $_data = null;
 
+    /**
+     * Get request parameter value
+     * 
+     * @param string $key Parameter key
+     * @param mixed $default Default value if key not found
+     * @return mixed Parameter value or default
+     */
     public static function request(string $key, $default = null)
     {
 

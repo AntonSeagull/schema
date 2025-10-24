@@ -53,19 +53,23 @@ class ShmBlueprintQuery
 
     private $pipelineFunction = null;
 
-    public function pipeline($pipeline = null): static
+    /**
+     * Set the pipeline for database operations
+     * 
+     * @param array|callable|null $pipeline MongoDB aggregation pipeline or function returning pipeline
+     * @throws InvalidArgumentException If pipeline is neither array nor callable
+     */
+    public function pipeline(array|callable|null $pipeline): static
     {
         if ($pipeline === null) {
+            $this->pipelineFunction = null;
             return $this;
         }
 
         if (is_array($pipeline)) {
-            // Если передан массив, создаем функцию, которая его возвращает
-            $this->pipelineFunction = function () use ($pipeline) {
-                return $pipeline;
-            };
+            // Convert array to function for consistency
+            $this->pipelineFunction = fn() => $pipeline;
         } elseif (is_callable($pipeline)) {
-            // Если передана функция, сохраняем её
             $this->pipelineFunction = $pipeline;
         } else {
             throw new InvalidArgumentException('Pipeline должен быть массивом или функцией');
@@ -74,33 +78,43 @@ class ShmBlueprintQuery
         return $this;
     }
 
+    /**
+     * Get the validated pipeline for database operations
+     * 
+     * @return array MongoDB aggregation pipeline
+     */
     public function getPipeline(): array
     {
         if ($this->pipelineFunction === null) {
             return [];
         }
 
-        $pipeline = call_user_func($this->pipelineFunction);
+        $pipeline = ($this->pipelineFunction)();
 
-
-        if (!$pipeline) {
+        if (empty($pipeline)) {
             return [];
         }
 
-        // Валидируем полученный pipeline
+        // Validate the pipeline structure
         mDB::validatePipeline($pipeline);
 
         return $pipeline;
     }
 
 
-    public function filter($filter = true): static
+    /**
+     * Set whether to enable filtering
+     */
+    public function filter(bool $filter = true): static
     {
         $this->filter = $filter;
         return $this;
     }
 
-    public function sort($sort = true): static
+    /**
+     * Set whether to enable sorting
+     */
+    public function sort(bool $sort = true): static
     {
         $this->sort = $sort;
         return $this;
@@ -109,10 +123,10 @@ class ShmBlueprintQuery
 
 
     /**
-     * Устанавливает функцию, которая будет выполнена перед запросом.
+     * Set a callback to be executed before the query
      *
-     * @param callable $beforeQuery Функция-коллбэк, которая принимает аргументы запроса и может модифицировать их.
-     * @return self
+     * @param callable $beforeQuery Callback function that receives query arguments and can modify them
+     * @return static
      */
     public function before(callable $beforeQuery): static
     {
@@ -121,10 +135,10 @@ class ShmBlueprintQuery
     }
 
     /**
-     * Устанавливает функцию, которая будет выполнена после запроса.
+     * Set a callback to be executed after the query
      *
-     * @param callable $afterQuery Функция-коллбэк, которая принимает результат запроса и может модифицировать его.
-     * @return self
+     * @param callable $afterQuery Callback function that receives query result and can modify it
+     * @return static
      */
     public function after(callable $afterQuery): static
     {
@@ -134,7 +148,10 @@ class ShmBlueprintQuery
 
 
 
-    public function withoutData($withoutData = true): static
+    /**
+     * Set whether to return data without the actual content
+     */
+    public function withoutData(bool $withoutData = true): static
     {
         $this->withoutData = $withoutData;
         return $this;

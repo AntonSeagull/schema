@@ -36,16 +36,18 @@ use Shm\ShmUtils\ShmUtils;
 use stdClass;
 use Traversable;
 
+/**
+ * Structure type for schema definitions
+ * 
+ * This class represents a structure type that can contain multiple fields
+ * and provides complex validation and normalization capabilities.
+ */
 class StructureType extends BaseType
 {
     public string $type = 'structure';
-
-
-    public $collection = null;
-
-    private $pipeline = [];
-
-    private $insertValues = [];
+    public ?string $collection = null;
+    private array $pipeline = [];
+    private array $insertValues = [];
 
 
 
@@ -65,13 +67,24 @@ class StructureType extends BaseType
     public bool $canDelete = false;
 
 
+    /**
+     * Set API key flag
+     * 
+     * @param bool $apikey Whether this structure is an API key
+     * @return static
+     */
     public function apikey(bool $apikey = true): static
     {
         $this->apikey = $apikey;
         return $this;
     }
 
-
+    /**
+     * Set manual sort flag
+     * 
+     * @param bool $manualSort Whether manual sorting is enabled
+     * @return static
+     */
     public function manualSort(bool $manualSort = true): static
     {
         $this->manualSort = $manualSort;
@@ -1512,7 +1525,7 @@ class StructureType extends BaseType
                 unset($update['$unset']['_id']);
             }
             $update['$set']["_needRecalculateSearch"] = true;
-            $update['$unset'] = $update['$unset'];
+            // $update['$unset'] is already set above
         }
 
 
@@ -1633,7 +1646,7 @@ class StructureType extends BaseType
                 unset($update['$unset']['_id']);
             }
             $update['$set']["_needRecalculateSearch"] = true;
-            $update['$unset'] = $update['$unset'];
+            // $update['$unset'] is already set above
         }
 
         $result =  mDB::collection($this->collection)->updateOne($filter, $update, [
@@ -1710,7 +1723,7 @@ class StructureType extends BaseType
                 unset($update['$unset']['_id']);
             }
             $update['$set']["_needRecalculateSearch"] = true;
-            $update['$unset'] = $update['$unset'];
+            // $update['$unset'] is already set above
         }
 
         $result =  mDB::collection($this->collection)->updateMany($filter, $update, [
@@ -1837,7 +1850,7 @@ class StructureType extends BaseType
                 unset($update['$unset']['_id']);
             }
             $update['$set']["_needRecalculateSearch"] = true;
-            $update['$unset'] = $update['$unset'];
+            // $update['$unset'] is already set above
         }
 
         $result =  mDB::collection($this->collection)->updateMany($filter, $update, [

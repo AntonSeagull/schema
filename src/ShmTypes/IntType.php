@@ -7,20 +7,34 @@ use Shm\CachedType\CachedInputObjectType;
 use Shm\Shm;
 use Shm\ShmRPC\ShmRPCCodeGen\TSType;
 
+/**
+ * Integer type for schema definitions
+ * 
+ * This class represents an integer type with validation and normalization.
+ */
 class IntType extends BaseType
 {
     public string $type = 'int';
 
+    /**
+     * Constructor
+     */
     public function __construct()
     {
         // Nothing extra for now
     }
 
-
-    public function normalize(mixed $value, $addDefaultValues = false, string | null $processId = null): mixed
+    /**
+     * Normalize integer value
+     * 
+     * @param mixed $value Value to normalize
+     * @param bool $addDefaultValues Whether to add default values
+     * @param string|null $processId Process ID for tracking
+     * @return mixed Normalized value
+     */
+    public function normalize(mixed $value, $addDefaultValues = false, string|null $processId = null): mixed
     {
-
-        if ($addDefaultValues &&  $value === null && $this->defaultIsSet) {
+        if ($addDefaultValues && $value === null && $this->defaultIsSet) {
             return $this->default;
         }
 
@@ -28,9 +42,15 @@ class IntType extends BaseType
             return (int) $value;
         }
 
-        return  null;
+        return null;
     }
 
+    /**
+     * Validate integer value
+     * 
+     * @param mixed $value Value to validate
+     * @throws \Exception If validation fails
+     */
     public function validate(mixed $value): void
     {
         parent::validate($value);
@@ -88,10 +108,6 @@ class IntType extends BaseType
                 ]
             ]
         ];
-
-
-
-        return null;
     }
 
 

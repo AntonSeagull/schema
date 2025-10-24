@@ -11,41 +11,56 @@ use Shm\ShmUtils\DeepAccess;
 use Shm\ShmUtils\Response;
 use Traversable;
 
+/**
+ * Array type for schema definitions
+ * 
+ * This class represents an array type that contains items of a specific type.
+ * It provides validation, normalization, and serialization for arrays.
+ */
 class ArrayOfType extends BaseType
 {
     public string $type = 'array';
 
-
+    /**
+     * Constructor for ArrayOfType
+     * 
+     * @param BaseType $itemType The type of items in the array
+     */
     public function __construct(BaseType $itemType)
     {
-
-
         if ($itemType instanceof EnumType) {
             $this->type = 'enums';
         }
 
-
-
-
         $this->itemType = $itemType;
     }
 
-
-
-
+    /**
+     * Check if two arrays are equal
+     * 
+     * @param mixed $a First array
+     * @param mixed $b Second array
+     * @return bool True if arrays are equal
+     */
     public function equals(mixed $a, mixed $b): bool
     {
-        return json_encode($a) === json_encode($a);
+        return json_encode($a) === json_encode($b);
     }
 
 
+    /**
+     * Normalize array value
+     * 
+     * @param mixed $value Value to normalize
+     * @param bool $addDefaultValues Whether to add default values
+     * @param string|null $processId Process ID for tracking
+     * @return mixed Normalized value
+     */
     public function normalize(mixed $value, $addDefaultValues = false, string|null $processId = null): mixed
     {
-
         if (!(is_array($value) || $value instanceof Traversable)) {
             return null;
         }
-
 
         if ($addDefaultValues && !$value && $this->defaultIsSet) {
             return $this->default;
@@ -95,6 +110,12 @@ class ArrayOfType extends BaseType
 
 
 
+    /**
+     * Validate array value
+     * 
+     * @param mixed $value Value to validate
+     * @throws \Exception If validation fails
+     */
     public function validate(mixed $value): void
     {
         parent::validate($value);

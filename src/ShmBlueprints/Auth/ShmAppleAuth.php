@@ -8,6 +8,12 @@ use Shm\ShmAuth\Auth;
 use Shm\ShmTypes\StructureType;
 use Shm\ShmUtils\ShmUtils;
 
+/**
+ * Apple authentication handler
+ * 
+ * This class handles Apple Sign-In authentication including timezone-based
+ * authentication and Apple ID verification.
+ */
 class ShmAppleAuth extends ShmAuthBase
 {
 
@@ -45,7 +51,6 @@ class ShmAppleAuth extends ShmAuthBase
 
 
                             return $this->authToken($authStructure, $user->_id, $args);
-                            break;
                         }
                     }
                 }

@@ -6,38 +6,29 @@ use Shm\Shm;
 use Shm\ShmRPC\ShmRPC;
 use Shm\ShmTypes\BaseType;
 
+/**
+ * Computed type for schema definitions
+ * 
+ * This class represents a computed type that calculates its value
+ * based on a resolver function and arguments.
+ */
 class ComputedType extends BaseType
 {
     public string $type = 'computed';
-
-    /**
-     * Функция-резолвер, вызываемая при вычислении значения
-     * @var callable
-     */
-    public $computedResolve;
-
-    /**
-     * Аргументы, необходимые для вычисления
-     * @var array|BaseType|null
-     */
-    public $computedArgs;
-
-    /**
-     * Ожидаемый тип возвращаемого значения
-     * @var BaseType
-     */
+    public mixed $computedResolve;
+    public mixed $computedArgs;
     public BaseType $computedReturnType;
 
     /**
-     * ComputedType constructor.
+     * ComputedType constructor
      *
      * @param array{
-     *     resolve: callable,           // Функция, вычисляющая значение: function ($root, $args)
-     *     args?: array|BaseType|null, // Аргументы для вычисления
-     *     type: BaseType              // Ожидаемый тип возвращаемого значения
-     * } $computedParams Параметры вычисляемого типа
+     *     resolve: callable,           // Function that computes the value: function ($root, $args)
+     *     args?: array|BaseType|null, // Arguments for computation
+     *     type: BaseType              // Expected return type
+     * } $computedParams Computed type parameters
      *
-     * @throws \Exception Если параметры некорректны
+     * @throws \Exception If parameters are invalid
      */
     public function __construct($computedParams)
     {

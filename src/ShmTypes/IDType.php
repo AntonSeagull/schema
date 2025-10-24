@@ -12,39 +12,50 @@ use Shm\ShmDB\mDBRedis;
 use Shm\ShmRPC\ShmRPCCodeGen\TSType;
 use Shm\ShmRPC\RPCBuffer;
 
+/**
+ * ID type for schema definitions
+ * 
+ * This class represents an ID type that can reference other documents
+ * and provides expansion capabilities for nested data.
+ */
 class IDType extends BaseType
 {
     public string $type = 'ID';
-
-    public  StructureType | null $document = null;
-
-    private $documentResolver = null;
-
-
+    public StructureType|null $document = null;
+    private mixed $documentResolver = null;
     public int $defaultValue = 0;
 
-
-
-
-    public function depthExpand(): BaseType | static
+    /**
+     * Expand document with depth limit
+     * 
+     * @return BaseType|static
+     */
+    public function depthExpand(): BaseType|static
     {
-
         if ($this->depth > 0 && $this->document) {
-
             return $this->document->expand()->depth($this->depth - 1);
         }
 
         return $this;
     }
 
+    /**
+     * Unexpand document
+     * 
+     * @return static
+     */
     public function unExpand(): static
     {
-
         $this->expanded = false;
         $this->document = null;
         return $this;
     }
 
+    /**
+     * Expand document
+     * 
+     * @return static
+     */
     public function expand(): static
     {
 

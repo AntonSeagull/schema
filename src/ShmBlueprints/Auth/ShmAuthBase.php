@@ -13,25 +13,31 @@ use Shm\ShmUtils\Response;
 use Shm\ShmTypes\StructureType;
 use Shm\ShmUtils\Config;
 
-class ShmAuthBase
+/**
+ * Base authentication class
+ * 
+ * This abstract class provides common functionality for all authentication
+ * handlers including structure management, validation, and token handling.
+ */
+abstract class ShmAuthBase
 {
-
-    public $title;
-    public $key;
-
-    /**
-     * @var StructureType[]
-     */
-    public $_authStructures = [];
+    public ?string $title = null;
+    public ?string $key = null;
 
     /**
+     * Authentication structures
      * @var StructureType[]
      */
-    public $_regStructures = [];
+    public array $_authStructures = [];
 
+    /**
+     * Registration structures
+     * @var StructureType[]
+     */
+    public array $_regStructures = [];
 
-    public $description;
-    public $pipeline;
+    public ?string $description = null;
+    public mixed $pipeline = null;
 
 
     public function currentStructure(): ?StructureType
@@ -57,45 +63,60 @@ class ShmAuthBase
     public $errorAccountNotFound = "Ваша учетная запись не найдена.";
 
 
-    public  function hasValueValidator($keys, $params)
+    /**
+     * Validate that required keys have values
+     * 
+     * @param array $keys Required keys to validate
+     * @param array $params Parameters to validate
+     * @throws \Exception If validation fails
+     */
+    public function hasValueValidator(array $keys, array $params): void
     {
-
         foreach ($keys as $key) {
-            if (!isset($params[$key]) && !$params[$key]) {
-
-
+            if (!isset($params[$key]) || empty($params[$key])) {
                 Response::validation("Заполните все необходимые поля");
             }
         }
     }
 
 
-    public function isEmail($email): bool
+    /**
+     * Check if email is valid
+     * 
+     * @param string $email Email to validate
+     * @return bool True if email is valid
+     */
+    public function isEmail(string $email): bool
     {
         return filter_var($email, FILTER_VALIDATE_EMAIL) !== false;
     }
 
     public function __construct()
     {
-
-
-
-
-        return $this;
+        // Constructor implementation
     }
 
 
+    /**
+     * Set authentication structures
+     * 
+     * @param array $authStructures Authentication structures
+     * @return static
+     */
     public function auth(array $authStructures): static
     {
-
         $this->_authStructures = $authStructures;
-
         return $this;
     }
 
+    /**
+     * Set registration structures
+     * 
+     * @param array $regStructures Registration structures
+     * @return static
+     */
     public function reg(array $regStructures): static
     {
-
         $this->_regStructures = $regStructures;
 
         return $this;

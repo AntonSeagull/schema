@@ -7,35 +7,41 @@ use Shm\Shm;
 use Shm\ShmAuth\Auth;
 use Shm\ShmUtils\Response;
 
+/**
+ * SMS authentication handler
+ * 
+ * This class handles SMS-based authentication including sending codes
+ * and verifying phone numbers.
+ */
 class ShmSmsAuth extends ShmAuthBase
 {
-
-    private $smsAuthCollection = "_sms_auth";
-
-
-    private $testPhones = [
+    private string $smsAuthCollection = "_sms_auth";
+    private array $testPhones = [
         79201111111,
         79202222222,
     ];
-
-    private $smsSendFunctionHandler = null;
-
-    private $smsCodeFunctionHandler = null;
+    private mixed $smsSendFunctionHandler = null;
+    private mixed $smsCodeFunctionHandler = null;
 
     /**
-     * Устанавливает функцию для отправки SMS
-     * @param callable $handler Функция, которая принимает номер телефона и код, и возвращает true/false
-     * fuction($phone, $code): bool
-     * @return self
+     * Set SMS sending function handler
+     * 
+     * @param callable $handler Function that accepts phone number and code, returns true/false
+     * @return static
      */
-
-    public function setSmsSendFunctionHandler($handler): static
+    public function setSmsSendFunctionHandler(callable $handler): static
     {
         $this->smsSendFunctionHandler = $handler;
         return $this;
     }
 
-    public function setSmsCodeFunctionHandler($handler): static
+    /**
+     * Set SMS code generation function handler
+     * 
+     * @param callable $handler Function that generates SMS code
+     * @return static
+     */
+    public function setSmsCodeFunctionHandler(callable $handler): static
     {
         $this->smsCodeFunctionHandler = $handler;
         return $this;
@@ -47,7 +53,7 @@ class ShmSmsAuth extends ShmAuthBase
             return call_user_func($this->smsCodeFunctionHandler, $phone);
         }
 
-        return rand(1111, 9999);
+        return \random_int(1111, 9999);
     }
 
     private function sendSms($phone, $code)

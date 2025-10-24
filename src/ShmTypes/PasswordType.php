@@ -52,7 +52,7 @@ class PasswordType extends BaseType
     }
 
 
-    public $columnsWidth = 200;
+    // $columnsWidth is inherited from BaseType
 
 
     public function tsType(): TSType

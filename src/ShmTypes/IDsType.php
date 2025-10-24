@@ -11,38 +11,49 @@ use Shm\ShmRPC\ShmRPCCodeGen\TSType;
 use Shm\ShmRPC\RPCBuffer;
 use Traversable;
 
+/**
+ * IDs type for schema definitions
+ * 
+ * This class represents an array of IDs type that can reference multiple documents
+ * and provides expansion capabilities for nested data.
+ */
 class IDsType extends BaseType
 {
     public string $type = 'IDs';
+    public StructureType|null $document = null;
+    private mixed $documentResolver = null;
 
-    public  StructureType | null $document = null;
-
-
-
-    private $documentResolver = null;
-
-
-
-
-    public function depthExpand(): BaseType | static
+    /**
+     * Expand document with depth limit
+     * 
+     * @return BaseType|static
+     */
+    public function depthExpand(): BaseType|static
     {
-
         if ($this->depth > 0 && $this->document) {
-
             return Shm::arrayOf($this->document->expand()->depth($this->depth - 1));
         }
 
         return $this;
     }
 
+    /**
+     * Unexpand document
+     * 
+     * @return static
+     */
     public function unExpand(): static
     {
-
         $this->expanded = false;
         $this->document = null;
         return $this;
     }
 
+    /**
+     * Expand document
+     * 
+     * @return static
+     */
     public function expand(): static
     {
 

@@ -42,7 +42,8 @@
         "jenssegers/blade": "^2.0",
         "griffinledingham/php-apple-signin": "^1.1",
         "nette/mail": "^4.0",
-        "phpoffice/phpspreadsheet": "^5.1"
+        "phpoffice/phpspreadsheet": "^5.1",
+        "firebase/php-jwt": "^6.0"
     },
     "prefer-stable": true
 }

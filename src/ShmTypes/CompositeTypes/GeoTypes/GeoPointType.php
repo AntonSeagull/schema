@@ -25,7 +25,7 @@ class GeoPointType extends StructureType
         parent::__construct(
             [
                 'uuid' => Shm::UUID(),
-                'address' => Shm::string(), //Устарвевшее поле, оставлено для совместимости, используйте 'name'
+                'address' => Shm::string()->deprecated('Use "name" instead'), //Устарвевшее поле, оставлено для совместимости, используйте 'name'
                 'name' => Shm::string(),    // Полный адрес, если известен
                 'context' => Shm::string(),      // Контекст адреса, общее описание, страна, город и т. д.
                 'meta' => Shm::structure([

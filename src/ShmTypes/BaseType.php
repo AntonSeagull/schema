@@ -29,6 +29,17 @@ abstract class BaseType
     public bool $draft = false;
     public int $depth = 0;
 
+
+    public ?string $deprecated = null;
+
+
+    public function deprecated(string $deprecated): static
+    {
+        $this->deprecated = $deprecated;
+        return $this;
+    }
+
+
     /**
      * Set draft status for this type
      */
@@ -37,6 +48,7 @@ abstract class BaseType
         $this->draft = $draft;
         return $this;
     }
+
 
     /**
      * Set depth for nested operations
@@ -1539,11 +1551,11 @@ abstract class BaseType
      *
      * @param callable $handler Функция с сигнатурой function(array $_ids, mixed $newValue, array $docs)
      */
-    public function updateEvent(callable $handler): static
+    /* public function updateEvent(callable $handler): static
     {
         $this->onUpdateEvent = $handler;
         return $this;
-    }
+    }*/
 
     private $onBeforeInsertEvent = null;
     private $onBeforeUpdateEvent = null;

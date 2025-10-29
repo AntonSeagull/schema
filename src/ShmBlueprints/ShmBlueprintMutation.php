@@ -28,12 +28,17 @@ class ShmBlueprintMutation
     private bool $oneRow = false;
     private bool $delete = true;
     private mixed $pipelineFunction = null;
+
+    private mixed $prepareArgsFunction = null;
+
     private mixed $beforeResolveFunction = null;
 
     public function __construct(StructureType $structure)
     {
         $this->structure = $structure;
     }
+
+
 
     /**
      * Set whether this mutation operates on a single row
@@ -60,6 +65,35 @@ class ShmBlueprintMutation
     {
         $this->beforeResolveFunction = $callback;
         return $this;
+    }
+
+
+
+    /**
+     * Set a callback to be executed before the mutation and can return new args
+     * 
+     * @param callable $callback Callback function that receives arguments and can return new arguments
+     * @return static
+     * @throws InvalidArgumentException If callback is not a callable
+     */
+    public function prepareArgs(callable $callback): static
+    {
+        $this->prepareArgsFunction = $callback;
+        return $this;
+    }
+
+
+    /**
+     * Execute the prepare args callback if set
+     */
+    public function callPrepareArgs(array &$args): void
+    {
+        if ($this->prepareArgsFunction !== null) {
+            $_args = ($this->prepareArgsFunction)($args);
+            if ($_args) {
+                $args = $_args;
+            }
+        }
     }
 
     /**
@@ -378,6 +412,10 @@ class ShmBlueprintMutation
      */
     private function executeUpdateOperation(array $args, array $pipeline, StructureType $argsStructure): mixed
     {
+
+        $this->callPrepareArgs($args);
+
+
         $originalArgs = $args;
         $args = $argsStructure->normalize($args);
 
@@ -431,7 +469,7 @@ class ShmBlueprintMutation
     {
         // Handle field updates
         if (isset($originalArgs['fields'])) {
-            $setValue = $this->structure->items['fields']->normalize($originalArgs['fields']);
+            $setValue = $this->structure->normalize($originalArgs['fields']);
             $this->structure->updateOne(
                 ['_id' => mDB::id($_id)],
                 ['$set' => $setValue]

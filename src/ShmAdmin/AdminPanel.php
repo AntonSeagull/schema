@@ -672,7 +672,7 @@ class AdminPanel
 
 
 
-                    $structure->updateOneWithEvents(
+                    $structure->updateOne(
                         [
                             "_id" => Auth::subAccountAuth() ? Auth::getSubAccountID() : Auth::getAuthOwner()
                         ],
@@ -2000,7 +2000,7 @@ class AdminPanel
 
                         if (!$id) {
 
-                            $insert = $structure->insertOneWithEvents($values);
+                            $insert = $structure->insertOne($values);
 
                             if (!$insert) {
                                 Response::validation("Ошибка при добавлении данных");
@@ -2014,7 +2014,7 @@ class AdminPanel
                             ];
                         } else {
 
-                            $structure->updateManyWithEvents(
+                            $structure->updateMany(
                                 [
                                     "_id" => $id,
                                 ],
@@ -2040,7 +2040,7 @@ class AdminPanel
 
 
 
-                        $structure->updateManyWithEvents(
+                        $structure->updateMany(
                             [
                                 "_id" => ['$in' => $ids],
                             ],
@@ -2055,7 +2055,7 @@ class AdminPanel
                             ]),
                         ];
                     } else {
-                        $insert =  $structure->insertOneWithEvents($values);
+                        $insert =  $structure->insertOne($values);
 
                         if (!$insert) {
                             Response::validation("Ошибка при добавлении данных");

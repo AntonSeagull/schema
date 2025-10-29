@@ -16,7 +16,7 @@ class ShmBlueprintQuery
 
     private StructureType $structure;
 
-
+    private mixed $prepareArgsFunction = null;
 
 
 
@@ -52,6 +52,36 @@ class ShmBlueprintQuery
 
 
     private $pipelineFunction = null;
+
+
+
+    /**
+     * Set a callback to be executed before the mutation and can return new args
+     * 
+     * @param callable $callback Callback function that receives arguments and can return new arguments
+     * @return static
+     * @throws InvalidArgumentException If callback is not a callable
+     */
+    public function prepareArgs(callable $callback): static
+    {
+        $this->prepareArgsFunction = $callback;
+        return $this;
+    }
+
+
+    /**
+     * Execute the prepare args callback if set
+     */
+    public function callPrepareArgs(array &$args): void
+    {
+        if ($this->prepareArgsFunction !== null) {
+            $_args = ($this->prepareArgsFunction)($args);
+            if ($_args) {
+                $args = $_args;
+            }
+        }
+    }
+
 
     /**
      * Set the pipeline for database operations
@@ -238,7 +268,7 @@ class ShmBlueprintQuery
             'args' =>  $argsStructure,
             'resolve' => function ($root, $args) use ($_this, $structure, $withoutData, $argsStructure) {
 
-
+                $_this->callPrepareArgs($args);
 
                 $pipeline = $_this->getPipeline();
 

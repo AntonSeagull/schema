@@ -1407,7 +1407,14 @@ class StructureType extends BaseType
                 continue;
             }
 
-            $value[] = $key .  $separate . $item->tsType()->getTsTypeName();
+            if ($item->deprecated) {
+
+                $prefix = "/**\n * @deprecated " . $item->deprecated . "\n */\n";
+            } else {
+                $prefix = "";
+            }
+
+            $value[] = $prefix . $key .  $separate . $item->tsType()->getTsTypeName();
         }
 
         $TSType = new TSType($this->typeName(), '{\n' . implode(',\n', $value) . '\n}');
@@ -1482,93 +1489,6 @@ class StructureType extends BaseType
 
 
 
-    public function updateOneWithEvents(array $filter = [], array $update = [], array $options = []): \MongoDB\UpdateResult
-    {
-
-        $filter = mDB::replaceStringToObjectIds($filter);
-
-        $activeEventLogic =  (!ShmInit::$disableUpdateEvents  && $this->haveUpdateEvent() && isset($update['$set']) && count($update['$set']) > 0);
-
-
-        if ($this->haveBeforeUpdateEvent() && isset($update['$set'])) {
-            ShmInit::$disableUpdateEvents = true;
-            $update['$set'] = $this->callBeforeUpdateEvent($update['$set']);
-            ShmInit::$disableUpdateEvents = false;
-        }
-
-
-        if ($activeEventLogic) {
-
-            $setFields = $update['$set'] ?? [];
-
-            // 1. Получаем все поля, которые будем сравнивать
-            $fieldsToTrack = array_keys($setFields);
-
-            // 2. Получаем старые документы
-            $oldDoc = mDB::collection($this->collection)
-                ->findOne($filter, ['projection' => array_fill_keys($fieldsToTrack, 1) + ['_id' => 1]]);
-        }
-
-
-
-        if (isset($update['$set'])) {
-
-            if (array_key_exists("_id", (array) $update['$set'])) {
-                unset($update['$set']['_id']);
-            }
-            $update['$set']["_needRecalculateSearch"] = true;
-            $update['$set'] = $this->normalize($update['$set']);
-        }
-
-        if (isset($update['$unset'])) {
-            if (array_key_exists("_id", (array) $update['$unset'])) {
-                unset($update['$unset']['_id']);
-            }
-            $update['$set']["_needRecalculateSearch"] = true;
-            // $update['$unset'] is already set above
-        }
-
-
-
-        $result =  mDB::collection($this->collection)->updateOne($filter, $update, [
-            ...$options,
-        ]);
-
-
-
-        if ($activeEventLogic) {
-
-            $newDoc = mDB::collection($this->collection)
-                ->findOne($filter, ['projection' => array_fill_keys(array_keys($setFields), 1) + ['_id' => 1]]);
-
-
-            $allNewDoc = mDB::collection($this->collection)
-                ->findOne($filter);
-
-
-
-
-            $ids = $this->distinct('_id', $filter);
-
-            if (count($ids) > 0) {
-                Response::startTraceTiming("callUpdateEvent-" . $this->collection);
-                ShmInit::$disableUpdateEvents = true;
-                $this->callUpdateEvent([[
-                    '_id' => $newDoc['_id'],
-                    '_value' => $newDoc
-                ]], [[
-                    '_id' => $oldDoc['_id'],
-                    '_value' => $oldDoc
-                ]], [$allNewDoc]);
-                ShmInit::$disableUpdateEvents = false;
-                Response::endTraceTiming("callUpdateEvent-" . $this->collection);
-            }
-        }
-
-
-
-        return    $result;
-    }
 
 
 
@@ -1676,109 +1596,6 @@ class StructureType extends BaseType
 
 
 
-    public function updateManyWithEvents(array $filter = [], array $update = [], array $options = []): \MongoDB\UpdateResult
-    {
-
-
-
-        $activeEventLogic =  (!ShmInit::$disableUpdateEvents  && $this->haveUpdateEvent() && isset($update['$set']) && count($update['$set']) > 0);
-
-
-        $filter = mDB::replaceStringToObjectIds($filter);
-
-
-        if ($this->haveBeforeUpdateEvent() && isset($update['$set'])) {
-            ShmInit::$disableUpdateEvents = true;
-            $update['$set'] = $this->callBeforeUpdateEvent($update['$set']);
-            ShmInit::$disableUpdateEvents = false;
-        }
-
-        if ($activeEventLogic) {
-
-            $setFields = $update['$set'] ?? [];
-
-            // 1. Получаем все поля, которые будем сравнивать
-            $fieldsToTrack = array_keys($setFields);
-
-            // 2. Получаем старые документы
-            $oldDocs = mDB::collection($this->collection)
-                ->find($filter, ['projection' => array_fill_keys($fieldsToTrack, 1) + ['_id' => 1]])
-                ->toArray();
-        }
-
-
-
-
-        if (isset($update['$set'])) {
-
-            if (array_key_exists("_id", (array) $update['$set'])) {
-                unset($update['$set']['_id']);
-            }
-            $update['$set']["_needRecalculateSearch"] = true;
-            $update['$set'] = $this->normalize($update['$set']);
-        }
-
-        if (isset($update['$unset'])) {
-            if (array_key_exists("_id", (array) $update['$unset'])) {
-                unset($update['$unset']['_id']);
-            }
-            $update['$set']["_needRecalculateSearch"] = true;
-            // $update['$unset'] is already set above
-        }
-
-        $result =  mDB::collection($this->collection)->updateMany($filter, $update, [
-            ...$options,
-        ]);
-
-
-        if ($activeEventLogic) {
-
-
-            $newDocs = mDB::collection($this->collection)
-                ->find($filter, ['projection' => array_fill_keys(array_keys($setFields), 1) + ['_id' => 1]])
-                ->toArray();
-
-
-            $allNewDocs = mDB::collection($this->collection)
-                ->find($filter)
-                ->toArray();
-
-
-            $ids = [];
-
-            foreach ($newDocs as $doc) {
-                $ids[] =  $doc['_id'];
-            }
-
-
-            if (count($ids) > 0) {
-                Response::startTraceTiming("callUpdateEvent" . $this->collection);
-                ShmInit::$disableUpdateEvents = true;
-                $this->callUpdateEvent(
-                    array_map(function ($e) {
-
-                        return [
-                            '_id' => $e['_id'],
-                            '_value' => $e
-                        ];
-                    }, $newDocs),
-                    array_map(function ($e) {
-
-                        return [
-                            '_id' => $e['_id'],
-                            '_value' => $e
-                        ];
-                    }, $oldDocs),
-                    $allNewDocs
-                );
-                ShmInit::$disableUpdateEvents = false;
-                Response::endTraceTiming("callUpdateEvent" . $this->collection);
-            }
-        }
-
-
-        return   $result;
-    }
 
     public function updateMany(array $filter = [], array $update = [], array $options = []): \MongoDB\UpdateResult
     {
@@ -1975,62 +1792,6 @@ class StructureType extends BaseType
     }
 
 
-    public function insertOneWithEvents($document, array $options = []): \MongoDB\InsertOneResult
-    {
-
-
-        $activeEventLogic =  !ShmInit::$disableInsertEvents  && $this->haveInsertEvent();
-
-
-
-        $document = [
-            ...$document,
-            ...$this->getInsertValues()
-        ];
-
-
-        $document = $this->normalize($document, true);
-
-
-        if ($this->haveBeforeInsertEvent()) {
-            ShmInit::$disableInsertEvents = true;
-            $document = $this->callBeforeInsertEvent($document);
-            ShmInit::$disableInsertEvents = false;
-
-            $document = $this->normalize($document, true);
-        }
-
-
-
-        $result = mDB::collection($this->collection)->insertOne($document, $options);
-
-
-
-        if ($activeEventLogic) {
-
-            $newDoc = mDB::collection($this->collection)
-                ->findOne([
-                    "_id" => $result->getInsertedId()
-                ]);
-
-
-
-            Response::startTraceTiming("callInsertEvent-" . $this->collection);
-            ShmInit::$disableInsertEvents = true;
-            $this->callInsertEvent([[
-                '_id' => $newDoc['_id'],
-                '_value' => $newDoc
-            ]], [$newDoc]);
-            ShmInit::$disableInsertEvents = false;
-            Response::endTraceTiming("callInsertEvent-" . $this->collection);
-        }
-
-
-
-
-
-        return  $result;
-    }
 
 
     public function insertOne($document, array $options = []): \MongoDB\InsertOneResult
@@ -2051,63 +1812,6 @@ class StructureType extends BaseType
     }
 
 
-    public function insertManyWithEvents(array $documents, array $options = []): \MongoDB\InsertManyResult
-    {
-        $activeEventLogic =  !ShmInit::$disableInsertEvents  && $this->haveInsertEvent();
-
-        foreach ($documents as &$document) {
-            $document = [
-                ...$document,
-                ...$this->getInsertValues()
-            ];
-        }
-
-        $documents = Shm::arrayOf($this)->normalize($documents, true);
-
-
-
-        if ($this->haveBeforeInsertEvent()) {
-            ShmInit::$disableInsertEvents = true;
-
-            foreach ($documents as &$document) {
-                $document = $this->callBeforeInsertEvent($document);
-            }
-
-            ShmInit::$disableInsertEvents = false;
-
-            $documents = Shm::arrayOf($this)->normalize($documents, true);
-        }
-
-        $result = mDB::collection($this->collection)->insertMany($documents, $options);
-
-
-
-        if ($activeEventLogic) {
-
-            $newDocs = mDB::collection($this->collection)
-                ->find([
-                    "_id" => ['$in' => $result->getInsertedIds()]
-                ])->toArray();
-
-
-            Response::startTraceTiming("callInsertEvent-" . $this->collection);
-            ShmInit::$disableInsertEvents = true;
-            $this->callInsertEvent(array_map(function ($e) {
-
-                return [
-                    '_id' => $e['_id'],
-                    '_value' => $e
-                ];
-            }, $newDocs), $newDocs);
-            ShmInit::$disableInsertEvents = false;
-            Response::endTraceTiming("callInsertEvent-" . $this->collection);
-        }
-
-
-
-
-        return $result;
-    }
 
 
 

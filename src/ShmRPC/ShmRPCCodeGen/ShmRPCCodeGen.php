@@ -38,33 +38,6 @@ class ShmRPCCodeGen
         $class = new \Nette\PhpGenerator\ClassType($classFullName);
 
 
-        /*
-        
-        
-        //Добавляем метод для запроса схемы
-
-        private static $endpoint = 'http://localhost:8888/admin';
-
-
-    private static function request($method, $params)
-    {
-
-        $client = new Client();
-        $headers = [
-            'Content-Type' => 'application/json'
-        ];
-
-        $body = json_encode([
-            'method' => $method,
-            'params' => $params,
-        ]);
-
-        $request = new Request('POST', self::$endpoint, $headers, $body);
-        $res = $client->sendAsync($request)->wait();
-        $responseBody = $res->getBody();
-        $response = json_decode($responseBody, true);
-        return $response;
-    }*/
 
 
         $class->addProperty('endpoint')

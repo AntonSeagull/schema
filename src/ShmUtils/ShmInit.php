@@ -32,11 +32,28 @@ class ShmInit
 
     public static $lang = 'en';
 
+
+    private static $_errorHandler = null;
+
+    /**
+     * Устанавливает обработчик ошибок.
+     * @param callable $errorHandler Функция обработчика ошибок, которая принимает исключение.
+     * @example
+     * ```php
+     * ShmInit::onError(function (Throwable $exception) {
+     *     // Обработка исключения
+     * });
+     * ```
+     * @return void
+     */
+    public static function onError(callable $errorHandler): void
+    {
+        self::$_errorHandler = $errorHandler;
+    }
+
+
     public static function init(string $bootstrapAppDir): void
     {
-
-
-
         self::$shmVersionHash =   \Composer\InstalledVersions::getReference("shm/schema") ?? "none";
 
 
@@ -213,30 +230,16 @@ class ShmInit
             $whoops->pushHandler(new \Whoops\Handler\PrettyPageHandler);
         } else {
             $whoops->pushHandler(function (Throwable $exception, $inspector, $run) {
+
+                if (self::$_errorHandler) {
+                    call_user_func(self::$_errorHandler, $exception);
+                }
+
                 \Sentry\captureException($exception);
                 return \Whoops\Handler\Handler::DONE;
             });
         }
 
         $whoops->register();
-
-
-        /*
-
-        $whoops = new \Whoops\Run;
-        if (!isset($_GET['debug']) && ($_SERVER['SERVER_NAME'] ?? null) !== "localhost") {
-            $whoops->pushHandler(function (Throwable $exception, $inspector, $run) {
-
-                \Sentry\captureException($exception);
-
-
-                return \Whoops\Handler\Handler::DONE;
-            });
-        } else {
-            $whoops->pushHandler(new \Whoops\Handler\PrettyPageHandler);
-            $whoops->register();
-        }
-
-        $whoops->register();*/
     }
 }

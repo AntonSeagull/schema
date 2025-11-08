@@ -12,6 +12,7 @@ use Shm\ShmUtils\Inflect;
 use Shm\ShmUtils\Response;
 use Shm\ShmTypes\StructureType;
 use Shm\ShmUtils\Config;
+use Shm\ShmUtils\ShmInit;
 
 /**
  * Base authentication class
@@ -141,6 +142,11 @@ abstract class ShmAuthBase
         $deviceInfo = $args['deviceInfo'] ?? null;
         if ($deviceInfo) {
 
+
+            if (isset($deviceInfo['_id'])) {
+                unset($deviceInfo['_id']);
+            }
+
             try {
 
                 mDB::_collection("devices")->updateOne(
@@ -161,7 +167,10 @@ abstract class ShmAuthBase
                     ]
                 );
             } catch (\Exception $e) {
-                \Sentry\captureException($e);
+
+                ShmInit::sendOnError($e);
+
+
                 $deviceInfo = null;
             }
         }
@@ -248,7 +257,9 @@ abstract class ShmAuthBase
             );
             $mailer->send($mail);
         } catch (\Exception $e) {
-            \Sentry\captureException($e);
+            ShmInit::sendOnError($e);
+
+
             return;
         }
     }
@@ -405,6 +416,8 @@ abstract class ShmAuthBase
                 Shm::error($this->errorAccountNotFound);
             }
 
+
+
             $set  = [
 
                 $findField => $value,
@@ -416,6 +429,7 @@ abstract class ShmAuthBase
                 ...$set
             ];
         }
+
 
 
         $insert = $regStructure->insertOne($set);

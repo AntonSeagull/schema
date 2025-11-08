@@ -65,7 +65,7 @@ class Cmd
                     fwrite(STDERR, $message . PHP_EOL);
                     // Отправляем ошибку как исключение в Sentry
                     $exception = new \ErrorException($errstr, 0, $errno, $errfile, $errline);
-                    \Sentry\captureException($exception);
+                    ShmInit::sendOnError($exception);
                 });
 
                 set_exception_handler(function ($exception): void {
@@ -96,8 +96,7 @@ class Cmd
                         ));
                     }
 
-                    // Отправляем в Sentry
-                    \Sentry\captureException($exception);
+                    ShmInit::sendOnError($exception);
                 });
 
                 register_shutdown_function(function (): void {

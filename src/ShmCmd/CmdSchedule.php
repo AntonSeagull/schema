@@ -173,7 +173,8 @@ class CmdSchedule
 
                     if (!function_exists('exec')) {
                         $error = new \RuntimeException("Function exec() is disabled");
-                        \Sentry\captureException($error);
+                        ShmInit::sendOnError($error);
+
                         return;
                     }
                     exec($command, $output, $return_var);
@@ -181,7 +182,7 @@ class CmdSchedule
                     if ($return_var !== 0) {
                         $message = "Command '{$task['command']}' failed with exit code {$return_var}";
                         $error = new \RuntimeException($message);
-                        \Sentry\captureException($error);
+                        ShmInit::sendOnError($error);
                     }
                 }
 
@@ -189,7 +190,7 @@ class CmdSchedule
                     try {
                         $task['function']();
                     } catch (Exception $exception) {
-                        \Sentry\captureException($exception);
+                        ShmInit::sendOnError($error);
                     }
                 }
             }

@@ -77,6 +77,19 @@ class Collection
         return true;
     }
 
+
+    public static function authCurrent(): object | null
+    {
+        $_this = new static();
+
+        if (Auth::getAuthCollection() == $_this->collection) {
+
+            return Auth::getAuthOwnerAllField();
+        }
+
+        return null;
+    }
+
     public static function authenticateOrThrow()
     {
         $_this = new static();
@@ -225,6 +238,15 @@ class Collection
             ->collection($this->collection);
 
         $schema->addUUIDInArray();
+
+
+
+        if (isset($schema->items['_id'])) {
+
+            if (!($schema->items['_id'] instanceof IDType)) {
+                throw new Error("Field _id in collection " . $this->collection . " must be of type IDType");
+            }
+        }
 
 
         $schema->addFieldIfNotExists("_id", Shm::ID()->editable(false));

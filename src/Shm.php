@@ -2,6 +2,7 @@
 
 namespace Shm;
 
+use Lumus\Engine\Cmd;
 use Shm\ShmAdmin\Types\VisualGroupType;
 use Shm\ShmTypes\StringType;
 use Shm\ShmTypes\ArrayOfType;
@@ -369,6 +370,13 @@ class Shm
 
     public static function error($message)
     {
+
+        if (Cmd::cli()) {
+
+            echo '🛑 ' . $message . "\n";
+            exit;
+        }
+
         Response::validation($message);
     }
 

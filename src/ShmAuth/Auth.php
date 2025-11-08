@@ -12,110 +12,7 @@ class Auth
 {
 
 
-    public static function accountSessionRevoke()
-    {
 
-        //Если запрос пришел из CLI, то не меняем таймзону
-        if (Cmd::cli()) {
-            return;
-        }
-
-
-
-        $requestMethod = $_SERVER['REQUEST_METHOD'] ?? '';
-
-
-        $requestUri = is_string($_SERVER['REQUEST_URI']) ? parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) : '';
-        $requestUri = rtrim($requestUri, '/');
-
-
-        if ($requestMethod === 'GET' && preg_match('#^/account/session/revoke/([a-f0-9]{128})$#', $requestUri, $matches)) {
-
-            $token = $matches[1];
-
-            mDB::_collection(self::$token_collection)->deleteOne([
-                'cancelKey' => $token
-            ]);
-
-            Response::html('<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Session Revoked</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    body {
-      background: #f5f5f7;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
-      color: #111111;
-      margin: 0;
-      padding: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-    }
-    .card {
-      background: #ffffff;
-      border-radius: 16px;
-      padding: 40px 32px;
-      max-width: 420px;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-      text-align: center;
-    }
-    h1 {
-      font-size: 22px;
-      font-weight: 700;
-      margin: 0 0 12px;
-    }
-    p {
-      font-size: 16px;
-      line-height: 1.5;
-      margin: 0 0 20px;
-    }
-    .button {
-      display: inline-block;
-      padding: 12px 20px;
-      font-size: 15px;
-      font-weight: 600;
-      color: #fff;
-      background: #0071e3;
-      border-radius: 8px;
-      text-decoration: none;
-      margin-top: 12px;
-    }
-    .ru {
-      display: block;
-      font-size: 14px;
-      color: #6e6e73;
-      margin-top: 4px;
-    }
-    @media (prefers-color-scheme: dark) {
-      body { background: #000; color: #fff; }
-      .card { background: #1c1c1e; box-shadow: none; }
-      .ru { color: #a1a1a6; }
-    }
-  </style>
-</head>
-<body>
-  <div class="card">
-    <h1>Session revoked</h1>
-    <span class="ru">Сессия сброшена</span>
-    <p>
-      The suspicious login session has been successfully revoked.  
-      <span class="ru">Подозрительная сессия входа была успешно завершена.</span>
-    </p>
-    <p>
-      For your security, please reset your password.  
-      <span class="ru">Для вашей безопасности, пожалуйста, смените пароль.</span>
-    </p>
-  
-  </div>
-</body>
-</html>');
-            exit;
-        }
-    }
     private static function  getRequestKey(array $keys): ?string
     {
         foreach ($keys as $key) {
@@ -434,8 +331,9 @@ class Auth
 
 
 
-
-
+    /**
+     * @deprecated use AuthApiKey instead
+     */
     public static function genApiKey(string $title, string $collection,  $_id): string
     {
 
@@ -454,6 +352,9 @@ class Auth
     }
 
 
+    /**
+     * @deprecated use AuthToken instead
+     */
     public static function genToken(StructureType $structure,  $_id, $cancelKey = null): string
     {
 
@@ -473,6 +374,9 @@ class Auth
         return $token;
     }
 
+    /**
+     * @deprecated use AuthPassword instead
+     */
     public static function getPassword($password)
     {
         $hash = hash("sha512", $password);
@@ -480,6 +384,9 @@ class Auth
         return $hash;
     }
 
+    /**
+     * @deprecated use AuthPassword instead
+     */
     public static function isPasswordHash($password): bool
     {
         // Проверяем, является ли строка хешем SHA-512

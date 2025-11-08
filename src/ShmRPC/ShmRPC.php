@@ -20,6 +20,7 @@ use Shm\ShmUtils\ShmUtils;
 use Shm\ShmBlueprints\FileUpload\ShmFileUpload;
 use Shm\ShmBlueprints\Geo\ShmIPGeolocation;
 use Shm\ShmBlueprints\Geocoding\ShmGeocoding;
+use Shm\ShmRPC\ShmRPCCodeGen\ShmRPCCodeGenPhp;
 use Shm\ShmRPC\ShmRPCUtils\ShmRPCContext;
 use Shm\ShmRPC\ShmRPCUtils\ShmRPCLazy;
 use Shm\ShmTypes\BaseType;
@@ -253,7 +254,7 @@ class ShmRPC
 
 
             if (isset($_GET['php'])) {
-                ShmRPCCodeGen::php($schemaParams);
+                ShmRPCCodeGenPhp::php($schemaParams);
             } else {
 
                 ShmRPCCodeGen::html($schemaParams, isset($_GET['json']));

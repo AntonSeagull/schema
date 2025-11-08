@@ -33,7 +33,11 @@ class ShmFileUploadUtils
         try {
             $result = move_uploaded_file($file['tmp_name'], $destinationPath);
         } catch (Exception $e) {
-            \Sentry\captureException($e);
+
+            ShmInit::sendOnError($e);
+
+
+
             Response::validation("Ошибка при загрузке файла");
         }
         if (!$result) {

@@ -18,10 +18,10 @@ class ShmJWT
 
     private static $algo = 'RS256';
 
-    public static function encode(array $customClaims = [], int $ttl): string
+    public static function encode(array $customClaims = [], ?int $ttl = null): string
     {
 
-        $payload = array_merge($customClaims, self::getDefaultClaims($ttl));
+        $payload = array_merge($customClaims, self::getDefaultClaims($ttl ?? 60));
 
         return JWT::encode($payload, self::getPrivateKey(), self::$algo);
     }

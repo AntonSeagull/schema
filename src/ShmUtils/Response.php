@@ -128,6 +128,9 @@ class Response
         if ($slowRequestTime) {
             if ($executionTime &&  $executionTime > $slowRequestTime) {
 
+                $exception =  new \Exception('Slow request ' . ($_SERVER['REQUEST_URI'] ?? '') . ' method: ' . self::$method . ' executionTime: ' . $executionTime);
+                ShmInit::sendOnError($exception);
+
                 mDB::collection("_rpc_slow_requests")->insertOne([
                     'url' => $_SERVER['REQUEST_URI'] ?? '',
                     'method' => self::$method,

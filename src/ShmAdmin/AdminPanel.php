@@ -9,6 +9,8 @@ use Shm\ShmDB\mDB;
 use Shm\Shm;
 use Shm\ShmAdmin\SchemaCollections\ShmExportCollection;
 use Shm\ShmAdmin\SchemaCollections\SubAccountsSchema;
+use Shm\ShmAdmin\ShmAdminRPC\RPCCompositeTypes;
+use Shm\ShmAdmin\ShmAdminRPC\ShmAdminRPCCompositeTypes;
 use Shm\ShmAdmin\Types\AdminType;
 use Shm\ShmAdmin\Types\GroupType;
 use Shm\ShmAdmin\Utils\DescriptionsUtils;
@@ -253,7 +255,7 @@ class AdminPanel
         );
     }
 
-    private static function baseStructure(): StructureType
+    public static function baseStructure(): StructureType
     {
         $type = Shm::structure([
             "collection" => Shm::string(),
@@ -1905,7 +1907,7 @@ class AdminPanel
 
 
 
-            //   'addManualTag' => [],
+
 
 
             'update' => [

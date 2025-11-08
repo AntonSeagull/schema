@@ -383,6 +383,15 @@ class CollectionEvents
     }
 
 
+    private function removeIdField($data)
+    {
+        if (isset($data['$set']['_id'])) {
+            unset($data['$set']['_id']);
+        }
+        return $data;
+    }
+
+
 
     /**
      * Вставить один документ в коллекцию
@@ -394,6 +403,8 @@ class CollectionEvents
     public function insertOne($document, array $options = []): \MongoDB\InsertOneResult
     {
 
+
+        $document = $this->removeIdField($document);
 
 
 
@@ -440,8 +451,10 @@ class CollectionEvents
 
 
 
-
         foreach ($documents as &$document) {
+
+            $document = $this->removeIdField($document);
+
             if (!isset($document['created_at']) || !$document['created_at']) {
                 $document['created_at'] = time();
             }

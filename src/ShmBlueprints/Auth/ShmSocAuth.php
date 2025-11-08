@@ -7,7 +7,7 @@ use Shm\Shm;
 use Shm\ShmAuth\Auth;
 use Shm\ShmTypes\StructureType;
 use Shm\ShmUtils\Response;
-
+use Shm\ShmUtils\ShmInit;
 
 class ShmSocAuth extends ShmAuthBase
 {
@@ -201,7 +201,9 @@ class ShmSocAuth extends ShmAuthBase
                                     ]
                                 );
                             } catch (\Exception $e) {
-                                \Sentry\captureException($e);
+                                ShmInit::sendOnError($e);
+
+
                                 $deviceInfo = null;
                             }
                         }

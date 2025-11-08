@@ -99,7 +99,7 @@ class ShmEmailAuth extends ShmAuthBase
                             ]
                         );
 
-                        return $this->authToken($userStructure, $user['_id'], $args, false);
+                        return $this->authToken($userStructure, $user['_id'], $args);
                     } else {
 
 
@@ -227,7 +227,7 @@ class ShmEmailAuth extends ShmAuthBase
                         [$user, $userStructure] = $authUserAndStructureLogin;
                     }
 
-                    return $this->authToken($userStructure, $user['_id'], $args, false);
+                    return $this->authToken($userStructure, $user['_id'], $args);
                 }
             }
         ];

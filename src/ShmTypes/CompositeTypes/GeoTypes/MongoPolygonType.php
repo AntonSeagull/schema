@@ -30,6 +30,49 @@ class MongoPolygonType extends StructureType
     }
 
 
+    public function normalize(mixed $value, $addDefaultValues = false, ?string $processId = null): mixed
+    {
+        if ($value === null) {
+            return null;
+        }
+
+
+        if (!$value['coordinates'] || count($value['coordinates']) === 0) {
+            return null;
+        }
+
+        $value = parent::normalize($value, $addDefaultValues, $processId);
+        $coordinates = $value['coordinates'];
+
+
+
+        $validCoordinates = [];
+        foreach ($coordinates as $coordinate) {
+
+
+
+
+
+            $first = $coordinate[0];
+            $last = $coordinate[count($coordinate) - 1];
+
+            if ($first !== $last) {
+                $coordinate[] = $first;
+            }
+
+
+            $validCoordinates[] = $coordinate;
+        }
+
+
+
+        return [
+            'coordinates' => $validCoordinates,
+            'type' => 'Polygon'
+        ];
+    }
+
+
 
 
     public function baseTypeName()

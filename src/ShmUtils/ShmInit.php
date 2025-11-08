@@ -3,6 +3,7 @@
 namespace Shm\ShmUtils;
 
 use Shm\ShmAuth\Auth;
+use Shm\ShmAuth\AuthSessionRevoke;
 use Shm\ShmCmd\Cmd;
 use Shm\ShmCmd\CmdSchedule;
 
@@ -103,7 +104,7 @@ class ShmInit
         self::updateTimezone();
         self::updateLang();
 
-        Auth::accountSessionRevoke();
+        AuthSessionRevoke::init();
 
         Doctor::cmdInit();
         SearchStringUpdate::cmdInit();
@@ -219,6 +220,17 @@ class ShmInit
 
 
 
+    public static function sendOnError(Throwable $exception): void
+    {
+
+        \Sentry\captureException($exception);
+
+        if (self::$_errorHandler) {
+            call_user_func(self::$_errorHandler, $exception);
+        }
+    }
+
+
     private static function errorHandler()
     {
 
@@ -231,11 +243,11 @@ class ShmInit
         } else {
             $whoops->pushHandler(function (Throwable $exception, $inspector, $run) {
 
-                if (self::$_errorHandler) {
-                    call_user_func(self::$_errorHandler, $exception);
-                }
 
-                \Sentry\captureException($exception);
+                self::sendOnError($exception);
+
+
+
                 return \Whoops\Handler\Handler::DONE;
             });
         }

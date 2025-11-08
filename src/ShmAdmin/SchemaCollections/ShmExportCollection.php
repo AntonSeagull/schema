@@ -38,7 +38,6 @@ class ShmExportCollection extends Collection
             'timezone' => Shm::string(),
             'title' => Shm::string(),
             'currency' => Shm::string(),
-            'fileName' => Shm::string(),
             'collection' => Shm::string(),
             'pipeline' => Shm::mixed(),
             'progress' => Shm::number()->default(0),

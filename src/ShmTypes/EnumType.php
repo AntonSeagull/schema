@@ -371,15 +371,7 @@ class EnumType extends BaseType
         }
         $TSType = new TSType($this->getEnumTypeName(),  implode('|', $tsTypeValue), false);
 
-        /*
-        $tsTypeValue = [];
 
-        foreach ($this->values as $key => $value) {
-            $tsTypeValue[] = ShmUtils::upperCase($key) . ' = "' . $key . '"';
-        }
-        $TSType = new TSType($this->getEnumTypeName(), '{\n' . implode(',\n', $tsTypeValue) . '\n}', true);
-
-*/
 
         return $TSType;
     }

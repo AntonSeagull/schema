@@ -2041,7 +2041,7 @@ class StructureType extends BaseType
             try {
                 $handler($_id);
             } catch (\Throwable $e) {
-                \Sentry\captureException($e);
+                ShmInit::sendOnError($e);
             }
         }
     }

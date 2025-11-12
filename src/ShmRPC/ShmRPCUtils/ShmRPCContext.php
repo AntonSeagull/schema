@@ -179,14 +179,12 @@ class ShmRPCContext
 
 
 
-
         $result = $this->type->toOutput($result);
 
 
 
 
         $result = $this->type->removeOtherItems($result);
-
 
 
 
@@ -216,6 +214,9 @@ class ShmRPCContext
                 Response::endTraceTiming("externalData");
             }
         }
+
+
+
 
 
 

@@ -204,6 +204,7 @@ class ArrayOfType extends BaseType
 
 
 
+
         $structureType = $this->itemType;
 
         $structureType->updateKeys();
@@ -331,9 +332,9 @@ class ArrayOfType extends BaseType
 
                 $many = $pathItem['many'] ?? false;
 
-                foreach ($data as &$item) {
+                foreach ($data as &$dataItem) {
 
-                    DeepAccess::applyRecursive($item, $pathItem['path'], function ($node) use ($many, $documentsById) {
+                    DeepAccess::applyRecursive($dataItem, $pathItem['path'], function ($node) use ($many, $documentsById) {
 
                         if ($many) {
 

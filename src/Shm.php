@@ -4,6 +4,7 @@ namespace Shm;
 
 use Lumus\Engine\Cmd;
 use Shm\ShmAdmin\Types\VisualGroupType;
+use Shm\ShmTypes\DashboardType;
 use Shm\ShmTypes\StringType;
 use Shm\ShmTypes\ArrayOfType;
 use Shm\ShmTypes\IntType;
@@ -383,5 +384,11 @@ class Shm
     public static function unauthorizedError()
     {
         Response::unauthorized();
+    }
+
+
+    public static function dashboard(array $fields = []): DashboardType
+    {
+        return new DashboardType($fields);
     }
 }

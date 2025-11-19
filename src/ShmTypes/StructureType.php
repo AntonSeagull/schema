@@ -990,6 +990,36 @@ class StructureType extends BaseType
         return $this->baseTypeName() . 'FilterInput';
     }
 
+
+    public function deepFindItemByKey(string $key): ?StructureType
+    {
+
+
+        foreach ($this->items as $item) {
+
+
+            if ($item->key === $key) {
+                return $item;
+            }
+
+
+            if ($item instanceof StructureType) {
+
+                if ($item instanceof StructureType) {
+                    $val =  $item->deepFindItemByKey($key);
+                    if ($val) {
+                        return $val;
+                    }
+                }
+            }
+        }
+
+
+
+        return null;
+    }
+
+
     public function findItemByCollection(string $collection): ?StructureType
     {
 

@@ -19,11 +19,13 @@ use Shm\ShmAuth\Auth;
 use Shm\ShmRPC\ShmRPC;
 use Shm\ShmRPC\ShmRPCClient\ShmRPCClient;
 use Shm\ShmSupport\ShmSupport;
+use Shm\ShmTypes\DashboardType;
 use Shm\ShmTypes\StructureType;
 use Shm\ShmTypes\SupportTypes\StageType;
 use Shm\ShmUtils\Config;
 use Shm\ShmUtils\Inflect;
 use Shm\ShmUtils\MaterialIcons;
+use Shm\ShmUtils\RedisCache;
 use Shm\ShmUtils\Response;
 use Shm\ShmUtils\ShmInit;
 
@@ -305,7 +307,10 @@ class AdminPanel
                 "*" => Shm::string()
             ]),
 
+            'haveCalculateFunction' => Shm::boolean(),
 
+
+            'dashboardBlockType' => Shm::enum(['card', 'lineChart', 'pieChart', 'barChart']),
 
 
             "apikey" => Shm::bool(),
@@ -841,6 +846,59 @@ class AdminPanel
 
             ],
 
+            'dashboard' => [
+                'type' => Shm::arrayOf(Shm::structure([
+                    'label' => Shm::mixed(),
+                    'value' => Shm::mixed(),
+                ])),
+                'args' => [
+                    'dashboardKey' => Shm::nonNull(Shm::string()),
+                    'dashboardField' => Shm::nonNull(Shm::string()),
+                ],
+                'resolve' => function ($root, $args) {
+
+                    Auth::authenticateOrThrow(...self::$authStructures);
+
+                    $dashboardKey = $args['dashboardKey'];
+                    $dashboardField = $args['dashboardField'];
+
+                    $structure = self::fullSchema()->deepFindItemByKey($dashboardKey);
+
+
+                    if (!$structure) {
+                        Response::validation("Данные не доступны для просмотра");
+                    }
+
+                    $dashboardItem = $structure->findItemByKey($dashboardField);
+
+                    if (!$dashboardItem || $dashboardItem->type != 'dashboard') {
+                        Response::validation("Данные не доступны для просмотра");
+                    }
+
+                    if ($dashboardItem instanceof DashboardType) {
+
+
+
+                        $cacheKey = md5($dashboardKey . ' ' . $dashboardField . ' ' . Auth::getAuthOwner() . ' ' . Auth::getSubAccountID());
+
+                        $cache = RedisCache::get($cacheKey);
+                        if ($cache) {
+                            return json_decode($cache, true);
+                        }
+
+
+
+
+                        $result = $dashboardItem->executeCalculateFunction();
+                        if ($result) {
+                            RedisCache::set($cacheKey, json_encode($result), 60);
+                        }
+                        return $result;
+                    } else {
+                        Response::validation("Данные не доступны для просмотра");
+                    }
+                }
+            ],
 
 
             'geocode' =>  [

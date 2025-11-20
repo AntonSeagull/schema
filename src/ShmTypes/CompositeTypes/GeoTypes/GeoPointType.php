@@ -34,6 +34,7 @@ class GeoPointType extends StructureType
                     'entrance' => Shm::string(),       // описание входа ("через арку", "с торца здания" или подъезд №3)
                     'apartment' => Shm::string(),      // квартира / офис / помещение
                     'comment' => Shm::string(),        // произвольное примечание
+                    'phone' => Shm::phone(),           // контактный телефон
                 ]),
                 'lat' => Shm::float(),
                 'lng' => Shm::float(),

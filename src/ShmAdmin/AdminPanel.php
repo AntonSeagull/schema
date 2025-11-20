@@ -903,17 +903,7 @@ class AdminPanel
 
             'geocode' =>  [
 
-                "type" => Shm::arrayOf(Shm::structure([
-                    'id' => Shm::string(),
-                    'name' => Shm::string(),
-                    'description' => Shm::string(),
-                    'coordinates' => Shm::structure([
-                        'latitude' => Shm::float(),
-                        'longitude' => Shm::float(),
-
-                    ]),
-
-                ])),
+                "type" => Shm::arrayOf(Shm::geoPoint()),
                 'args' => [
                     'byCoords' => Shm::structure([
                         'latitude' => Shm::float(),
@@ -946,20 +936,20 @@ class AdminPanel
                         'kind' => "house"
                     ];
 
-                    $geocodeSeted = false;
+                    $geocodeSet = false;
 
                     if ($byCoordsLat && $byCoordsLon) {
                         $queryParams['geocode'] = $byCoordsLon . ',' . $byCoordsLat;
-                        $geocodeSeted = true;
+                        $geocodeSet = true;
                     } elseif ($byString) {
                         $queryParams['geocode'] = $byString;
-                        $geocodeSeted = true;
+                        $geocodeSet = true;
                         if ($byStringLat && $byStringLon) {
                             $queryParams['ll'] = $byStringLon . ',' . $byStringLat;
                         }
                     }
 
-                    if (!$geocodeSeted) return [];
+                    if (!$geocodeSet) return [];
 
                     $client = new Client();
                     $request = new Request('GET', 'https://geocode-maps.yandex.ru/1.x/?' . http_build_query($queryParams));
@@ -973,21 +963,34 @@ class AdminPanel
                     foreach ($featureMember as $val) {
 
 
-
-
                         $cord = explode(' ', $val['GeoObject']['Point']['pos']);
 
                         $name = $val['GeoObject']['name'] ?? "";
                         $description = $val['GeoObject']['description'] ?? "";
                         if ($name) {
                             $result[] = [
-                                'id' => md5($name . $description . $cord[0] . $cord[1]),
+                                'uuid' => md5($name . $description . $cord[0] . $cord[1]),
                                 'name' => $name,
-                                'description' => $description,
-                                'coordinates' => [
-                                    "longitude" =>  +$cord[0],
-                                    "latitude" =>   +$cord[1]
+                                'address' => $name,
+                                'context' => $description,
+                                'lat' => +$cord[1],
+                                'lng' => +$cord[0],
+                                'meta' => [
+                                    'label' => null,
+                                    'floor' => null,
+                                    'entrance' => null,
+                                    'apartment' => null,
+                                    'comment' => null,
+                                    'phone' => null,
                                 ],
+                                'location' => [
+                                    'type' => 'Point',
+                                    'coordinates' => [
+                                        +$cord[0],
+                                        +$cord[1]
+                                    ]
+                                ],
+
                             ];
                         }
                     }

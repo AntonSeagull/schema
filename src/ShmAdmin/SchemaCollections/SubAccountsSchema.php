@@ -17,6 +17,7 @@ class SubAccountsSchema
 
 
 
+
     public static function updateSchema(StructureType $structure): StructureType
     {
 

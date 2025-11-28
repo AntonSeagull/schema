@@ -289,7 +289,19 @@ class Auth
         return self::$subAccount ? self::$subAccount->_id : null;
     }
 
+    public static function getAuthID(): mixed
+    {
+        if (!self::$initialized) {
+            self::init();
+        }
 
+
+        return self::$authOwner ?? null;
+    }
+
+    /**
+     * @deprecated use getAuthID instead
+     */
     public static function getAuthOwner(): mixed
     {
         if (!self::$initialized) {

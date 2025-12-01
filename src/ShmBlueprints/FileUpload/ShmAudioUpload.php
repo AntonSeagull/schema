@@ -53,6 +53,13 @@ class ShmAudioUpload
                 $sourceFile = $path . '/' . $filename;
                 $convertedMp3 = $path . '/' . $name . '.mp3';
 
+                // Check if source file is already MP3 - if so, use temporary file to avoid in-place editing
+                $sourceExtension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+                $tempOutput = $convertedMp3;
+                if ($sourceExtension === 'mp3' && $sourceFile === $convertedMp3) {
+                    $tempOutput = $path . '/' . $name . '_temp.mp3';
+                }
+
                 // Конвертация
                 $ffmpeg = FFMpeg::create();
                 $audio = $ffmpeg->open($sourceFile);
@@ -61,7 +68,13 @@ class ShmAudioUpload
                 $format->setAudioKiloBitrate(32);
                 $format->setAudioChannels(1);
 
-                $audio->save($format, $convertedMp3);
+                $audio->save($format, $tempOutput);
+
+                // If we used a temporary file, replace the original
+                if ($tempOutput !== $convertedMp3) {
+                    unlink($sourceFile);
+                    rename($tempOutput, $convertedMp3);
+                }
 
                 // Получение длительности через ffprobe
                 $ffprobe = FFProbe::create();

@@ -99,8 +99,14 @@ class ShmAudioUpload
                     'created_at' => time(),
                 ];
 
-                unlink($sourceFile);
-                unlink($convertedMp3);
+                // Clean up files - only delete sourceFile if it's different from convertedMp3
+                // (if we used temp file, sourceFile was already deleted)
+                if ($sourceFile !== $convertedMp3 && file_exists($sourceFile)) {
+                    unlink($sourceFile);
+                }
+                if (file_exists($convertedMp3)) {
+                    unlink($convertedMp3);
+                }
 
                 $file = mDB::collection("_files")->insertOne($fields);
                 $id = $file->getInsertedId();

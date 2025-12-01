@@ -48,8 +48,18 @@ class Cmd
         $this->handler = $handler;
 
         if (Cmd::cli()) {
+
+
             $argv = $_SERVER['argv'];
             $command = $argv[1] ?? null;
+
+
+            if ($command == "cmdList") {
+                echo $command . ' ' . $this->cmd . PHP_EOL;
+            }
+
+
+
 
             if ($command === $this->cmd) {
 

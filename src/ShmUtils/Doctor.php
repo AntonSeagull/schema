@@ -11,6 +11,8 @@ use Shm\ShmTypes\EnumType;
 use Shm\ShmTypes\StructureType;
 use PhpSchool\CliMenu\Builder\CliMenuBuilder;
 use Nette\PhpGenerator\Helpers;
+use Shm\ShmTypes\IDsType;
+use Shm\ShmTypes\IDType;
 
 class Doctor
 {
@@ -379,11 +381,33 @@ class Doctor
                 continue;
             }
 
+            $comment = (string) $item->title ?? $key;
+
+            if ($item instanceof IDsType) {
+                $comment = $comment . " (ObjectId[])";
+            } else if ($item instanceof IDType) {
+                $comment = $comment . " (ObjectId)";
+            }
+
+            if ($item instanceof StructureType) {
+                $comment = $comment . " (Structure)";
+            }
+            if ($item instanceof ArrayOfType) {
+                $comment = $comment . " (Array)";
+            }
+
+            if ($item instanceof EnumType) {
+                $comment = $comment . " (Enum)";
+            }
+
+
+
             $constName = strtoupper(str_replace('.', '__', self::toSnakeCase($prefix) . self::toSnakeCase($key)));
 
             try {
                 $class->addConstant($constName,  $prefix . $item->key)
-                    ->setVisibility('public');
+                    ->setVisibility('public')
+                    ->addComment($comment . ' полный пусть ключа');
             } catch (\Throwable $error) {
             }
 
@@ -400,7 +424,8 @@ class Doctor
 
                 try {
                     $class->addConstant($constNameOneKey,  $item->key)
-                        ->setVisibility('public');
+                        ->setVisibility('public')
+                        ->addComment($comment . ' ключ');
                 } catch (\Throwable $error) {
                 }
             }
@@ -417,14 +442,14 @@ class Doctor
                     $enumConstValue = $enumKey;
 
                     try {
-                        $class->addConstant($enumConstName, $enumConstValue)
+                        /*   $class->addConstant($enumConstName, $enumConstValue)
                             ->setVisibility('public')
                             ->setComment($enumConstName !== $enumConstSecondName ? "@deprecated Enum {$key}: {$enumValue}" : "Enum {$key}: {$enumValue}");
 
-                        if ($enumConstName !== $enumConstSecondName)
-                            $class->addConstant($enumConstSecondName, $enumConstValue)
-                                ->setVisibility('public')
-                                ->setComment("Enum {$key}: {$enumValue}");
+                        if ($enumConstName !== $enumConstSecondName)*/
+                        $class->addConstant($enumConstSecondName, $enumConstValue)
+                            ->setVisibility('public')
+                            ->setComment("Enum {$key}: {$enumValue}");
                     } catch (\Throwable $error) {
                         // логировать по желанию
                     }
@@ -436,14 +461,14 @@ class Doctor
                 $enumConstValue = array_keys($values);
 
                 try {
-                    $class->addConstant($enumConstName, $enumConstValue)
+                    /* $class->addConstant($enumConstName, $enumConstValue)
                         ->setVisibility('public')
                         ->setComment($enumConstName !== $enumConstSecondName ? "@deprecated Enum {$key}" : "Enum {$key}");
 
-                    if ($enumConstName !== $enumConstSecondName)
-                        $class->addConstant($enumConstSecondName, $enumConstValue)
-                            ->setVisibility('public')
-                            ->setComment("Enum {$key}");
+                    if ($enumConstName !== $enumConstSecondName)*/
+                    $class->addConstant($enumConstSecondName, $enumConstValue)
+                        ->setVisibility('public')
+                        ->setComment("Enum {$key}");
                 } catch (\Throwable $error) {
                     // логировать по желанию
                 }

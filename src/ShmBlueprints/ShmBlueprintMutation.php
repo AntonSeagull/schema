@@ -33,6 +33,12 @@ class ShmBlueprintMutation
 
     private mixed $beforeResolveFunction = null;
 
+    /**
+     * Колбэк, который вызывается после успешной вставки или обновления.
+     * Сигнатура: function ($id, array $args, self $mutation): void {}
+     */
+    private mixed $afterSaveCallback = null;
+
     public function __construct(StructureType $structure)
     {
         $this->structure = $structure;
@@ -65,6 +71,36 @@ class ShmBlueprintMutation
     {
         $this->beforeResolveFunction = $callback;
         return $this;
+    }
+
+
+    /**
+     * Устанавливает колбэк, который будет вызван:
+     *  - после вставки документа
+     *  - после обновления документа
+     *
+     * В колбэк передаётся:
+     *  - string|\MongoDB\BSON\ObjectId $_id — идентификатор документа
+     *  - array $args — аргументы мутации (оригинальные)
+     *  - self $mutation — текущий экземпляр мутации
+     */
+    public function afterSave(callable $callback): static
+    {
+        $this->afterSaveCallback = $callback;
+        return $this;
+    }
+
+    /**
+     * Вызвать afterSave-колбэк, если он задан.
+     *
+     * @param mixed $_id  Идентификатор документа
+     * @param array $args Аргументы мутации (оригинальные/до нормализации)
+     */
+    private function callAfterSave(mixed $_id, array $args): void
+    {
+        if ($this->afterSaveCallback !== null && $_id) {
+            ($this->afterSaveCallback)($_id, $args, $this);
+        }
     }
 
 
@@ -396,9 +432,13 @@ class ShmBlueprintMutation
 
         $insertValue = $argsStructure->items['fields']->normalize($args['fields'], true);
         $insert = $this->structure->insertOne($insertValue);
+        $insertedId = $insert->getInsertedId();
+
+        // Колбэк после вставки
+        $this->callAfterSave($insertedId, $args);
 
         return $this->structure->findOne([
-            "_id" => $insert->getInsertedId()
+            "_id" => $insertedId
         ]);
     }
 
@@ -453,6 +493,9 @@ class ShmBlueprintMutation
 
         // Handle update operations
         $this->performUpdateOperations($args, $originalArgs, $_id);
+
+        // Колбэк после обновления
+        $this->callAfterSave($_id, $originalArgs);
 
         // Return updated record
         return $this->structure->findOne(["_id" => mDB::id($_id)]);

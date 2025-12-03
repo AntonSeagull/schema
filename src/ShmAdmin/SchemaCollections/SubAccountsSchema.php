@@ -313,8 +313,13 @@ class SubAccountsSchema
 
         $schema->pipeline([
 
-            'owner' => Auth::getAuthOwner(),
-            'collection' => Auth::getAuthCollection(),
+            [
+                '$match' => [
+                    'owner' => Auth::getAuthOwner(),
+                    'collection' => Auth::getAuthCollection(),
+                ]
+            ],
+
         ]);
 
 

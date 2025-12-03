@@ -28,12 +28,17 @@ class Auth
             }
 
             $headers = getallheaders();
+
+
             if (isset($headers[$key])) {
                 return $headers[$key];
             } else if (isset($headers[strtolower($key)])) {
                 return $headers[strtolower($key)];
             } else if (isset($headers[strtoupper($key)])) {
                 return $headers[strtoupper($key)];
+            } else if (isset($headers[ucfirst($key)])) {
+                // Например, когда ключ передан как "Token" вместо "token"
+                return $headers[ucfirst($key)];
             }
         }
         return null;

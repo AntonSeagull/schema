@@ -311,6 +311,12 @@ class SubAccountsSchema
         ]);
 
 
+        $schema->pipeline([
+
+            'owner' => Auth::getAuthOwner(),
+            'collection' => Auth::getAuthCollection(),
+        ]);
+
 
 
         return   $schema;

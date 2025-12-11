@@ -40,6 +40,8 @@ class ShmLoginAuth extends ShmAuthBase
                 }
 
 
+                $args['login'] = mb_strtolower($args['login']);
+
                 $this->hasValueValidator(['login', "password"], $args);
 
                 $this->forceProtect($args['login'] ?? null);

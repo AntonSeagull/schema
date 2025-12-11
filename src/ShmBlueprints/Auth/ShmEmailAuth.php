@@ -47,6 +47,8 @@ class ShmEmailAuth extends ShmAuthBase
                     }
                 }
 
+                $args['login'] = mb_strtolower($args['login']);
+
                 $this->forceProtect($args['login'] ?? null);
 
 

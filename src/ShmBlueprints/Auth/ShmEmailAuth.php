@@ -254,6 +254,8 @@ class ShmEmailAuth extends ShmAuthBase
 
                 $login = trim($args['login'] ?? '');
 
+                $login = mb_strtolower($login);
+
                 $canRegister =  isset($this->_regStructures[0]) ? true : false;
 
                 if (!$login) {

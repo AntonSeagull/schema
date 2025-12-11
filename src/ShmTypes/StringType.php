@@ -49,6 +49,15 @@ class StringType extends BaseType
         return $this;
     }
 
+    public bool $lowercase = false;
+
+    //Противоположный метод для uppercase
+    public function lowercase(bool $lowercase = true): static
+    {
+        $this->lowercase = $lowercase;
+        return $this;
+    }
+
     /**
      * Process string value according to configured options
      * 
@@ -66,6 +75,10 @@ class StringType extends BaseType
         }
         if ($this->uppercase) {
             $value = mb_strtoupper($value);
+        }
+
+        if ($this->lowercase) {
+            $value = mb_strtolower($value);
         }
         return $value;
     }

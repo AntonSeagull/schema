@@ -87,12 +87,12 @@ class Shm
 
     public static function email(): StringType
     {
-        return (new StringType())->type('email')->globalUnique();
+        return (new StringType())->type('email')->globalUnique()->lowercase();
     }
 
     public static function login(): StringType
     {
-        return (new StringType())->type('login')->globalUnique();
+        return (new StringType())->type('login')->globalUnique()->lowercase();
     }
 
     public static function password(): PasswordType

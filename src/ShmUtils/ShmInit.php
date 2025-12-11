@@ -223,8 +223,11 @@ class ShmInit
     public static function sendOnError(Throwable $exception): void
     {
 
-        \Sentry\captureException($exception);
-
+        try {
+            \Sentry\captureException($exception);
+        } catch (\Exception $e) {
+            error_log($e->getMessage());
+        }
         if (self::$_errorHandler) {
             call_user_func(self::$_errorHandler, $exception);
         }

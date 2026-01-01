@@ -165,13 +165,17 @@ class Collection
     public static function ID(): IDType
     {
 
-        return Shm::ID(fn() => self::flatten());
+        return Shm::ID(function () {
+            return self::flatten();
+        });
     }
 
     public static function IDs(): IDsType
     {
 
-        return Shm::IDs(fn() => self::flatten());
+        return Shm::IDs(function () {
+            return self::flatten();
+        });
     }
 
 

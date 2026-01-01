@@ -296,7 +296,7 @@ class SubAccountsSchema
         ]);
 
         $schema->title("Доступы");
-        $schema->icon('account-tag-outline');
+        $schema->icon('account-switch-outline');
 
         $schema->canCreate()->canDelete()->canUpdate();
 

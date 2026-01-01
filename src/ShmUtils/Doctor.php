@@ -215,6 +215,8 @@ class Doctor
         if (is_dir(ShmInit::$rootDir . '/app/Collections')) {
 
             $files = scandir(ShmInit::$rootDir . '/app/Collections');
+
+
             foreach ($files as $file) {
                 if (!in_array($file, ['.', '..']) && pathinfo($file, PATHINFO_EXTENSION) === 'php') {
                     $className = str_replace('.php', '', $file);
@@ -226,6 +228,8 @@ class Doctor
                     $classes[] = $class;
                 }
             }
+
+
 
 
             return $classes;
@@ -332,6 +336,8 @@ class Doctor
         }
 
         foreach ($structures as $structure) {
+
+            echo $structure::class . PHP_EOL;
 
             self::generateFieldClass($structure::structure());
         }

@@ -496,21 +496,6 @@ class AdminPanel
             exit;
         }
 
-        $menuItemType = Shm::structure([
-            'label' => Shm::string(),
-            'icon' => Shm::string(),
-            'key' => Shm::string(),
-            "collection" => Shm::string(),
-            "children" => Shm::arrayOf(
-                Shm::structure([
-                    'label' => Shm::string(),
-                    'icon' => Shm::string(),
-                    'key' => Shm::string(),
-                    "collection" => Shm::string(),
-                ])->staticBaseTypeName("MenuItemChild")
-            ),
-        ])->staticBaseTypeName("MenuItem");
-
 
 
 
@@ -520,7 +505,6 @@ class AdminPanel
                 'type' => Shm::structure([
                     'geoPoint' => Shm::geoPoint(),
                     'geoRegion' => Shm::geoRegion(),
-                    'gradient' => Shm::gradient(),
 
 
                 ]),
@@ -726,22 +710,15 @@ class AdminPanel
                         'socialReg' => Shm::boolean(),
                     ]),
 
-                    'title' => Shm::string(),
-                    'icon' => Shm::string(),
-                    'cover' => Shm::string(),
-                    'color' => Shm::string(),
-                    'subtitle' => Shm::string(),
-                    'terms' => Shm::string(),
-                    'privacy' => Shm::string()
-
-
+                    'reports' => self::baseStructure(),
+                    'structure' => self::baseStructure(),
 
 
                 ]),
                 'resolve' => function ($root, $args) {
 
 
-                    $initData = self::fullSchema();
+                    $initData = self::json();
 
 
 
@@ -796,212 +773,14 @@ class AdminPanel
                             'phoneReg' => $phoneReg,
                             'socialReg' => $socialReg,
                         ],
-                        'title' => $initData->title,
-                        'icon' => $initData->assets['icon'] ?? null,
-                        'cover' => $initData->assets['cover'] ?? null,
-                        'color' => $initData->assets['color'] ?? null,
-                        'subtitle' => $initData->assets['subtitle'] ?? null,
-                        'terms' => $initData->assets['terms'] ?? null,
-                        'privacy' => $initData->assets['privacy'] ?? null,
+                        'structure' => $initData,
+
+
                     ];
                 }
 
             ],
 
-
-
-
-            'menu' => [
-
-
-
-                'type' => Shm::structure([
-                    'menu' => Shm::arrayOf($menuItemType),
-                    'allItems' => Shm::arrayOf($menuItemType),
-                ]),
-                'resolve' => function ($root, $args) {
-
-                    //  Auth::authenticateOrThrow(...self::$authStructures);
-
-                    $initData = self::fullSchema();
-
-                    $menu = [];
-                    $allItems = [];
-
-                    foreach ($initData->items as $item) {
-                        if ($item->type == 'adminGroup') {
-                            $_item = [
-                                'label' => $item->title,
-                                'icon' => $item->assets['icon'] ?? null,
-                                'key' => $item->key,
-                                'children' => [],
-                            ];
-
-
-                            foreach ($item->items as $subItem) {
-
-                                $allItems[] = [
-                                    'label' => $subItem->title,
-                                    'icon' => $subItem->assets['icon'] ?? null,
-                                    'key' => $subItem->key,
-                                    "collection" => $subItem->collection ?? null,
-                                ];
-
-                                $_item['children'][] = [
-                                    'label' => $subItem->title,
-                                    'icon' => $subItem->assets['icon'] ?? null,
-                                    'key' => $subItem->key,
-                                    "collection" => $subItem->collection ?? null,
-                                ];
-                            }
-
-                            $menu[] = $_item;
-                        } else {
-
-
-                            $menu[] = [
-                                'label' => $item->title,
-                                'icon' => $item->assets['icon'] ?? null,
-                                'key' => $item->key,
-                                "collection" => $item->collection ?? null,
-                            ];
-
-                            $allItems[] = [
-                                'label' => $item->title,
-                                'icon' => $item->assets['icon'] ?? null,
-                                'key' => $item->key,
-                                "collection" => $item->collection ?? null,
-                            ];
-                        }
-                    }
-
-                    return [
-                        'menu' => $menu,
-                        'allItems' => $allItems,
-                    ];
-                }
-            ],
-
-
-            'collectionMenu' => [
-                'type' => Shm::structure([
-                    'menu' => Shm::arrayOf(Shm::structure([
-                        'key' => Shm::string(),
-                        'icon' => Shm::string(),
-                        'title' => Shm::string(),
-                        'group' => Shm::string(),
-                        'children' => Shm::arrayOf(Shm::structure([
-                            'key' => Shm::string(),
-                            'icon' => Shm::string(),
-                            'title' => Shm::string(),
-                            'group' => Shm::string(),
-                        ])),
-                    ])),
-                    'allItems' => Shm::arrayOf(Shm::structure([
-                        'key' => Shm::string(),
-                        'icon' => Shm::string(),
-                        'title' => Shm::string(),
-                        'group' => Shm::string(),
-                    ])),
-                ]),
-                'args' => Shm::structure([
-                    "collection" => Shm::nonNull(Shm::string()),
-                ]),
-                'resolve' => function ($root, $args) {
-
-                    if (!isset($args['collection'])) {
-                        return [];
-                    }
-
-                    $structure = self::fullSchema()->findItemByCollection($args['collection']);
-
-
-                    if (!$structure) {
-                        return [];
-                    }
-
-
-
-                    $groups = [];
-
-                    $allItems = [];
-
-                    foreach ($structure->items as $item) {
-
-
-                        if ($item->inAdmin) {
-
-                            $group = [
-                                'key' => $item->group['key'] ?? null,
-                                'group' => $item->group['key'] ?? null,
-                                'icon' => $item->group['icon'] ?? MaterialIcons::FolderTableOutline(),
-                                'title' => $item->group['title'] ?? null,
-                            ];
-                            if ($item->group['key'] == 'default') {
-                                $group['title'] = "Общее";
-                            }
-
-
-                            $groups[$group['key']] = $group;
-                        }
-                    }
-
-                    $allItems = array_values($groups);
-
-
-
-                    if ($structure->buttonActions) {
-
-                        //   foreach ($structure->buttonActions?->items as $buttonAction) {
-
-                        //      var_dump($buttonAction);
-                        //      exit;
-                        //  }
-                    }
-
-
-
-
-                    return [
-
-                        'menu' => [[
-                            'key' => 'content',
-                            'title' => 'Контент',
-                            'children' => array_values($groups),
-                        ]],
-                        'allItems' => $allItems,
-                    ];
-                }
-            ],
-
-            'collection' => [
-                'type' => self::baseStructure(),
-                'args' => Shm::structure([
-                    "collection" => Shm::nonNull(Shm::string()),
-                ]),
-                'resolve' => function ($root, $args) {
-
-                    //   Auth::authenticateOrThrow(...self::$authStructures);
-
-                    if (!isset($args['collection'])) {
-                        return [
-                            "_" => null
-                        ];
-                    }
-
-                    $structure = self::fullSchema()->findItemByCollection($args['collection']);
-
-
-                    if (!$structure) {
-                        return [
-                            "_" => null
-                        ];
-                    }
-
-                    return $structure->json();
-                }
-
-            ],
             'emptyData' => [
                 'type' => Shm::structure([
                     "_id" => Shm::ID(),

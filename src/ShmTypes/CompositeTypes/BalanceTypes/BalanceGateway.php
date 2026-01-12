@@ -1,11 +1,11 @@
 <?php
 
-namespace Shm\ShmPayments;
+namespace Shm\ShmTypes\CompositeTypes\BalanceTypes;
 
 use Shm\ShmDB\mDB;
 use Shm\ShmUtils\Inflect;
 
-class PaymentGateway
+class BalanceGateway
 {
 
 
@@ -48,7 +48,7 @@ class PaymentGateway
         return $this;
     }
 
-    /** @var callable(string, string, float, string):string */
+    /** @var callable(string, float):string */
     private  $paymentLinkGenerator = null;
 
     /**
@@ -71,21 +71,5 @@ class PaymentGateway
         }
 
         return $fn(mDB::id($user_id), (float) $amount);
-    }
-
-
-
-
-
-    public function toArray(): array
-    {
-        return [
-            'key' => $this->key,
-            'title' => $this->title,
-            'icon' => $this->icon,
-            'description' => $this->description,
-            'minAmount' => $this->minAmount,
-            'maxAmount' => $this->maxAmount,
-        ];
     }
 }

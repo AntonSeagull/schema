@@ -21,7 +21,7 @@ use Shm\Shm;
 
 use Shm\ShmAdmin\Types\VisualGroupType;
 use Shm\ShmDB\mDBRedis;
-use Shm\ShmPayments\PaymentCurrency;
+
 use Shm\ShmRPC\ShmRPCCodeGen\TSType;
 use Shm\ShmTypes\SupportTypes\StageType;
 use Shm\ShmTypes\Utils\JsonLogicBuilder;
@@ -324,8 +324,14 @@ class StructureType extends BaseType
 
         $displayValues = [];
         foreach ($this->items as $key => $item) {
+
             if (isset($values[$key]) && $item->display) {
+
+
+
                 $val = $item->displayValues($values[$key]);
+
+
 
                 if ($val) {
 
@@ -759,6 +765,10 @@ class StructureType extends BaseType
 
 
                     $subField->key($subKey)->group($field->title ?? "Default", $field->assets['icon'] ?? null);
+
+
+                    $subField->setParent($this);
+
                     $_items[$subKey] = $subField;
                 }
 
@@ -769,6 +779,8 @@ class StructureType extends BaseType
 
 
             $field->key($key);
+
+            $field->setParent($this);
 
             $_items[$key] = $field;
         }
@@ -1020,6 +1032,8 @@ class StructureType extends BaseType
     }
 
 
+
+
     public function findItemByCollection(string $collection): ?StructureType
     {
 
@@ -1036,15 +1050,17 @@ class StructureType extends BaseType
 
             if ($item instanceof IDType || $item instanceof IDsType) {
 
-                if ($item->document && $item->document->collection === $collection) {
-                    return $item->document->expand();
+                $document = $item->getDocument();
+
+                if ($document && $document->collection === $collection) {
+                    return $document;
                 }
             }
 
 
             if ($item instanceof StructureType) {
                 if ($item->collection === $collection)
-                    return $item->expand();
+                    return $item;
 
 
 
@@ -1134,188 +1150,6 @@ class StructureType extends BaseType
 
 
 
-    public function externalData($data, $onlyDisplayRelations = false): mixed
-    {
-
-
-        $this->updateKeys();
-        $this->updatePath();
-        $paths = $this->getIDsPaths([]);
-
-        $pathsByCollections = [];
-
-
-        foreach ($paths as $pathItem) {
-
-            if (!isset($pathsByCollections[$pathItem['document']->collection])) {
-                $pathsByCollections[$pathItem['document']->collection] = [];
-            }
-
-            $pathsByCollections[$pathItem['document']->collection][] = $pathItem;
-        }
-
-
-
-
-
-        foreach ($pathsByCollections as $collection => $collectionPaths) {
-
-            Response::startTraceTiming("externalData-" .  $collection);
-
-            $allIds = [];
-            foreach ($collectionPaths as $pathItem) {
-
-                $val =  DeepAccess::getByPath($data, $pathItem['path']);
-                if (!$val || !is_array($val) || count($val) == 0) {
-                    continue;
-                }
-
-                $allIds = array_merge($allIds, $val);
-            }
-
-            if (count($allIds) == 0) {
-                continue;
-            }
-
-            $pathItem = $collectionPaths[0];
-
-
-
-
-            $aggregatePipeline = [
-                ...$pathItem['document']->getPipeline(),
-            ];
-
-
-            if ($onlyDisplayRelations) {
-
-
-
-
-
-
-                if ($pathItem['document']->hasTrueValueDeep("display")) {
-
-                    $displayProjection = $pathItem['document']->getProjection('display');
-
-
-
-
-
-                    $aggregatePipeline[] = ['$project' => $displayProjection];
-                } else {
-
-
-
-                    $displayProjection = $pathItem['document']->getProjection(function ($n) {
-                        return in_array($n->type, ['string', 'phone', 'email']);
-                    });
-
-
-                    if (count($displayProjection) > 0) {
-                        $aggregatePipeline[] = ['$project' => $displayProjection];
-                    }
-                }
-            }
-
-            $documentsById = [];
-
-
-            foreach ($allIds as $index => $id) {
-
-                //Находим в redis если есть
-                $redisDoc = mDBRedis::get($collection, (string)$id);
-                if ($redisDoc) {
-                    $documentsById[(string)$id] = $redisDoc;
-
-
-                    unset($allIds[$index]);
-                }
-            }
-
-            $allIds = array_values(array_unique($allIds));
-
-
-            $mongoDocs = [];
-            if (count($allIds) > 0) {
-
-
-
-
-
-
-                $aggregatePipeline[] = [
-                    '$match' => [
-                        '_id' => ['$in' => $allIds]
-                    ]
-                ];
-
-                $mongoDocs =  mDB::collection($pathItem['document']->collection)->aggregate($aggregatePipeline)->toArray();
-
-
-                mDBRedis::updateCacheAfterChange($collection, [
-                    '_id' => ['$in' => $allIds]
-                ], true);
-            }
-
-
-            if (count($mongoDocs) == 0 && count($documentsById) == 0) {
-                continue;
-            }
-
-            $mongoDocs = Shm::arrayOf($pathItem['document'])->removeOtherItems($mongoDocs);
-            $mongoDocs = Shm::arrayOf($pathItem['document'])->toOutput($mongoDocs);
-
-
-
-
-            foreach ($mongoDocs as $doc) {
-
-
-                $documentsById[(string) $doc['_id']] = $doc;
-            }
-
-
-
-
-            foreach ($collectionPaths as $pathItem) {
-
-                $many = $pathItem['many'] ?? false;
-
-                DeepAccess::applyRecursive($data, $pathItem['path'], function ($node) use ($many, $documentsById) {
-
-                    if ($many) {
-
-                        $result = [];
-
-                        if (is_object($node) || is_array($node) || $node instanceof \Traversable) {
-
-                            foreach ($node as $id) {
-                                if (isset($documentsById[(string) $id])) {
-                                    $result[] = $documentsById[(string) $id];
-                                }
-                            }
-                        }
-
-                        return $result;
-                    } else {
-
-                        if (isset($documentsById[(string) $node])) {
-                            return $documentsById[(string) $node];
-                        }
-                    }
-
-                    return null;
-                });
-            }
-
-            Response::endTraceTiming("externalData-" .  $collection);
-        }
-
-
-
-        return $data;
-    }
 
 
 
@@ -1493,27 +1327,6 @@ class StructureType extends BaseType
         return $TSType;
     }
 
-
-    private function  expand_dot_notation(array $flatArray): array
-    {
-        $result = [];
-
-        foreach ($flatArray as $compositeKey => $value) {
-            $keys = explode('.', $compositeKey);
-            $ref = &$result;
-
-            foreach ($keys as $key) {
-                if (!isset($ref[$key]) || !is_array($ref[$key])) {
-                    $ref[$key] = [];
-                }
-                $ref = &$ref[$key];
-            }
-
-            $ref = $value;
-        }
-
-        return $result;
-    }
 
 
 
@@ -1973,42 +1786,6 @@ class StructureType extends BaseType
     }
 
 
-    public  const ALLOWED_CURRENCIES = ['USD', 'EUR', 'RUB', 'KZT'];
-
-
-    /**
-     * @var array<PaymentCurrency> $currencies 
-     */
-    public $currencies = [];
-
-
-    /**
-     * @param  PaymentCurrency $currency
-     */
-    public function addCurrency(PaymentCurrency $val): static
-    {
-
-        $val->collection = &$this->collection;
-        $this->currencies[$val->currency] = $val;
-        return $this;
-    }
-
-
-    public function getCurrency($_currency): ?PaymentCurrency
-    {
-        return $this->currencies[$_currency] ?? null;
-    }
-
-    public function balances($_id): mixed
-    {
-
-
-        $user = mDB::collection($this->collection)->findOne([
-            "_id" => mDB::id($_id),
-        ]);
-
-        return $user['_balance'] ?? [];
-    }
 
 
 

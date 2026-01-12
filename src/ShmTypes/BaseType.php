@@ -7,6 +7,7 @@ use Nette\PhpGenerator\Method;
 use Sentry\Util\Arr;
 use Shm\Shm;
 use Shm\ShmRPC\ShmRPCCodeGen\TSType;
+use Shm\ShmTypes\CompositeTypes\BalanceTypes\BalanceType;
 use Shm\ShmTypes\Utils\JsonLogicBuilder;
 use Shm\ShmUtils\MaterialIcons;
 use Shm\ShmUtils\ShmInit;
@@ -29,6 +30,87 @@ abstract class BaseType
     public bool $draft = false;
     public int $depth = 0;
 
+
+    protected ?BaseType $parent = null;
+
+    public function setParent(BaseType | null $parent): void
+    {
+        $this->parent = $parent;
+    }
+
+    public function getParent(): ?BaseType
+    {
+        return $this->parent;
+    }
+
+    public function getPathArray($path = []): array
+    {
+
+
+        if ($this instanceof ArrayOfType) {
+            throw new \Exception("ArrayOfType does not have a unic path");
+        }
+
+        if ($this instanceof StructureType && $this->collection) {
+            return [...$path];
+        }
+
+        if ($this->parent) {
+            return $this->parent->getPathArray([$this->key, ...$path]);
+        }
+
+        return [$this->key, ...$path];
+    }
+
+
+    public function findBalanceFieldByCurrency(string $currency): ?BalanceType
+    {
+
+        if ($this instanceof BalanceType && $this->currency == $currency) {
+            return $this;
+        }
+
+        if ($this instanceof StructureType && isset($this->items)) {
+            foreach ($this->items as $item) {
+                $result = $item->findBalanceFieldByCurrency($currency);
+
+                if ($result) {
+                    return $result;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    public function getPathString($path = []): string
+    {
+        $path = $this->getPathArray($path);
+
+        if (!$path) {
+            throw new \Exception("Path is not set for " . $this->type . " " . $this->key);
+        }
+
+        return implode('.', $path);
+    }
+
+
+
+    public function getParentCollection(): ?string
+    {
+
+        if (!$this->parent) {
+            throw new \Exception("Parent is not set for " . $this->type . " " . $this->key);
+        }
+
+        if ($this->parent instanceof StructureType && $this->parent->collection) {
+            return $this->parent->collection;
+        } else {
+            return $this->parent->getParentCollection();
+        }
+
+        return null;
+    }
 
     public ?string $deprecated = null;
 
@@ -182,45 +264,6 @@ abstract class BaseType
         return $this;
     }
 
-    public function unExpand(): static
-    {
-
-        $this->expanded = false;
-
-        if (isset($this->items)) {
-            foreach ($this->items as $key => $item) {
-                $item->unExpand();
-            }
-        }
-        if (isset($this->itemType)) {
-            $this->itemType->unExpand();
-        }
-
-
-        return $this;
-    }
-
-    public function expand(): static
-    {
-        $this->expanded = true;
-
-
-        if (isset($this->items)) {
-            foreach ($this->items as $key => $item) {
-
-
-                $item->expand();
-            }
-        }
-
-        if (isset($this->itemType)) {
-            $this->itemType->expand();
-        }
-
-
-
-        return $this;
-    }
 
 
 
@@ -708,8 +751,7 @@ abstract class BaseType
 
 
             if ($this->itemType instanceof StructureType && !$this->itemType->collection && !$this->itemType->haveItemByKey('_id')) {
-                /** @var StructureType $this->itemType */
-                $this->itemType->addFieldIfNotExists('uuid', Shm::uuid());
+                $this->itemType->addField('uuid', Shm::uuid());
             }
 
 
@@ -877,8 +919,7 @@ abstract class BaseType
     {
 
         if ($this instanceof IDsType || $this instanceof IDType) {
-            if ($this->document)
-                $this->document->hide = true;
+            $this->hide = true;
         }
 
         if (isset($this->items)) {
@@ -1386,69 +1427,8 @@ abstract class BaseType
 
 
 
-    public function getIDsPathsForCollection(array $path, string $collection): array
-    {
 
 
-        if (($this instanceof IDType || $this instanceof IDsType)) {
-
-
-
-
-            if ($this->document && $this->document->collection == $collection) {
-                return [
-                    [
-                        'path' => [...$path],
-                        'document' => $this->document,
-                    ]
-                ];
-            } else {
-                return [];
-            }
-        }
-
-
-        $findPaths = [];
-
-        if (isset($this->items)) {
-            foreach ($this->items as $key => $item) {
-
-
-
-
-                $findPaths = [...$findPaths, ...$item->getIDsPathsForCollection([...$path, $key], $collection)];
-            }
-        }
-
-        if (isset($this->itemType)) {
-            $findPaths =   [...$findPaths, ...$this->itemType->getIDsPathsForCollection([...$path, '[]'], $collection)];
-        }
-
-        return  $findPaths;
-    }
-
-
-    public function getIDsPaths(array $path): array
-    {
-
-        $findPaths = [];
-
-        if (isset($this->items)) {
-            foreach ($this->items as $key => $item) {
-
-
-
-
-                $findPaths = [...$findPaths, ...$item->getIDsPaths([...$path, $key])];
-            }
-        }
-
-        if (isset($this->itemType)) {
-            $findPaths =   [...$findPaths, ...$this->itemType->getIDsPaths([...$path, '[]'])];
-        }
-
-        return  $findPaths;
-    }
 
 
 
@@ -1894,7 +1874,7 @@ abstract class BaseType
 
         foreach ($data as $key => $val) {
 
-            if ($val === null || $val === false || $val == []) {
+            if ($val === null || $val === false || $val == [] || $val == '' || $val == 0) {
                 unset($data[$key]);
                 continue;
             }
@@ -1913,6 +1893,8 @@ abstract class BaseType
 
     public function json()
     {
+
+
 
 
 

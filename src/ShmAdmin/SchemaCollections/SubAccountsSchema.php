@@ -241,7 +241,7 @@ class SubAccountsSchema
 
 
                             // Вариант 1: если есть готовый enum со списком документов
-                            'allowedDocs' => Shm::IDs($item->clone()->unExpand())->expand()->inAdmin()->editable()->title($item->title)
+                            'allowedDocs' => Shm::IDs($item->clone())->inAdmin()->editable()->title($item->title)
                                 ->cond(
                                     Shm::cond()
                                         ->equals($item->collection . '.limitDocs', true)
@@ -306,7 +306,7 @@ class SubAccountsSchema
 
         $schema->insertValues([
 
-            'owner' => Auth::getAuthOwner(),
+            'owner' => Auth::getAuthID(),
             'collection' => Auth::getAuthCollection(),
         ]);
 
@@ -315,7 +315,7 @@ class SubAccountsSchema
 
             [
                 '$match' => [
-                    'owner' => Auth::getAuthOwner(),
+                    'owner' => Auth::getAuthID(),
                     'collection' => Auth::getAuthCollection(),
                 ]
             ],

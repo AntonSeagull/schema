@@ -198,23 +198,6 @@ class ShmRPCContext
 
 
 
-        if ($result) {
-
-
-
-
-
-            if ($this->type instanceof StructureType || $this->type instanceof \Shm\ShmTypes\ArrayOfType) {
-                $this->type->expand();
-
-
-
-                Response::startTraceTiming("externalData");
-                $result = $this->type->externalData($result, $onlyDisplayRelations);
-                Response::endTraceTiming("externalData");
-            }
-        }
-
 
 
 

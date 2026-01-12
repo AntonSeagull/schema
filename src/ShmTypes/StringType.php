@@ -2,7 +2,7 @@
 
 namespace Shm\ShmTypes;
 
-
+use Shm\Shm;
 use Shm\ShmRPC\ShmRPCCodeGen\TSType;
 
 /**
@@ -158,5 +158,104 @@ class StringType extends BaseType
     public function fallbackDisplayValues($values): array | string | null
     {
         return $values;
+    }
+
+
+
+    public function filterType($safeMode = false): ?BaseType
+    {
+
+
+
+        $itemTypeFilter = Shm::structure([
+            'startsWith' => Shm::string()->title('Начинается с'),
+            'endsWith' => Shm::string()->title('Заканчивается на'),
+            'contains' => Shm::string()->title('Содержит'),
+            'notContains' => Shm::string()->title('Не содержит'),
+            'isEmpty' => Shm::enum([
+                'true' => 'Да',
+                'false' => 'Нет'
+            ])->title('Не заполнено'),
+        ])->editable();
+
+
+        $itemTypeFilter->staticBaseTypeName("StringFilterType");
+
+        return $itemTypeFilter->editable()->inAdmin($this->inAdmin)->title($this->title);
+    }
+
+
+
+    public function filterToPipeline($filter, array | null $absolutePath = null): ?array
+    {
+
+
+        $startsWith = $filter['startsWith'] ?? null;
+        $endsWith = $filter['endsWith'] ?? null;
+        $contains = $filter['contains'] ?? null;
+        $notContains = $filter['notContains'] ?? null;
+        $isEmpty = $filter['isEmpty'] ?? null;
+
+        $path = $absolutePath ? implode('.', $absolutePath) . '.' . $this->key : $this->key;
+
+        $pipeline = [];
+
+        if ($startsWith !== null) {
+            $pipeline[] = [
+                '$match' => [
+                    $path => ['$regex' => '^' . $startsWith, '$options' => 'i']
+                ]
+            ];
+        }
+        if ($endsWith !== null) {
+            $pipeline[] = [
+                '$match' => [
+                    $path => ['$regex' => $endsWith . '$', '$options' => 'i']
+                ]
+            ];
+        }
+
+        if ($contains !== null) {
+            $pipeline[] = [
+                '$match' => [
+                    $path => ['$regex' => $contains, '$options' => 'i']
+                ]
+            ];
+        }
+        if ($notContains !== null) {
+            $pipeline[] = [
+                '$match' => [
+                    $path => ['$regex' => '^(?!' . $notContains . ').*$', '$options' => 'i']
+                ]
+            ];
+        }
+
+
+        if ($isEmpty !== null) {
+
+            if ($isEmpty == 'true') {
+                $pipeline[] = [
+                    '$match' => [
+                        '$or' => [
+                            [$path => null],
+                            [$path => ['$exists' => false]],
+                        ]
+                    ]
+                ];
+            }
+            if ($isEmpty == 'false') {
+                $pipeline[] = [
+                    '$match' => [
+                        '$or' => [
+                            [$path => ['$exists' => true]],
+                            [$path => ['$ne' => null]],
+                        ]
+                    ]
+                ];
+            }
+        }
+
+
+        return $pipeline;
     }
 }

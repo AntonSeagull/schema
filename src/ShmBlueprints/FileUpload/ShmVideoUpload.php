@@ -98,7 +98,7 @@ class ShmVideoUpload
                 $fields = [
 
                     "fileType" => "video",
-                    'owner' => Auth::getAuthOwner(),
+                    'owner' => Auth::getAuthID(),
                     'name' => $video_file['name'],
                     'url' => $url,
                     'cover' => $url_cover,

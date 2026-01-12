@@ -127,7 +127,7 @@ class ShmMsgAuth extends ShmAuthBase
 
 
                             $user = $currentAuthStructure->updateOne([
-                                "_id" => Auth::getAuthOwner(),
+                                "_id" => Auth::getAuthID(),
                             ], [
                                 '$set' => [
                                     $phoneField => (int) $phone,

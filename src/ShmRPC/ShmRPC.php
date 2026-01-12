@@ -203,6 +203,7 @@ class ShmRPC
         return [...$request, ...$_GET, ...$_POST];
     }
 
+
     /**
      * Инициализация
      *

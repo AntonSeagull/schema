@@ -12,6 +12,7 @@ use Shm\ShmTypes\FloatType;
 use Shm\ShmTypes\BoolType;
 use Shm\ShmTypes\BaseType;
 use Shm\ShmTypes\ColorType;
+use Shm\ShmTypes\CompositeTypes\BalanceTypes\BalanceType;
 use Shm\ShmTypes\CompositeTypes\CodeType;
 use Shm\ShmTypes\CompositeTypes\FileTypes\FileAnyType;
 use Shm\ShmTypes\CompositeTypes\FileTypes\FileAudioLinkType;
@@ -132,20 +133,20 @@ class Shm
 
 
 
-    public static function ID(callable  | StructureType $documentResolver = null): IDType
+    public static function ID(callable  | StructureType $documentResolver = null, string $collection = null): IDType
     {
 
 
 
-        return (new IDType($documentResolver));
+        return (new IDType($documentResolver, $collection));
     }
 
-    public static function IDs(callable | StructureType $documentResolver = null): IDsType
+    public static function IDs(callable | StructureType $documentResolver = null, string $collection = null): IDsType
     {
 
 
 
-        return (new IDsType($documentResolver));
+        return (new IDsType($documentResolver, $collection));
     }
 
 
@@ -390,5 +391,10 @@ class Shm
     public static function dashboard(array $fields = []): DashboardType
     {
         return new DashboardType($fields);
+    }
+
+    public static function balance(string $currency): BalanceType
+    {
+        return new BalanceType($currency);
     }
 }

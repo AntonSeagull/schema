@@ -48,9 +48,11 @@ class FloatType extends BaseType
 
 
         $itemTypeFilter =  Shm::structure([
-            'gte' => Shm::float()->title('Больше')->col(8),
+            'gt' => Shm::float()->title('Больше')->col(8),
+            'gte' => Shm::float()->title('Больше или равно')->col(8),
             'eq' => Shm::float()->title('Равно')->col(8),
-            'lte' => Shm::float()->title('Меньше')->col(8),
+            'lt' => Shm::float()->title('Меньше')->col(8),
+            'lte' => Shm::float()->title('Меньше или равно')->col(8),
         ])->staticBaseTypeName("FloatFilterType");
 
         return  $itemTypeFilter->editable()->inAdmin($this->inAdmin)->title($this->title);
@@ -69,6 +71,13 @@ class FloatType extends BaseType
 
 
         $match = [];
+
+        if (isset($filter['gt'])) {
+            $match['$gt'] = (float) $filter['gt'];
+        }
+        if (isset($filter['lt'])) {
+            $match['$lt'] = (float) $filter['lt'];
+        }
 
         if (isset($filter['gte'])) {
             $match['$gte'] = (float) $filter['gte'];

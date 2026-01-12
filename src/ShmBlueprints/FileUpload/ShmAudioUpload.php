@@ -95,7 +95,7 @@ class ShmAudioUpload
 
                     "size" => filesize($convertedMp3),
                     "duration" => $duration,
-                    'owner' => Auth::getAuthOwner(),
+                    'owner' => Auth::getAuthID(),
                     'created_at' => time(),
                 ];
 

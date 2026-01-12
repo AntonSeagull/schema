@@ -98,7 +98,7 @@ class CollectionEvents
 
                 if (!isset($data['created_by'])) {
                     $data['created_by'] = [
-                        'owner' => Auth::getAuthOwner(),
+                        'owner' => Auth::getAuthID(),
                         'collection' => Auth::getAuthCollection(),
                         'subAccount' => Auth::getSubAccountID(),
                         'apikeyOwner' => Auth::getApiKeyOwner(),
@@ -321,7 +321,7 @@ class CollectionEvents
 
         if (!isset($document['created_by'])) {
             $document['created_by'] = [
-                'owner' => Auth::getAuthOwner(),
+                'owner' => Auth::getAuthID(),
                 'collection' => Auth::getAuthCollection(),
                 'subAccount' => Auth::getSubAccountID(),
                 'apikeyOwner' => Auth::getApiKeyOwner(),
@@ -359,7 +359,7 @@ class CollectionEvents
 
                 if (!isset($document['created_by'])) {
                     $document['created_by'] = [
-                        'owner' => Auth::getAuthOwner(),
+                        'owner' => Auth::getAuthID(),
                         'collection' => Auth::getAuthCollection(),
                         'subAccount' => Auth::getSubAccountID(),
                         'apikeyOwner' => Auth::getApiKeyOwner(),
@@ -415,7 +415,7 @@ class CollectionEvents
 
         if (!isset($document['created_by']) || !$document['created_by']) {
             $document['created_by'] = [
-                'owner' => Auth::getAuthOwner(),
+                'owner' => Auth::getAuthID(),
                 'collection' => Auth::getAuthCollection(),
                 'subAccount' => Auth::getSubAccountID(),
                 'apikeyOwner' => Auth::getApiKeyOwner(),
@@ -461,7 +461,7 @@ class CollectionEvents
 
             if (!isset($document['created_by']) || !$document['created_by']) {
                 $document['created_by'] = [
-                    'owner' => Auth::getAuthOwner(),
+                    'owner' => Auth::getAuthID(),
                     'collection' => Auth::getAuthCollection(),
                     'subAccount' => Auth::getSubAccountID(),
                     'apikeyOwner' => Auth::getApiKeyOwner(),

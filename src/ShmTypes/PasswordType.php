@@ -52,6 +52,12 @@ class PasswordType extends BaseType
     }
 
 
+    public function exportRow(mixed $value): string | array | null
+    {
+
+        return "";
+    }
+
     // $columnsWidth is inherited from BaseType
 
 

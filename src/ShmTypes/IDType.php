@@ -11,6 +11,7 @@ use Shm\Shm;
 use Shm\ShmDB\mDBRedis;
 use Shm\ShmRPC\ShmRPCCodeGen\TSType;
 use Shm\ShmRPC\RPCBuffer;
+use Shm\ShmUtils\DisplayValuePrepare;
 
 /**
  * ID type for schema definitions
@@ -21,64 +22,35 @@ use Shm\ShmRPC\RPCBuffer;
 class IDType extends BaseType
 {
     public string $type = 'ID';
-    public StructureType|null $document = null;
+
     private mixed $documentResolver = null;
     public int $defaultValue = 0;
 
-    /**
-     * Expand document with depth limit
-     * 
-     * @return BaseType|static
-     */
-    public function depthExpand(): BaseType|static
-    {
-        if ($this->depth > 0 && $this->document) {
-            return $this->document->expand()->depth($this->depth - 1);
-        }
 
-        return $this;
-    }
+    public string | null $collection = null;
 
-    /**
-     * Unexpand document
-     * 
-     * @return static
-     */
-    public function unExpand(): static
-    {
-        $this->expanded = false;
-        $this->document = null;
-        return $this;
-    }
 
-    /**
-     * Expand document
-     * 
-     * @return static
-     */
-    public function expand(): static
+    public function __construct(callable  | StructureType $documentResolver = null, string | null $collection = null)
     {
 
 
-        $this->expanded = true;
+        //If set documentResolver, collection must be
+        if ($documentResolver && !$collection) {
 
-        if ($this->documentResolver !== null) {
-            $resolver = $this->documentResolver;
-            $result = $resolver(); // вызов замыкания
-            if ($result instanceof StructureType || $result === null) {
-                $this->document = $result;
+            if (!$collection && $documentResolver instanceof StructureType && $documentResolver->collection) {
+                $this->collection = $documentResolver->collection;
             } else {
-                throw new InvalidArgumentException('documentResolver must return StructureType or null');
+                throw new \Exception("Collection must be set if documentResolver is set");
             }
+        } else if ($collection) {
+            $this->collection = $collection;
         }
 
-        return $this;
-    }
-
-    public function __construct(callable  | StructureType $documentResolver = null)
-    {
 
         if ($documentResolver instanceof StructureType) {
+
+
+
             $this->documentResolver = function () use ($documentResolver) {
                 return $documentResolver;
             };
@@ -88,6 +60,15 @@ class IDType extends BaseType
         }
     }
 
+    public function getDocument(): StructureType|null
+    {
+
+        if (is_callable($this->documentResolver)) {
+            return call_user_func($this->documentResolver);
+        }
+
+        return null;
+    }
 
     public function equals(mixed $a, mixed $b): bool
     {
@@ -132,21 +113,18 @@ class IDType extends BaseType
 
 
         $itemTypeFilter = Shm::structure([
-            'eq' => Shm::ID($this->document)->title('Равно'),
-            'in' => Shm::IDs($this->document)->title('Содержит хотя бы одно из'),
-            'nin' => Shm::IDs($this->document)->title('Не содержит ни одного из'),
-            'all' => Shm::IDs($this->document)->title('Содержит все из списка'),
+            'eq' => Shm::ID($this->documentResolver, $this->collection)->title('Равно'),
+            'in' => Shm::IDs($this->documentResolver, $this->collection)->title('Содержит хотя бы одно из'),
+            'nin' => Shm::IDs($this->documentResolver, $this->collection)->title('Не содержит ни одного из'),
+            'all' => Shm::IDs($this->documentResolver, $this->collection)->title('Содержит все из списка'),
             'isEmpty' => Shm::enum([
                 'true' => 'Да',
                 'false' => 'Нет'
             ])->title('Не заполнено'),
-            'children' => !$safeMode && $this->document ? $this->document->filterType(true)->title($this->title . ' — дополнительные фильтры') : null,
         ])->editable();
 
 
-        if (!$safeMode && !$this->document) {
-            $itemTypeFilter->staticBaseTypeName("IDFilterType");
-        }
+        $itemTypeFilter->staticBaseTypeName("IDFilterType");
 
         return $itemTypeFilter->editable()->inAdmin($this->inAdmin)->title($this->title);
     }
@@ -155,6 +133,7 @@ class IDType extends BaseType
 
     public function filterToPipeline($filter, array | null $absolutePath = null): ?array
     {
+
 
         $in = $filter['in'] ?? null;
         $nin = $filter['nin'] ?? null;
@@ -238,13 +217,8 @@ class IDType extends BaseType
     {
 
 
-        if ($this->document && !$this->document->hide) {
-            return $this->document->tsType();
-        } else {
-
-            $TSType = new TSType('string');
-            return $TSType;
-        }
+        $TSType = new TSType('string');
+        return $TSType;
     }
 
 
@@ -278,210 +252,26 @@ class IDType extends BaseType
 
 
 
-    public function computedReport(StructureType | null $root = null, $path = [], $pipeline = [])
-    {
-
-        if (!$this->report) {
-            return null;
-        }
-
-
-        if (!$root) {
-
-            new \Exception("Root structure is not set for EnumType report. Path: " . implode('.', $path));
-        }
-
-
-        if (!$this->document) {
-            return null;
-        }
-
-        $key = implode('.', $path);
-
-
-        $basePipeline = [
-            [
-                '$match' => [
-                    $key => ['$exists' => true, '$ne' => null]
-                ]
-            ],
-
-            [
-                '$facet' => [
-                    'top' => [
-                        [
-                            '$group' => [
-                                '_id' => '$' . $key,
-                                'count' => ['$sum' => 1],
-                            ]
-                        ],
-                        [
-                            '$sort' => ['count' => -1]
-                        ],
-                        [
-                            '$limit' => 10
-                        ],
-                        [
-                            '$lookup' => [
-                                'from' => $this->document->collection,
-                                'localField' => '_id',
-                                'foreignField' => '_id',
-                                'as' => 'value'
-                            ]
-                        ],
-                        [
-                            '$addFields' => [
-                                'value' => [
-                                    '$first' => '$value'
-                                ]
-                            ],
-                        ]
-                    ],
-                    'total' => [
-                        [
-                            '$group' => [
-                                '_id' => null,
-                                'total' => ['$sum' => 1]
-                            ]
-                        ]
-                    ]
-                ]
-            ]
-
-        ];
 
 
 
 
-        $data =  $root->aggregate([
-            ...$pipeline,
-            ...$basePipeline,
-
-
-        ])->toArray();
-
-
-
-
-
-        $top = $data[0]['top'] ?? [];
-        $total = $data[0]['total'][0]['total'] ?? 0;
-
-        $result = [];
-
-        $topCount = 0;
-
-        foreach ($top as $key => $item) {
-            if (isset($item['value'])) {
-                $topCount += $item['count'];
-                $result[] = [
-                    'value' => $item['count'],
-                    'item' =>  $this->document->removeOtherItems($item['value']),
-
-                ];
-            }
-        }
-
-        $view = 'horizontalBar';
-
-        if (($total - $topCount) > 0) {
-            $result[] = [
-                'value' => $total - $topCount,
-                'name' => 'Остальные',
-            ];
-        } else {
-            $view = 'pie';
-        }
-
-
-
-
-
-        return [
-            [
-
-                'type' => $this->type,
-
-                'title' => $this->title,
-
-                'main' => [
-                    [
-                        'view' => $view,
-                        'title' => $this->title,
-                        'structure' => $this->document->json(),
-                        'result' => $result
-                    ]
-
-
-                ],
-            ]
-
-        ];
-    }
-
-
-    public function getIDsPaths(array $path): array
-    {
-
-
-
-
-
-        if ($this->document && !$this->document->hide) {
-
-
-            return [
-                [
-                    'path' => [...$path],
-                    'many' => false,
-                    'document' => $this->document,
-                ]
-            ];
-        }
-
-        return [];
-    }
 
 
     public function exportRow(mixed $value): string | array | null
     {
 
-        if ($this->document && !$this->document->hide) {
-
-            if ($value) {
-
-                $item = mDBRedis::get($this->document->collection, (string)$value);
-
-                if (!$item) {
-                    $item = $this->document->findOne(['_id' => mDB::id($value)]);
-                }
-
-
-                if ($item) {
-
-                    $displayValues = $this->document->displayValues($item);
-
-
-                    if (is_array($displayValues) && count($displayValues) > 1) {
-                        return implode(', ', $displayValues);
-                    } else {
-                        $displayValues = $this->document->fallbackDisplayValues($item);
-
-
-                        if (is_array($displayValues) && count($displayValues) > 1) {
-                            return  implode(', ', $displayValues);
-                        }
-                    }
-
-                    return (string)$value;
-                } else {
-                    return null;
-                }
-            } else {
-                return null;
-            }
-        } else {
-            return (string)$value;
+        if (!$value) {
+            return "";
         }
+
+        $document = $this->getDocument();
+
+
+        if (!$document) {
+            throw new \Exception("Document not found for IDType: " . $this->key);
+        }
+
+        return DisplayValuePrepare::prepareById($document, $value)['displayValue'] ?? "";
     }
 }

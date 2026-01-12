@@ -58,7 +58,7 @@ class ShmDocumentUpload
 
                 $fields = [
                     "fileType" => "document",
-                    'owner' => Auth::getAuthOwner(),
+                    'owner' => Auth::getAuthID(),
                     'name' => $document['name'],
                     'url' => $url,
                     'source' => "local",

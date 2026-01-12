@@ -84,7 +84,7 @@ class Collection
 
         if (Auth::getAuthCollection() == $_this->collection) {
 
-            return Auth::getAuthOwnerAllField();
+            return Auth::getAuthIDAllField();
         }
 
         return null;
@@ -148,14 +148,6 @@ class Collection
 
 
 
-    public static function flatten(): StructureType | null
-    {
-
-        $_this = new static();
-
-        return $_this->expectSchema();
-    }
-
 
 
 
@@ -165,17 +157,23 @@ class Collection
     public static function ID(): IDType
     {
 
-        return Shm::ID(function () {
-            return self::flatten();
-        });
+        $_this = new static();
+
+
+
+
+        return Shm::ID(function () use ($_this) {
+            return $_this->expectSchema();
+        }, $_this->collection);
     }
 
     public static function IDs(): IDsType
     {
 
-        return Shm::IDs(function () {
-            return self::flatten();
-        });
+        $_this = new static();
+        return Shm::IDs(function () use ($_this) {
+            return $_this->expectSchema();
+        }, $_this->collection);
     }
 
 
@@ -190,7 +188,7 @@ class Collection
         $_this = new static();
 
 
-        return $_this->expectSchema()->expand();
+        return $_this->expectSchema();
     }
 
 

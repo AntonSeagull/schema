@@ -54,7 +54,7 @@ class ShmSocAuth extends ShmAuthBase
 
 
                     $user = $authModel->updateOne([
-                        "_id" => Auth::getAuthOwner(),
+                        "_id" => Auth::getAuthID(),
                     ], [
                         '$pull' => [
                             $socialField => [
@@ -63,7 +63,7 @@ class ShmSocAuth extends ShmAuthBase
                         ],
                     ]);
 
-                    return $this->authToken($authModel, Auth::getAuthOwner(), $args);
+                    return $this->authToken($authModel, Auth::getAuthID(), $args);
                 }
 
 
@@ -134,12 +134,12 @@ class ShmSocAuth extends ShmAuthBase
 
 
                     $user = $authModel->updateOne([
-                        "_id" => Auth::getAuthOwner(),
+                        "_id" => Auth::getAuthID(),
                     ], [
                         '$push' => [$socialField  => $userSoc],
                     ]);
 
-                    return  $this->authToken($authModel, Auth::getAuthOwner(), $args);
+                    return  $this->authToken($authModel, Auth::getAuthID(), $args);
                 } else {
 
 

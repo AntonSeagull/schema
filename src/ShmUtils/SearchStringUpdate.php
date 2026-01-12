@@ -115,10 +115,7 @@ class SearchStringUpdate
 
 
 
-        Cmd::command("exportStep", function () {
 
-            ShmExportCollection::exportStep();
-        })->everyMinute();
 
         Cmd::command("searchIndex", function () {
 

@@ -20,7 +20,7 @@ class ShmChatBlueprintsBaseRPC
         Auth::authenticateOrThrow();
 
         $member =  ShmChannelMembers::find([
-            'member' => Auth::getAuthOwner(),
+            'member' => Auth::getAuthID(),
             'memberCollection' => Auth::getAuthCollection(),
             'channel' => mDB::id($channelId),
         ]);

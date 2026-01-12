@@ -71,9 +71,11 @@ class IntType extends BaseType
 
 
         $itemTypeFilter = Shm::structure([
-            'gte' => Shm::int()->title('Больше')->col(8),
+            'gte' => Shm::int()->title('Больше или равно')->col(8),
+            'gt' => Shm::int()->title('Больше')->col(8),
             'eq' => Shm::int()->title('Равно')->col(8),
-            'lte' => Shm::int()->title('Меньше')->col(8),
+            'lte' => Shm::int()->title('Меньше или равно')->col(8),
+            'lt' => Shm::int()->title('Меньше')->col(8),
         ])->editable()->staticBaseTypeName("IntFilterType");
 
         return $itemTypeFilter->editable()->inAdmin($this->inAdmin)->title($this->title);
@@ -88,6 +90,13 @@ class IntType extends BaseType
 
 
         $match = [];
+
+        if (isset($filter['gt'])) {
+            $match['$gt'] = (int) $filter['gt'];
+        }
+        if (isset($filter['lt'])) {
+            $match['$lt'] = (int) $filter['lt'];
+        }
 
         if (isset($filter['gte'])) {
             $match['$gte'] = (int) $filter['gte'];

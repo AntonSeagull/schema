@@ -20,64 +20,31 @@ use Traversable;
 class IDsType extends BaseType
 {
     public string $type = 'IDs';
-    public StructureType|null $document = null;
+
     private mixed $documentResolver = null;
 
-    /**
-     * Expand document with depth limit
-     * 
-     * @return BaseType|static
-     */
-    public function depthExpand(): BaseType|static
-    {
-        if ($this->depth > 0 && $this->document) {
-            return Shm::arrayOf($this->document->expand()->depth($this->depth - 1));
-        }
 
-        return $this;
-    }
 
-    /**
-     * Unexpand document
-     * 
-     * @return static
-     */
-    public function unExpand(): static
-    {
-        $this->expanded = false;
-        $this->document = null;
-        return $this;
-    }
 
-    /**
-     * Expand document
-     * 
-     * @return static
-     */
-    public function expand(): static
+    public string | null $collection = null;
+
+
+    public function __construct(callable  | StructureType $documentResolver = null, string | null $collection = null)
     {
 
-        $this->expanded = true;
 
-        if ($this->documentResolver !== null) {
-            $resolver = $this->documentResolver;
-            $result = $resolver(); // вызов замыкания
-            if ($result instanceof StructureType || $result === null) {
-                $this->document = $result;
+        //If set documentResolver, collection must be
+        if ($documentResolver && !$collection) {
+
+            if (!$collection && $documentResolver instanceof StructureType && $documentResolver->collection) {
+                $this->collection = $documentResolver->collection;
             } else {
-                throw new InvalidArgumentException('documentResolver must return StructureType or null');
+                throw new \Exception("Collection must be set if documentResolver is set");
             }
+        } else if ($collection) {
+            $this->collection = $collection;
         }
 
-        return $this;
-    }
-
-
-
-
-
-    public function __construct(callable  | StructureType $documentResolver = null)
-    {
 
         if ($documentResolver instanceof StructureType) {
             $this->documentResolver = function () use ($documentResolver) {
@@ -137,22 +104,20 @@ class IDsType extends BaseType
     {
 
 
+
         $itemTypeFilter = Shm::structure([
-            'in' => Shm::IDs($this->document)->title('Содержит хотя бы один из'),
-            'nin' => Shm::IDs($this->document)->title('Не содержит ни одного из'),
-            'all' => Shm::IDs($this->document)->title('Содержит все из списка'), // корректно для $all
-            'setIsSubset' => Shm::IDs($this->document)->title('Содержит только из списка'), // подчёркивает "не больше"
+            'in' => Shm::IDs($this->documentResolver, $this->collection)->title('Содержит хотя бы один из'),
+            'nin' => Shm::IDs($this->documentResolver, $this->collection)->title('Не содержит ни одного из'),
+            'all' => Shm::IDs($this->documentResolver, $this->collection)->title('Содержит все из списка'), // корректно для $all
+            'setIsSubset' => Shm::IDs($this->documentResolver, $this->collection)->title('Содержит только из списка'), // подчёркивает "не больше"
             'isEmpty' => Shm::enum([
                 'true' => 'Да',
                 'false' => 'Нет'
             ])->title('Не заполнено'),
-            'children' =>  !$safeMode && $this->document ? $this->document->filterType(true)->title($this->title . ' — дополнительные фильтры') : null,
         ])->editable();
 
 
-        if (!$safeMode && !$this->document) {
-            $itemTypeFilter->staticBaseTypeName("IDsFilterType");
-        }
+        $itemTypeFilter->staticBaseTypeName("IDsFilterType");
 
 
 
@@ -260,20 +225,10 @@ class IDsType extends BaseType
     {
 
 
-        if ($this->document && !$this->document->hide) {
 
-            $documentTsType = $this->document->tsType();
+        $TSType = new TSType('string[]');
 
-            $TSType = new TSType($documentTsType->getTsTypeName() . '[]');
-
-
-            return $TSType;
-        } else {
-
-            $TSType = new TSType('string[]');
-
-            return $TSType;
-        }
+        return $TSType;
     }
 
 
@@ -313,31 +268,28 @@ class IDsType extends BaseType
         return null;
     }
 
-
-    public function getIDsPaths(array $path): array
+    public function getDocument(): StructureType|null
     {
-
-
-
-
-        if ($this->document && !$this->document->hide) {
-            return [
-                [
-                    'path' => [...$path],
-                    'many' => true,
-                    'document' => $this->document,
-                ]
-            ];
+        if (is_callable($this->documentResolver)) {
+            return call_user_func($this->documentResolver);
         }
-
-        return [];
+        return null;
     }
 
 
     public function exportRow(mixed $value): string | array | null
     {
 
-        if ($this->document && !$this->document->hide) {
+        $document = $this->getDocument();
+        if (!$document) {
+            throw new \Exception("Document not found for IDType: " . $this->key);
+        }
+
+
+
+        if ($document && !$document->hide) {
+
+
 
             if (is_array($value) || $value instanceof Traversable) {
 
@@ -351,7 +303,7 @@ class IDsType extends BaseType
                 $docs = [];
 
                 foreach ($value as $index => $id) {
-                    $item = mDBRedis::get($this->document->collection, (string)$id);
+                    $item = mDBRedis::get($document->collection, (string)$id);
                     if ($item) {
                         $docs[] = $item;
                         unset($value[$index]);
@@ -362,7 +314,7 @@ class IDsType extends BaseType
                 $value = array_values($value);
 
                 if (count($value) > 0) {
-                    $items = mDB::collection($this->document->collection)->find(['_id' => ['$in' => array_map(fn($id) => mDB::id($id), $value)]])->toArray();
+                    $items = mDB::collection($document->collection)->find(['_id' => ['$in' => array_map(fn($id) => mDB::id($id), $value)]])->toArray();
                     $docs = array_merge($docs, $items);
                 }
 
@@ -376,11 +328,11 @@ class IDsType extends BaseType
 
 
 
-                    $displayValues = $this->document->displayValues($doc);
+                    $displayValues = $document->displayValues($doc);
                     if (is_array($displayValues) && count($displayValues) > 1) {
                         $displayValuesResult[] = implode(', ', $displayValues);
                     } else {
-                        $displayValues = $this->document->fallbackDisplayValues($doc);
+                        $displayValues = $document->fallbackDisplayValues($doc);
                         if (is_array($displayValues) && count($displayValues) > 1) {
                             $displayValuesResult[] = implode(', ', $displayValues);
                         }

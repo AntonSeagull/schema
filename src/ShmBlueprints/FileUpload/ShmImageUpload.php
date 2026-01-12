@@ -121,7 +121,7 @@ class ShmImageUpload
 
                 $fields = [
                     "fileType" => "image",
-                    'owner' => Auth::getAuthOwner(),
+                    'owner' => Auth::getAuthID(),
                     'name' => is_string($image) ? "none" : $image['name'],
                     'url' => $url,
                     'url_medium' => $url_filename_medium,

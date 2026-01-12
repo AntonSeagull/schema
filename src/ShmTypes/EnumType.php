@@ -258,17 +258,29 @@ class EnumType extends BaseType
     {
 
 
-        $itemTypeFilter =  Shm::structure([
-            'eq' => Shm::enum($this->values)->title('Равно'),
-            'in' => Shm::arrayOf(Shm::enum($this->values))->title('Включает значения'),
-            'nin' => Shm::arrayOf(Shm::enum($this->values))->title('Исключает значения'),
-            'all' => Shm::arrayOf(Shm::enum($this->values))->title('Все значения'),
-            'isEmpty' => Shm::enum([
-                'true' => 'Да',
-                'false' => 'Нет'
-            ])->title('Не заполнено'),
-        ])->editable()->inAdmin(true)->staticBaseTypeName($this->key . "EnumFilter" . AutoPostfix::get(array_keys($this->values, true)));
+        if ($this->parent->type == "array") {
+            $itemTypeFilter =  Shm::structure([
+                'in' => Shm::arrayOf(Shm::enum($this->values))->title('Содержит хотя бы один из'),
+                'nin' => Shm::arrayOf(Shm::enum($this->values))->title('Исключить'),
+                'all' => Shm::arrayOf(Shm::enum($this->values))->title('Содержит все значения'),
+                'isEmpty' => Shm::enum([
+                    'true' => 'Да',
+                    'false' => 'Нет'
+                ])->title('Не заполнено'),
+            ])->editable()->inAdmin(true)->staticBaseTypeName($this->key . "EnumFilter" . AutoPostfix::get(array_keys($this->values, true)));
+        } else {
 
+            $itemTypeFilter =  Shm::structure([
+                'eq' => Shm::enum($this->values)->title('Равно'),
+                'in' => Shm::arrayOf(Shm::enum($this->values))->title('Содержит хотя бы один из'),
+                'nin' => Shm::arrayOf(Shm::enum($this->values))->title('Исключает значения'),
+                'all' => Shm::arrayOf(Shm::enum($this->values))->title('Содержит все значения'),
+                'isEmpty' => Shm::enum([
+                    'true' => 'Да',
+                    'false' => 'Нет'
+                ])->title('Не заполнено'),
+            ])->editable()->inAdmin(true)->staticBaseTypeName($this->key . "EnumFilter" . AutoPostfix::get(array_keys($this->values, true)));
+        }
         return $itemTypeFilter->inAdmin($this->inAdmin)->title($this->title);
     }
 

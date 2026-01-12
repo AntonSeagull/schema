@@ -7,6 +7,7 @@ use GraphQL\Type\Definition\ObjectType;
 use Shm\CachedType\CachedInputObjectType;
 use Shm\CachedType\CachedObjectType;
 use Shm\Shm;
+use Shm\ShmGeo\GridMap\GridMap;
 use Shm\ShmTypes\BaseType;
 use Shm\ShmTypes\StructureType;
 use Shm\ShmUtils\ShmUtils;
@@ -36,11 +37,62 @@ class GeoPointType extends StructureType
                     'comment' => Shm::string(),        // произвольное примечание
                     'phone' => Shm::phone(),           // контактный телефон
                 ]),
+                'grid' => Shm::ID(),
                 'lat' => Shm::float(),
                 'lng' => Shm::float(),
                 'location' => Shm::mongoPoint(),
             ]
         );
+    }
+
+    public function exportRow(mixed $value): string | array | null
+    {
+
+        $name = $value['name'] ?? $value['address'] ?? null;
+
+
+
+
+        if (!$name) {
+            return "";
+        }
+
+        $label = $value['meta']['label'] ?? null;
+        $floor = $value['meta']['floor'] ?? null;
+        $entrance = $value['meta']['entrance'] ?? null;
+        $apartment = $value['meta']['apartment'] ?? null;
+        $comment = $value['meta']['comment'] ?? null;
+        $phone = $value['meta']['phone'] ?? null;
+
+
+        $result = [$name];
+
+        if ($label) {
+            $result[] = $label;
+        }
+
+        if ($floor) {
+            $result[] = $floor;
+        }
+
+        if ($entrance) {
+            $result[] = $entrance;
+        }
+
+        if ($apartment) {
+            $result[] = $apartment;
+        }
+
+        if ($comment) {
+            $result[] = $comment;
+        }
+
+        if ($phone) {
+            $result[] = $phone;
+        }
+
+
+        return implode(", ", $result);
     }
 
     public function equals(mixed $a, mixed $b): bool
@@ -87,6 +139,9 @@ class GeoPointType extends StructureType
             $lng = $value['lng'] ?? null;
 
             if ($lat && $lng) {
+
+                $value['grid'] = GridMap::getCellsByPoint($lat, $lng, 0)[0] ?? null;
+
                 $value['location'] = [
                     'type' => 'Point',
                     'coordinates' => [$lng, $lat]

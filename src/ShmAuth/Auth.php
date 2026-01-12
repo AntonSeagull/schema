@@ -200,7 +200,7 @@ class Auth
             Response::unauthorized();
         }
 
-        if (!self::getAuthOwner()) {
+        if (!self::getAuthID()) {
             Response::unauthorized();
         }
     }

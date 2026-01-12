@@ -7,6 +7,12 @@ use GuzzleHttp\Client;
 use GuzzleHttp\Psr7\Request;
 use Shm\ShmDB\mDB;
 use Shm\Shm;
+use Shm\ShmAdmin\AdminRPC\AdminRPCProfile;
+use Shm\ShmAdmin\AdminRPC\AdminRPCUpdateProfile;
+use Shm\ShmAdmin\AdminRPC\AdminRPCInit;
+use Shm\ShmAdmin\AdminRPC\AdminRPCMenu;
+use Shm\ShmAdmin\AdminRPC\AdminRPCDisplayValues;
+use Shm\ShmAdmin\AdminRPC\AdminRPCData;
 use Shm\ShmAdmin\SchemaCollections\ShmExportCollection;
 use Shm\ShmAdmin\SchemaCollections\SubAccountsSchema;
 use Shm\ShmAdmin\ShmAdminRPC\RPCCompositeTypes;
@@ -19,10 +25,12 @@ use Shm\ShmAuth\Auth;
 use Shm\ShmRPC\ShmRPC;
 use Shm\ShmRPC\ShmRPCClient\ShmRPCClient;
 use Shm\ShmSupport\ShmSupport;
+use Shm\ShmTypes\CompositeTypes\BalanceTypes\BalanceUtils;
 use Shm\ShmTypes\DashboardType;
 use Shm\ShmTypes\StructureType;
 use Shm\ShmTypes\SupportTypes\StageType;
 use Shm\ShmUtils\Config;
+use Shm\ShmUtils\DisplayValuePrepare;
 use Shm\ShmUtils\Inflect;
 use Shm\ShmUtils\MaterialIcons;
 use Shm\ShmUtils\RedisCache;
@@ -82,7 +90,7 @@ class AdminPanel
         self::$regStructures = $regStructures;
     }
 
-    private static function fullSchema(): StructureType
+    public static function fullSchema(): StructureType
     {
 
         $schema = self::$schema;
@@ -205,7 +213,8 @@ class AdminPanel
         "rate",
         "gradient",
         'report',
-        'geoRegion'
+        'geoRegion',
+        'balance'
     ];
 
 
@@ -297,9 +306,7 @@ class AdminPanel
                     return $type;
                 }),
             ]),
-            'document' => Shm::selfRef(function () use (&$type) {
-                return $type;
-            }),
+
 
             'columnsWidth' => Shm::float(),
 
@@ -312,6 +319,14 @@ class AdminPanel
 
             'dashboardBlockType' => Shm::enum(['card', 'lineChart', 'pieChart', 'barChart']),
 
+            'gateways' => Shm::structure([
+                "minAmount" => Shm::float(),
+                "maxAmount" => Shm::float(),
+                "title" => Shm::string(),
+                "description" => Shm::string(),
+                "icon" => Shm::string(),
+                "key" => Shm::string(),
+            ]),
 
             "apikey" => Shm::bool(),
             'tablePriority' => Shm::int(),
@@ -323,6 +338,8 @@ class AdminPanel
             'displayPrefix' => Shm::string(),
             'trim' => Shm::boolean(),
             'uppercase' => Shm::boolean(),
+            'currency' => Shm::string(),
+            'currencySymbol' => Shm::string(),
             'accept' => Shm::string(),
             'canUpdate' => Shm::boolean(),
             'canDelete' => Shm::boolean(),
@@ -391,7 +408,7 @@ class AdminPanel
             return SubAccountsSchema::$collection . ':' . Auth::getSubAccountID();
         }
 
-        return Auth::getAuthCollection() . ':' . Auth::getAuthOwner();
+        return Auth::getAuthCollection() . ':' . Auth::getAuthID();
     }
 
 
@@ -496,23 +513,6 @@ class AdminPanel
             exit;
         }
 
-        $menuItemType = Shm::structure([
-            'label' => Shm::string(),
-            'icon' => Shm::string(),
-            'key' => Shm::string(),
-            "collection" => Shm::string(),
-            "children" => Shm::arrayOf(
-                Shm::structure([
-                    'label' => Shm::string(),
-                    'icon' => Shm::string(),
-                    'key' => Shm::string(),
-                    "collection" => Shm::string(),
-                ])->staticBaseTypeName("MenuItemChild")
-            ),
-        ])->staticBaseTypeName("MenuItem");
-
-
-
 
         ShmRPC::init([
 
@@ -539,349 +539,46 @@ class AdminPanel
             'authSoc' =>  ShmRPC::auth()->soc()->auth(self::$authStructures)->reg(self::$regStructures),
             'authPhone' => ShmRPC::auth()->msg()->auth(self::$authStructures)->reg(self::$regStructures),
 
-            'profile' =>  [
-                "type" => Shm::structure([
+            'profile' => AdminRPCProfile::rpc(),
 
-                    'structure' => self::baseStructure(),
-                    'data' => Shm::mixed(),
-                    'changePassword' => Shm::boolean(),
-                    'subAccount' => Shm::boolean(),
-                    'currencies' => Shm::structure([
-                        '*' => Shm::structure([
-                            'currency' => Shm::string(),
-                            'gateways' => Shm::arrayOf(Shm::structure([
-                                'key' => Shm::string(),
-                                'title' => Shm::string(),
-                                'icon' => Shm::string(),
-                                'description' => Shm::string(),
-                                'minAmount' => Shm::float(),
-                                'maxAmount' => Shm::float(),
-                            ])),
-                        ])
-                    ]),
-                    'balances' => Shm::structure([
-                        '*' => Shm::float(),
-                    ])
-                ]),
-
-                'resolve' => function ($root, $args) {
+            'updateProfile' => AdminRPCUpdateProfile::rpc(),
 
 
-                    Auth::authenticateOrThrow(...self::$authStructures);
+            'init' => AdminRPCInit::rpc(),
 
 
-                    if (Auth::subAccountAuth()) {
-
-                        $findStructure = SubAccountsSchema::baseStructure();
-                    } else {
-
-                        $findStructure = null;
 
 
-                        foreach (self::$authStructures as $user) {
-
-                            if ($user->collection == Auth::getAuthCollection()) {
-                                $findStructure = $user;
-                                break;
-                            }
-                        }
-                    }
-                    if (!$findStructure) {
-                        Response::validation("Ошибка доступа");
-                    }
 
 
-                    $passwordField =  $findStructure->findItemByType(Shm::password());
+            'menu' => AdminRPCMenu::rpc(),
 
-                    if ($passwordField)
-                        $findStructure->items[$passwordField->key]->inAdmin(false);
-
-
-                    $emailField = $findStructure->findItemByType(Shm::email());
-                    $loginField = $findStructure->findItemByType(Shm::login());
-                    $phoneField = $findStructure->findItemByType(Shm::phone());
-
-
-                    if ($emailField) {
-                        $findStructure->items[$emailField->key]->editable(false)->setCol(24);
-                    }
-                    if ($loginField) {
-                        $findStructure->items[$loginField->key]->editable(false)->setCol(24);
-                    }
-                    if ($phoneField) {
-                        $findStructure->items[$phoneField->key]->editable(false)->setCol(24);
-                    }
-
-
-                    $currencies = [];
-
-                    foreach ($findStructure->currencies as $key => $currency) {
-                        $currencies[$key] = $currency->toArray();
-                    }
-
-                    return [
-                        'structure' => $findStructure->json(),
-                        'data' => $findStructure->removeOtherItems($findStructure->normalize($findStructure->findOne([
-                            '_id' => Auth::subAccountAuth() ? Auth::getSubAccountID() :  Auth::getAuthOwner()
-                        ]))),
-                        'subAccount' => Auth::subAccountAuth(),
-                        'currencies' =>  Auth::subAccountAuth() ? [] :  $currencies,
-                        'balances' =>  Auth::subAccountAuth() ? [] : $findStructure->balances(Auth::getAuthOwner()),
-                        'changePassword' => $passwordField ? true : false,
-                    ];
-                }
-
-            ],
-
-            'updateProfile' => [
-                'type' => Shm::structure([
-                    "_id" => Shm::ID(),
-                    "*" => Shm::mixed(),
-                ]),
-
-
+            'collectionRelations' => [
                 'args' => Shm::structure([
-
-                    'values' => Shm::mixed(),
-
+                    "collection" => Shm::nonNull(Shm::string()),
                 ]),
-                'resolve' => function ($root, $args) {
-
-
-
-                    Auth::authenticateOrThrow(...self::$authStructures);
-
-
-                    if (Auth::subAccountAuth()) {
-
-                        $structure = SubAccountsSchema::baseStructure();
-                    } else {
-
-                        $structure = null;
-
-
-                        foreach (self::$authStructures as $user) {
-
-                            if ($user->collection == Auth::getAuthCollection()) {
-                                $structure = $user;
-                                break;
-                            }
-                        }
-                    }
-                    if (!$structure) {
-                        Response::validation("Ошибка доступа");
-                    }
-
-
-
-                    $root->setType($structure);
-
-
-
-                    $values = $args['values'] ?? null;
-
-                    if (!$values) {
-                        Response::validation("Нет данных для обновления");
-                    }
-
-                    $values = $structure->normalize($values);
-                    $values = $structure->removeOtherItems($values);
-
-                    //remove _id
-                    if (isset($values['_id'])) {
-                        unset($values['_id']);
-                    }
-
-
-
-
-                    $structure->updateOne(
-                        [
-                            "_id" => Auth::subAccountAuth() ? Auth::getSubAccountID() : Auth::getAuthOwner()
-                        ],
-                        [
-                            '$set' => $values
-                        ]
-                    );
-
-                    return  $structure->findOne([
-                        '_id' => Auth::subAccountAuth() ? Auth::getSubAccountID() : Auth::getAuthOwner()
-                    ]);
-                }
-
-            ],
-
-
-            'init' => [
-                'type' => Shm::structure([
-
-
-
-                    'auth' => Shm::structure([
-                        'emailLogin' => Shm::boolean(),
-                        'phoneLogin' => Shm::boolean(),
-                        'socialLogin' => Shm::boolean(),
-                        'emailReg' => Shm::boolean(),
-                        'phoneReg' => Shm::boolean(),
-                        'socialReg' => Shm::boolean(),
-                    ]),
-
-                    'title' => Shm::string(),
+                'type' => Shm::arrayOf(Shm::structure([
+                    'key' => Shm::string(),
                     'icon' => Shm::string(),
-                    'cover' => Shm::string(),
-                    'color' => Shm::string(),
-                    'subtitle' => Shm::string(),
-                    'terms' => Shm::string(),
-                    'privacy' => Shm::string()
-
-
-
-
-                ]),
+                    'title' => Shm::string(),
+                    'foreignCollection' => Shm::string(),
+                    'foreignKey' => Shm::string(),
+                ])),
                 'resolve' => function ($root, $args) {
 
-
-                    $initData = self::fullSchema();
-
-
-
-
-
-                    $emailLogin = false;
-                    $phoneLogin = false;
-                    $socialLogin = false;
-
-                    $emailReg = false;
-                    $phoneReg = false;
-                    $socialReg = false;
-
-                    foreach (self::$authStructures as $user) {
-
-                        if ($user->findItemByType(Shm::email())) {
-
-                            $emailLogin = true;
-                        }
-                        if ($user->findItemByType(Shm::phone())) {
-                            $phoneLogin = true;
-                        }
-                        if ($user->findItemByType(Shm::social())) {
-                            $socialLogin = true;
-                        }
+                    if (!isset($args['collection'])) {
+                        return [];
                     }
 
+                    $structure = self::fullSchema()->findItemByCollection($args['collection']);
 
-                    foreach (self::$regStructures as $user) {
-
-                        if ($user->findItemByType(Shm::email())) {
-
-                            $emailReg = true;
-                        }
-                        if ($user->findItemByType(Shm::phone())) {
-                            $phoneReg = true;
-                        }
-                        if ($user->findItemByType(Shm::social())) {
-                            $socialReg = true;
-                        }
+                    if (!$structure) {
+                        return [];
                     }
 
-
-
-                    return [
-                        'auth' => [
-
-                            'emailLogin' => $emailLogin,
-                            'phoneLogin' => $phoneLogin,
-                            'socialLogin' => $socialLogin,
-                            'emailReg' => $emailReg,
-                            'phoneReg' => $phoneReg,
-                            'socialReg' => $socialReg,
-                        ],
-                        'title' => $initData->title,
-                        'icon' => $initData->assets['icon'] ?? null,
-                        'cover' => $initData->assets['cover'] ?? null,
-                        'color' => $initData->assets['color'] ?? null,
-                        'subtitle' => $initData->assets['subtitle'] ?? null,
-                        'terms' => $initData->assets['terms'] ?? null,
-                        'privacy' => $initData->assets['privacy'] ?? null,
-                    ];
-                }
-
-            ],
-
-
-
-
-            'menu' => [
-
-
-
-                'type' => Shm::structure([
-                    'menu' => Shm::arrayOf($menuItemType),
-                    'allItems' => Shm::arrayOf($menuItemType),
-                ]),
-                'resolve' => function ($root, $args) {
-
-                    //  Auth::authenticateOrThrow(...self::$authStructures);
-
-                    $initData = self::fullSchema();
-
-                    $menu = [];
-                    $allItems = [];
-
-                    foreach ($initData->items as $item) {
-                        if ($item->type == 'adminGroup') {
-                            $_item = [
-                                'label' => $item->title,
-                                'icon' => $item->assets['icon'] ?? null,
-                                'key' => $item->key,
-                                'children' => [],
-                            ];
-
-
-                            foreach ($item->items as $subItem) {
-
-                                $allItems[] = [
-                                    'label' => $subItem->title,
-                                    'icon' => $subItem->assets['icon'] ?? null,
-                                    'key' => $subItem->key,
-                                    "collection" => $subItem->collection ?? null,
-                                ];
-
-                                $_item['children'][] = [
-                                    'label' => $subItem->title,
-                                    'icon' => $subItem->assets['icon'] ?? null,
-                                    'key' => $subItem->key,
-                                    "collection" => $subItem->collection ?? null,
-                                ];
-                            }
-
-                            $menu[] = $_item;
-                        } else {
-
-
-                            $menu[] = [
-                                'label' => $item->title,
-                                'icon' => $item->assets['icon'] ?? null,
-                                'key' => $item->key,
-                                "collection" => $item->collection ?? null,
-                            ];
-
-                            $allItems[] = [
-                                'label' => $item->title,
-                                'icon' => $item->assets['icon'] ?? null,
-                                'key' => $item->key,
-                                "collection" => $item->collection ?? null,
-                            ];
-                        }
-                    }
-
-                    return [
-                        'menu' => $menu,
-                        'allItems' => $allItems,
-                    ];
+                    return [];
                 }
             ],
-
 
             'collectionMenu' => [
                 'type' => Shm::structure([
@@ -973,6 +670,9 @@ class AdminPanel
                     ];
                 }
             ],
+
+            'displayValues' => AdminRPCDisplayValues::rpc(),
+
 
             'collection' => [
                 'type' => self::baseStructure(),
@@ -1100,7 +800,7 @@ class AdminPanel
 
 
 
-                        $cacheKey = md5($dashboardKey . ' ' . $dashboardField . ' ' . Auth::getAuthOwner() . ' ' . Auth::getSubAccountID());
+                        $cacheKey = md5($dashboardKey . ' ' . $dashboardField . ' ' . Auth::getAuthID() . ' ' . Auth::getSubAccountID());
 
                         $cache = RedisCache::get($cacheKey);
                         if ($cache) {
@@ -1434,301 +1134,8 @@ class AdminPanel
 
             ],
 
-            'data' => [
+            'data' => AdminRPCData::rpc(),
 
-                'onlyDisplayRelations' => true,
-                'type' => Shm::structure([
-                    'data' => Shm::arrayOf(Shm::structure([
-                        "_id" => Shm::ID(),
-                        "*" => Shm::mixed(),
-                    ])),
-                    'limit' => Shm::int(),
-                    'hash' => Shm::string(),
-                    'offset' => Shm::int(),
-                    'total' => Shm::int(),
-                ]),
-                'args' => Shm::structure([
-
-                    "_id" => Shm::ID()->default(null),
-                    'table' => Shm::boolean()->default(false),
-                    "collection" => Shm::nonNull(Shm::string()),
-                    'limit' => Shm::int()->default(30),
-
-                    'offset' =>  Shm::int()->default(0),
-                    'search' => Shm::string()->default(''),
-                    'sort' => Shm::structure([
-                        'direction' => Shm::enum([
-                            'ASC' => 'По возрастанию',
-                            'DESC' => 'По убыванию',
-                        ])->default('DESC'),
-                        'field' => Shm::string(),
-                    ]),
-                    'filter' => Shm::mixed(),
-                    'stage' => Shm::string()
-                ]),
-                'resolve' => function ($root, $args) {
-
-
-
-                    Auth::authenticateOrThrow(...self::$authStructures);
-
-                    if (!isset($args['collection'])) {
-                        Response::validation("Данные не доступны для просмотра");
-                    }
-
-
-                    $structure = self::fullSchema()->findItemByCollection($args['collection']);
-
-
-
-
-                    $structure->inTableThis(true);
-
-
-
-
-
-                    if (!$structure) {
-                        Response::validation("Данные не доступны для просмотра");
-                    }
-
-
-                    $rootType = $root->getType();
-                    $rootType->items['data'] = Shm::arrayOf($structure);
-
-                    $root->setType($rootType);
-
-                    $pipeline = $structure->getPipeline();
-
-
-
-                    if ($structure->single) {
-
-
-
-                        $pipeline = [
-                            ...$pipeline,
-                            [
-                                '$limit' => 1
-                            ],
-                        ];
-
-                        $result = $structure->aggregate($pipeline)->toArray() ?? null;
-
-
-                        if (!$result) {
-
-                            return [
-                                'data' =>  [$structure->normalize([], true)]
-                            ];
-                        } else {
-
-                            return  [
-                                'data' => $result
-                            ];
-                        }
-                    }
-
-
-
-                    if (isset($args['stage'])) {
-
-                        $stage = $structure->findStage($args['stage']);
-
-                        if ($stage) {
-                            $pipeline = [
-                                ...$pipeline,
-                                ...$stage->getPipeline(),
-                            ];
-                        }
-                    }
-
-
-
-                    if (isset($args['_id'])) {
-
-
-
-
-
-                        $pipeline = [
-                            ...$pipeline,
-                            [
-                                '$match' => [
-                                    "_id" => mDB::id($args['_id']),
-                                ],
-                            ],
-                            [
-                                '$limit' => 1
-                            ],
-                        ];
-
-
-
-
-                        $result = $structure->aggregate($pipeline)->toArray() ?? null;
-
-
-
-
-                        if (!$result) {
-
-                            Shm::error("Документ не найден или нет доступа");
-                        } else {
-
-
-
-                            return  [
-                                'data' => $result,
-                                'hash' => mDB::hashDocuments($result),
-                            ];
-                        }
-                    }
-
-
-
-                    if (isset($args['filter'])) {
-
-
-                        $pipelineFilter =  $structure->filterToPipeline($args['filter']);
-
-
-
-
-                        if ($pipelineFilter) {
-
-                            $pipeline = [
-                                ...$pipeline,
-                                ...$pipelineFilter,
-                            ];
-                        }
-                    };
-
-
-
-
-                    if (isset($args['search'])) {
-
-                        $pipeline[] = [
-                            '$match' => [
-                                'search_string' => ['$regex' => mb_strtolower(trim($args['search'])), '$options' => 'i'],
-                            ],
-                        ];
-                    }
-
-
-
-
-
-
-
-                    $total = 0;
-
-
-
-                    Response::startTraceTiming("total_count");
-                    $total =  $structure->aggregate([
-                        ...$pipeline,
-                        [
-                            '$count' => 'total',
-                        ],
-                    ])->toArray()[0]['total'] ?? 0;
-                    Response::endTraceTiming("total_count");
-
-                    $_limit = $args['limit'] ?? null;
-
-
-                    if ($_limit === 0) {
-                        return [
-                            'data' => [],
-                            'limit' => 0,
-                            'offset' => 0,
-                            'total' => $total,
-                        ];
-                    }
-
-
-
-
-
-                    if (isset($args['sort']) && isset($args['sort']['field']) && isset($args['sort']['direction'])) {
-
-                        $pipeline[] = [
-                            '$sort' => [
-                                $args['sort']['field'] => $args['sort']['direction'] == "DESC" ? -1 : 1,
-                            ],
-                        ];
-                    } else {
-
-                        if ($structure->manualSort) {
-
-
-                            $pipeline[] = [
-                                '$sort' => [
-                                    "_sortWeight" => -1,
-
-                                ],
-                            ];
-                        } else {
-
-                            $pipeline[] = [
-                                '$sort' => [
-                                    "_id" => -1,
-                                ],
-                            ];
-                        }
-                    }
-
-                    if (isset($args['offset']) && $args['offset'] > 0) {
-
-                        $pipeline[] = [
-                            '$skip' => $args['offset'],
-                        ];
-                    }
-
-
-                    $pipeline[] = [
-                        '$limit' => $args['limit'] ?? 20,
-                    ];
-
-                    if ($args['table'] ?? false) {
-                        $hideProjection =  $structure->getProjection('inTable');
-
-
-                        if ($hideProjection) {
-                            $pipeline[] = [
-                                '$project' => [
-                                    ...$hideProjection,
-                                    'updated_at' => 1
-                                ]
-                            ];
-                        }
-                    }
-
-
-
-
-                    Response::startTraceTiming("data_aggregate");
-                    $result = $structure->aggregate(
-                        $pipeline
-
-                    )->toArray();
-                    Response::endTraceTiming("data_aggregate");
-
-
-
-
-
-                    return [
-                        'data' => $result,
-                        'limit' => $args['limit'] ?? 20,
-                        'offset' => $args['offset'] ?? 0,
-                        'hash' => mDB::hashDocuments($result),
-                        'total' => $total,
-                    ];
-                }
-
-            ],
 
 
             'deleteExport' => [
@@ -1768,6 +1175,7 @@ class AdminPanel
 
                 'type' => Shm::bool(),
                 'args' => Shm::structure([
+                    'ids' => Shm::IDs(),
                     'title' => Shm::string(),
                     "collection" => Shm::nonNull(Shm::string()),
                     'filter' => Shm::mixed(),
@@ -1828,6 +1236,21 @@ class AdminPanel
 
                     $pipeline = $structure->getPipeline();
 
+                    if (isset($args['ids']) && count($args['ids']) > 0) {
+
+                        $ids = array_map(function ($id) {
+                            return mDB::id($id);
+                        }, $args['ids']);
+
+                        $pipeline = [
+                            ...$pipeline,
+                            [
+                                '$match' => [
+                                    '_id' => ['$in' => $ids]
+                                ],
+                            ],
+                        ];
+                    }
 
                     if (isset($args['stage'])) {
 
@@ -1946,8 +1369,8 @@ class AdminPanel
                         ['$match' =>  [
                             'currency' => $args['currency'],
                             '$or' => [
-                                ['manager' => Auth::getAuthOwner()],
-                                [$key => Auth::getAuthOwner()],
+                                ['manager' => Auth::getAuthID()],
+                                [$key => Auth::getAuthID()],
                             ]
                         ]],
                         ['$sort' => ["created_at" => 1]],
@@ -2020,7 +1443,7 @@ class AdminPanel
 
                     $apikeys = mDB::collection(Auth::$apikey_collection)->find(
                         [
-                            'owner' => Auth::getAuthOwner(),
+                            'owner' => Auth::getAuthID(),
                         ],
                         [
                             'projection' => [
@@ -2070,7 +1493,7 @@ class AdminPanel
 
                     $apikey = mDB::collection(Auth::$apikey_collection)->findOne([
                         '_id' => mDB::id($apikeyId),
-                        'owner' => Auth::getAuthOwner(),
+                        'owner' => Auth::getAuthID(),
                     ]);
 
                     if (!$apikey) {
@@ -2100,7 +1523,7 @@ class AdminPanel
                         Response::validation("Не указано название ключа");
                     }
 
-                    $apikey = Auth::genApiKey($title, Auth::getAuthCollection(), Auth::getAuthOwner());
+                    $apikey = Auth::genApiKey($title, Auth::getAuthCollection(), Auth::getAuthID());
 
                     if (!$apikey) {
                         Response::validation("Ошибка при создании ключа");
@@ -2186,10 +1609,6 @@ class AdminPanel
                 }
 
             ],
-
-
-
-
 
 
             'update' => [
@@ -2521,7 +1940,7 @@ class AdminPanel
                 ]),
                 'resolve' => function ($root, $args) {
 
-                    Auth::authenticateOrThrow(...self::$authStructures);
+                    /*                    Auth::authenticateOrThrow(...self::$authStructures);
 
                     $findStructure = self::findCurrentAuthStructure();
 
@@ -2541,23 +1960,15 @@ class AdminPanel
                     }
 
 
-                    return $findStructure->getCurrency($currency)?->getGateway($args['gateway'])?->generatePaymentLink(Auth::getAuthOwner(), $amount);
+                    return $findStructure->getCurrency($currency)?->getGateway($args['gateway'])?->generatePaymentLink(Auth::getAuthID(), $amount);*/
                 }
             ],
 
 
             'lastBalanceOperations' => [
-                'type' =>  Shm::arrayOf(Shm::structure(
-                    [
-                        "amount" => Shm::float(),
-                        "currency" => Shm::string(),
-                        "description" => Shm::string(),
-                        "created_at" => Shm::float(),
-                    ]
-                )->staticBaseTypeName("PaymentsData")),
-                'args' => [
-                    'currency' => Shm::nonNull(Shm::string()),
-                ],
+                'type' =>  Shm::arrayOf(
+                    BalanceUtils::balancePaymentsStructure()
+                ),
                 'resolve' => function ($root, $args) {
                     Auth::authenticateOrThrow(...self::$authStructures);
 
@@ -2567,7 +1978,28 @@ class AdminPanel
                         return null;
                     }
 
-                    return $findStructure->getCurrency($args['currency'])?->lastBalanceOperations(Auth::getAuthOwner()) ?? [];
+                    $collection = $findStructure->collection;
+                    $key = Inflect::singularize($collection);
+
+                    $filter = [
+                        '$or' => [
+                            [$key  => Auth::getAuthID()],
+                            ['manager' => Auth::getAuthID()],
+                        ],   // в платежи ты писал $user->_id
+
+                        'deleted_at' => ['$exists' => false],
+                    ];
+
+                    // сортировка и лимит (последние по времени)
+                    $options = [
+                        'sort'   => ['created_at' => -1],
+                        'limit'  => 100,
+                    ];
+
+                    $cursor = mDB::collection($collection . '_payments')->find($filter, $options);
+
+
+                    return iterator_to_array($cursor, false);
                 }
             ],
 
@@ -2627,92 +2059,6 @@ class AdminPanel
                     return $fieldDescription;
                 }
             ],
-
-
-
-
-            'localizationEntries' => [
-
-                "type" => Shm::listOf(Shm::structure([
-                    'key' => Shm::string(),
-                    'value' => Shm::string(),
-                ])),
-                'args' => Shm::structure([
-                    "lang" => Shm::nonNull(Shm::enum([
-                        'ru',
-                        'en',
-                    ])),
-                ]),
-                'resolve' => function ($root, $args) {
-
-                    $aggregate = [
-                        [
-                            '$project' => [
-                                "key" => 1,
-                                "value" => '$' . $args['lang'],
-                            ],
-                        ],
-                    ];
-
-                    return mDB::collection("_localization")->aggregate($aggregate)->toArray();
-                },
-
-            ],
-
-            'addLocalizationEntry' => [
-                "type" => Shm::boolean(),
-                'args' => Shm::structure([
-                    "data" =>  Shm::nonNull(Shm::listOf(Shm::string())),
-                ]),
-                'resolve' => function ($root, $args) {
-
-
-
-                    $updateData = [];
-                    foreach ($args['data'] as $item) {
-
-                        if (!$item || !is_string($item)) {
-                            continue;
-                        }
-
-                        $key = md5($item);
-
-                        $updateData[] = [
-                            'updateOne' => [
-                                [
-                                    "key" => $key,
-
-                                ],
-                                [
-                                    '$set' => [
-                                        "key" => $key,
-                                        "ru" => $item,
-                                    ],
-                                ],
-                                [
-                                    'upsert' => true,
-                                ],
-                            ],
-                        ];
-                    }
-
-
-                    // Выполните обновление нескольких документов одним запросом
-                    if (count($updateData) > 0) {
-                        mDB::collection('_localization')->bulkWrite($updateData);
-                    }
-
-
-                    return true;
-                },
-            ],
-
-
-
-
-
-
-
 
 
         ]);

@@ -38,6 +38,6 @@ class Auth
     public static function getAuthenticatedUser()
     {
 
-        return ShmAuthAuth::getAuthOwnerAllField();
+        return ShmAuthAuth::getAuthIDAllField();
     }
 }

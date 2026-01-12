@@ -2,6 +2,7 @@
 
 namespace Shm\ShmUtils;
 
+use Shm\ShmAdmin\SchemaCollections\ShmExportCollection;
 use Shm\ShmAuth\Auth;
 use Shm\ShmAuth\AuthSessionRevoke;
 use Shm\ShmCmd\Cmd;
@@ -109,6 +110,11 @@ class ShmInit
         Doctor::cmdInit();
         SearchStringUpdate::cmdInit();
 
+        Cmd::command("exportStep", function () {
+
+            ShmExportCollection::exportStep();
+        })->everyMinute();
+
 
         ShmMetrics::init();
 
@@ -167,7 +173,7 @@ class ShmInit
     private static function updateLang()
     {
         if (Cmd::cli()) {
-            self::$lang = 'en';
+            self::$lang = 'ru';
             return;
         }
 
@@ -193,10 +199,13 @@ class ShmInit
         foreach ($sources as $sourceName => $source) {
             foreach ($keys as $key) {
                 if (!empty($source[$key])) {
-                    $lang = strtolower(substr(trim($source[$key]), 0, 2));
-                    if (in_array($lang, $allowedLangs, true)) {
-                        self::$lang = $lang;
-                        return;
+                    $value = strtolower(trim($source[$key]));
+                    // Проверяем вхождение языка в строке (например, "RU_ru", "En_en", "russian", "english")
+                    foreach ($allowedLangs as $allowedLang) {
+                        if (strpos($value, $allowedLang) !== false) {
+                            self::$lang = $allowedLang;
+                            return;
+                        }
                     }
                 }
             }
@@ -206,16 +215,19 @@ class ShmInit
         if (!empty($_SERVER['HTTP_ACCEPT_LANGUAGE'])) {
             $langs = explode(',', $_SERVER['HTTP_ACCEPT_LANGUAGE']);
             foreach ($langs as $langRaw) {
-                $lang = strtolower(substr($langRaw, 0, 2));
-                if (in_array($lang, $allowedLangs, true)) {
-                    self::$lang = $lang;
-                    return;
+                $value = strtolower(trim($langRaw));
+                // Проверяем вхождение языка в строке
+                foreach ($allowedLangs as $allowedLang) {
+                    if (strpos($value, $allowedLang) !== false) {
+                        self::$lang = $allowedLang;
+                        return;
+                    }
                 }
             }
         }
 
         // Значение по умолчанию
-        self::$lang = 'en';
+        self::$lang = 'ru';
     }
 
 

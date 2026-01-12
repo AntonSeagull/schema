@@ -57,7 +57,7 @@ class ShmChatBlueprintsClientRPC extends ShmChatBlueprintsBaseRPC
 
 
                     $channels = ShmChannelMembers::structure()->distinct('channel', [
-                        'member' => Auth::getAuthOwner(),
+                        'member' => Auth::getAuthID(),
                         'memberCollection' => Auth::getAuthCollection(),
                     ]);
 
@@ -127,7 +127,7 @@ class ShmChatBlueprintsClientRPC extends ShmChatBlueprintsBaseRPC
 
                     $insert =  ShmChannelMessages::structure()->insertOne([
                         "channel" => $channel->_id,
-                        "member" => Auth::getAuthOwner(),
+                        "member" => Auth::getAuthID(),
                         "text" => $args['text'] ?? "",
                         'reply' => $args['reply'] ?? null,
                         "attachments" => $args['attachments'] ?? [],
@@ -169,7 +169,7 @@ class ShmChatBlueprintsClientRPC extends ShmChatBlueprintsBaseRPC
                     self::accessValidator($args['channel']);
 
 
-                    ShmChannelMembers::updateLastRead(mDB::id($args['channel']), Auth::getAuthOwner());
+                    ShmChannelMembers::updateLastRead(mDB::id($args['channel']), Auth::getAuthID());
 
 
                     $channel = ShmChannels::structure()->findOne([
@@ -181,7 +181,7 @@ class ShmChatBlueprintsClientRPC extends ShmChatBlueprintsBaseRPC
                     }
 
                     $member = ShmChannelMembers::structure()->findOne([
-                        "user" => Auth::getAuthOwner(),
+                        "user" => Auth::getAuthID(),
                         "channel" => $channel->_id,
                     ]);
                     if (!$member) {
@@ -259,7 +259,7 @@ class ShmChatBlueprintsClientRPC extends ShmChatBlueprintsBaseRPC
                     }
 
                     $reactionType = $args['reaction'];
-                    $userIdObj = mDB::id(Auth::getAuthOwner());
+                    $userIdObj = mDB::id(Auth::getAuthID());
                     $messageIdObj = mDB::id($args['message']);
 
                     $collection = ShmChannelMessages::structure();
@@ -335,7 +335,7 @@ class ShmChatBlueprintsClientRPC extends ShmChatBlueprintsBaseRPC
 
                     $channelId = mDB::id($args['channel']);
                     $messageId = mDB::id($args['message']);
-                    $userId = mDB::id(Auth::getAuthOwner());
+                    $userId = mDB::id(Auth::getAuthID());
 
                     // Получаем сообщение
                     $message = ShmChannelMessages::structure()->findOne(['_id' => $messageId, 'channel' => $channelId, 'member' => $userId]);

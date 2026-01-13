@@ -99,87 +99,27 @@ class ShmInit
             [
                 'message' => '404: Resource not found. Have you tried sudo?',
                 'hint' => 'The page has been moved to /dev/null'
+            ],
+            [
+                'message' => '404: Resource not found. DNS is having an existential crisis.',
+                'hint' => 'Try waiting 5 minutes. Or 5 hours.'
+            ],
+            [
+                'message' => '404: Resource not found. These are not the pages you are looking for.',
+                'hint' => 'Move along.'
+            ],
+            [
+                'message' => '404: Resource not found. This is fine.',
+                'hint' => 'Everything is under control.'
             ]
         ];
 
         $msg = $messages[array_rand($messages)];
 
-        return <<<HTML
-<!doctype html>
-<html lang="ru">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>404</title>
-  <style>
-    :root{
-      --bg:#000;
-      --fg:#00ff66;
-      --dim:#00aa44;
-    }
-    html,body{height:100%;}
-    body{
-     overflow: hidden;
-      margin:0;
-      background:var(--bg);
-      color:var(--fg);
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      padding:24px;
-    }
-    .screen{
-      width:min(900px, 100%);
-      border:2px solid var(--dim);
-      padding:18px 18px 14px;
-      box-shadow:0 0 0 2px rgba(0,170,68,.15), 0 0 24px rgba(0,255,102,.10) inset;
-    }
-    .line{white-space:pre-wrap; word-break:break-word; line-height:1.35;}
-    .dim{color:var(--dim);}
-    .sp{height:10px;}
-    .cursor{
-      display:inline-block;
-      width:10px;
-      margin-left:2px;
-      background:var(--fg);
-      animation:blink 1s steps(1) infinite;
-      height:1.05em;
-      vertical-align:-0.15em;
-    }
-    @keyframes blink{50%{opacity:0;}}
-    a{color:var(--fg); text-decoration:none; border-bottom:1px dotted var(--dim);}
-    a:hover{border-bottom-style:solid;}
-    .kbd{color:var(--bg); background:var(--fg); padding:0 6px; border-radius:3px;}
-  </style>
-</head>
-<body>
-  <div class="screen" role="main" aria-label="404 terminal screen">
-    <div class="line dim">C:\SYSTEM&gt; cd \WWW</div>
-    <div class="line dim">C:\WWW&gt; dir</div>
-    <div class="sp"></div>
-
-    <div class="line">Volume in drive C has no label.</div>
-    <div class="line">Directory of C:\WWW</div>
-    <div class="sp"></div>
-
-    <div class="line">File Not Found</div>
-    <div class="line dim">ERRORLEVEL: 404</div>
-    <div class="sp"></div>
-
-    <div class="line">{$msg['message']}</div>
-    <div class="sp"></div>
-
-    <div class="line">Press any key to continue . . . <span class="cursor" aria-hidden="true"></span></div>
-    <div class="sp"></div>
-
-    <div class="line dim">Hint: {$msg['hint']}</div>
-  </div>
-
- 
-</body>
-</html>
-HTML;
+        return ShmTwig::render('@shm/404', [
+            'message' => $msg['message'],
+            'hint' => $msg['hint']
+        ]);
     }
 
     private static function fatFree404()

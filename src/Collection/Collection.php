@@ -84,7 +84,7 @@ class Collection
 
         if (Auth::getAuthCollection() == $_this->collection) {
 
-            return Auth::getAuthIDAllField();
+            return Auth::getAuthOwnerAllField();
         }
 
         return null;

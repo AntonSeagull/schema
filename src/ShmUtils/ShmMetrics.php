@@ -2,10 +2,11 @@
 
 namespace Shm\ShmUtils;
 
-use Lumus\Engine\Cmd;
+
 use Predis\Client;
 use Predis\Connection\ConnectionException;
 use Predis\Response\ServerException;
+use Shm\ShmCmd\Cmd;
 
 class ShmMetrics
 {

@@ -4,6 +4,7 @@ namespace Shm\ShmAdmin\AdminRPC;
 
 use Shm\Shm;
 use Shm\ShmAdmin\AdminPanel;
+use Shm\ShmAdmin\Types\BaseStructureType;
 use Shm\ShmRPC\ShmRPC;
 use Shm\ShmUtils\Response;
 
@@ -26,7 +27,7 @@ class AdminRPCReport
             'view' =>  $viewType,
 
             'title' => Shm::string(),
-            'structure' => AdminPanel::baseStructure(),
+            'structure' => BaseStructureType::get(),
             'heatmap' => Shm::structure([
                 'xAxis' => Shm::arrayOf(Shm::string()),
                 'yAxis' => Shm::arrayOf(Shm::string()),

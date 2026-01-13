@@ -3,14 +3,10 @@
 namespace Shm\ShmUtils;
 
 use Shm\ShmAdmin\SchemaCollections\ShmExportCollection;
-use Shm\ShmAuth\Auth;
 use Shm\ShmAuth\AuthSessionRevoke;
 use Shm\ShmCmd\Cmd;
-use Shm\ShmCmd\CmdSchedule;
 
-use Shm\ShmDB\mDB;
-use Shm\ShmDB\mDBLite;
-use Shm\ShmSupport\ShmSupport;
+
 use Throwable;
 
 class ShmInit
@@ -53,11 +49,170 @@ class ShmInit
         self::$_errorHandler = $errorHandler;
     }
 
+    private static function renderDos404(): string
+    {
+        $messages = [
+            [
+                'message' => 'The requested resource could not be located.',
+                'hint' => 'Have you tried turning it off and on again?'
+            ],
+            [
+                'message' => 'This page is null. Literally.',
+                'hint' => 'Stack Overflow suggests you check your spelling.'
+            ],
+            [
+                'message' => 'The page you\'re looking for is in another castle.',
+                'hint' => 'Did you try sudo?'
+            ],
+            [
+                'message' => 'It\'s not a bug, it\'s a feature.',
+                'hint' => 'The page has been moved to /dev/null'
+            ],
+            [
+                'message' => 'This page is undefined. Just like your variable.',
+                'hint' => 'rm -rf / won\'t help here.'
+            ],
+            [
+                'message' => 'The page has left the building. Elvis has nothing to do with it.',
+                'hint' => 'Have you tried Ctrl+Alt+Delete?'
+            ],
+            [
+                'message' => 'The page you\'re looking for is in another dimension.',
+                'hint' => 'This page has been deprecated. Like IE6.'
+            ],
+            [
+                'message' => 'Resource not found. Neither does your social life.',
+                'hint' => 'It\'s not a bug, it\'s a feature request.'
+            ],
+            [
+                'message' => '404: Page not found. Stack overflow suggests you check your spelling.',
+                'hint' => 'Have you tried grep -r "page" /dev/null?'
+            ],
+            [
+                'message' => 'This endpoint returns 404. It\'s working as intended.',
+                'hint' => 'Maybe try checking the network tab?'
+            ],
+            [
+                'message' => 'The page you\'re looking for doesn\'t exist. Neither does your social life.',
+                'hint' => 'Did you try npm install?'
+            ],
+            [
+                'message' => '404: Resource not found. Have you tried sudo?',
+                'hint' => 'The page has been moved to /dev/null'
+            ]
+        ];
+
+        $msg = $messages[array_rand($messages)];
+
+        return <<<HTML
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>404</title>
+  <style>
+    :root{
+      --bg:#000;
+      --fg:#00ff66;
+      --dim:#00aa44;
+    }
+    html,body{height:100%;}
+    body{
+     overflow: hidden;
+      margin:0;
+      background:var(--bg);
+      color:var(--fg);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:24px;
+    }
+    .screen{
+      width:min(900px, 100%);
+      border:2px solid var(--dim);
+      padding:18px 18px 14px;
+      box-shadow:0 0 0 2px rgba(0,170,68,.15), 0 0 24px rgba(0,255,102,.10) inset;
+    }
+    .line{white-space:pre-wrap; word-break:break-word; line-height:1.35;}
+    .dim{color:var(--dim);}
+    .sp{height:10px;}
+    .cursor{
+      display:inline-block;
+      width:10px;
+      margin-left:2px;
+      background:var(--fg);
+      animation:blink 1s steps(1) infinite;
+      height:1.05em;
+      vertical-align:-0.15em;
+    }
+    @keyframes blink{50%{opacity:0;}}
+    a{color:var(--fg); text-decoration:none; border-bottom:1px dotted var(--dim);}
+    a:hover{border-bottom-style:solid;}
+    .kbd{color:var(--bg); background:var(--fg); padding:0 6px; border-radius:3px;}
+  </style>
+</head>
+<body>
+  <div class="screen" role="main" aria-label="404 terminal screen">
+    <div class="line dim">C:\SYSTEM&gt; cd \WWW</div>
+    <div class="line dim">C:\WWW&gt; dir</div>
+    <div class="sp"></div>
+
+    <div class="line">Volume in drive C has no label.</div>
+    <div class="line">Directory of C:\WWW</div>
+    <div class="sp"></div>
+
+    <div class="line">File Not Found</div>
+    <div class="line dim">ERRORLEVEL: 404</div>
+    <div class="sp"></div>
+
+    <div class="line">{$msg['message']}</div>
+    <div class="sp"></div>
+
+    <div class="line">Press any key to continue . . . <span class="cursor" aria-hidden="true"></span></div>
+    <div class="sp"></div>
+
+    <div class="line dim">Hint: {$msg['hint']}</div>
+  </div>
+
+ 
+</body>
+</html>
+HTML;
+    }
+
+    private static function fatFree404()
+    {
+
+        if (class_exists('\\Base')) {
+            $f3 = \Base::instance();
+
+            $f3->set('ONERROR', function ($f3) {
+                $error = $f3->get('ERROR');
+                $code  = $error['code'] ?? 500;
+
+                if ($code === 404) {
+                    header('Content-Type: text/html; charset=utf-8', true, 404);
+                    echo self::renderDos404(); // функция ниже
+                    return;
+                }
+
+                // Для прочих ошибок можно вывести нейтрально:
+                header('Content-Type: text/plain; charset=utf-8', true, $code);
+                echo "Error {$code}";
+            });
+        }
+    }
 
     public static function init(string $bootstrapAppDir): void
     {
         self::$shmVersionHash =   \Composer\InstalledVersions::getReference("shm/schema") ?? "none";
 
+        header_remove("X-Powered-By");
+        ini_set('expose_php', 'off');
+
+        self::fatFree404();
 
         if (php_sapi_name() !== 'cli') {
 

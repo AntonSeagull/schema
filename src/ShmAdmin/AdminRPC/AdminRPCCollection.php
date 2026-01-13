@@ -4,6 +4,7 @@ namespace Shm\ShmAdmin\AdminRPC;
 
 use Shm\Shm;
 use Shm\ShmAdmin\AdminPanel;
+use Shm\ShmAdmin\Types\BaseStructureType;
 use Shm\ShmRPC\ShmRPC;
 
 class AdminRPCCollection
@@ -14,7 +15,7 @@ class AdminRPCCollection
         return ShmRPC::lazy(function () {
 
             return [
-                'type' => AdminPanel::baseStructure(),
+                'type' => BaseStructureType::get(),
                 'args' => Shm::structure([
                     "collection" => Shm::nonNull(Shm::string()),
                 ]),

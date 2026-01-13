@@ -5,6 +5,7 @@ namespace Shm\ShmAdmin\AdminRPC;
 use Shm\Shm;
 use Shm\ShmAdmin\AdminPanel;
 use Shm\ShmAdmin\SchemaCollections\SubAccountsSchema;
+use Shm\ShmAdmin\Types\BaseStructureType;
 use Shm\ShmAuth\Auth;
 use Shm\ShmRPC\ShmRPC;
 use Shm\ShmTypes\CompositeTypes\BalanceTypes\BalanceUtils;
@@ -19,13 +20,13 @@ class AdminRPCProfile
             return [
                 "type" => Shm::structure([
 
-                    'structure' => AdminPanel::baseStructure(),
+                    'structure' => BaseStructureType::get(),
                     'data' => Shm::mixed(),
                     'changePassword' => Shm::boolean(),
                     'subAccount' => Shm::boolean(),
 
                     'balances' => Shm::arrayOf(Shm::structure([
-                        'field' => AdminPanel::baseStructure(),
+                        'field' => BaseStructureType::get(),
                         'path' => Shm::string(),
                     ])),
                 ]),

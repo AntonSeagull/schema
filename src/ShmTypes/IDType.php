@@ -34,19 +34,20 @@ class IDType extends BaseType
     {
 
 
-        //If set documentResolver, collection must be
-        if ($documentResolver && !$collection) {
+        if ($documentResolver) {
 
-            if (!$collection && $documentResolver instanceof StructureType && $documentResolver->collection) {
-                $this->collection = $documentResolver->collection;
-            } else {
-                throw new \Exception("Collection must be set if documentResolver is set");
+            //If set documentResolver, collection must be
+            if ($documentResolver && !$collection) {
+
+                if (!$collection && $documentResolver instanceof StructureType && $documentResolver->collection) {
+                    $this->collection = $documentResolver->collection;
+                } else {
+                    throw new \Exception("Collection must be set if documentResolver is set");
+                }
+            } else if ($collection) {
+                $this->collection = $collection;
             }
-        } else if ($collection) {
-            $this->collection = $collection;
         }
-
-
         if ($documentResolver instanceof StructureType) {
 
 

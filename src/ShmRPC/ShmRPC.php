@@ -276,7 +276,10 @@ class ShmRPC
 
 
         if ($method === null) {
-            throw new \Exception("Method is required.");
+
+
+
+            ShmRPC::error("Method is required.");
         }
 
 

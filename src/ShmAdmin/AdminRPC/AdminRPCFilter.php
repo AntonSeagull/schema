@@ -4,6 +4,7 @@ namespace Shm\ShmAdmin\AdminRPC;
 
 use Shm\Shm;
 use Shm\ShmAdmin\AdminPanel;
+use Shm\ShmAdmin\Types\BaseStructureType;
 use Shm\ShmAuth\Auth;
 use Shm\ShmRPC\ShmRPC;
 use Shm\ShmUtils\Response;
@@ -16,7 +17,7 @@ class AdminRPCFilter
         return ShmRPC::lazy(function () {
 
             return [
-                'type' => AdminPanel::baseStructure(),
+                'type' => BaseStructureType::get(),
                 'args' => [
                     'collection' => Shm::nonNull(Shm::string()),
                 ],

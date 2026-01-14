@@ -263,7 +263,6 @@ class Collection
 
         $schema->addFieldIfNotExists("created_at", Shm::int()->editable(false));
         $schema->addFieldIfNotExists("updated_at", Shm::int()->editable(false));
-        $schema->addFieldIfNotExists("deleted_at", Shm::int()->editable(false))->indexed();
 
 
 

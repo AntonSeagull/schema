@@ -19,7 +19,7 @@ class UnixDateTimeType extends BaseType
     public function normalize(mixed $value, $addDefaultValues = false, string | null $processId = null): mixed
     {
 
-        if ($addDefaultValues &&  $value === null && $this->defaultIsSet) {
+        if ($addDefaultValues &&  !$value && $this->defaultIsSet) {
             return $this->getDefault();
         }
 

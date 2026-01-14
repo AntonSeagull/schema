@@ -12,6 +12,7 @@ class ShmTwig
     private static string $viewPath = 'resources/views';
     private static string $cachePath = 'storage/cache/twig';
 
+
     private static array $namespaces = [];
 
     private static ?Environment $twig = null;
@@ -25,6 +26,41 @@ class ShmTwig
         }
     }
 
+
+    private static function ensurePublicAssetsSymlink(): void
+    {
+        $rootPath = ShmInit::$rootDir;
+        $resourcesAssetsPath = $rootPath . '/resources/assets';
+        $publicPath = $rootPath . '/public';
+        $publicAssetsLinkPath = $publicPath . '/assets';
+
+        // На всякий случай гарантируем, что target существует
+        @\mkdir($resourcesAssetsPath, 0755, true);
+        @\mkdir($publicPath, 0755, true);
+
+        // Если уже есть обычная папка/файл assets (не ссылка) — не трогаем
+        if (\file_exists($publicAssetsLinkPath) && !\is_link($publicAssetsLinkPath)) {
+            return;
+        }
+
+        // Если ссылка есть, но она битая или ведёт не туда — пересоздаём
+        if (\is_link($publicAssetsLinkPath)) {
+            $linkReal = \realpath($publicAssetsLinkPath) ?: null;
+            $targetReal = \realpath($resourcesAssetsPath) ?: null;
+
+            if ($linkReal === null || ($targetReal !== null && $linkReal !== $targetReal)) {
+                @\unlink($publicAssetsLinkPath);
+            } else {
+                return; // корректная ссылка уже есть
+            }
+        }
+
+        // Создаём симлинк, если его нет
+        if (!\file_exists($publicAssetsLinkPath) && !\is_link($publicAssetsLinkPath)) {
+            @\symlink($resourcesAssetsPath, $publicAssetsLinkPath);
+        }
+    }
+
     private static function init(): void
     {
         if (self::$init) {
@@ -34,6 +70,8 @@ class ShmTwig
         if (ShmInit::$rootDir === null) {
             throw new RuntimeException('ShmTwig requires ShmInit::$rootDir to be defined.');
         }
+
+        self::ensurePublicAssetsSymlink();
 
         $fullViewPath = self::resolvePath(self::$viewPath);
         if (!is_dir($fullViewPath)) {

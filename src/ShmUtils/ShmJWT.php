@@ -1,6 +1,6 @@
 <?php
 
-namespace Lumus;
+namespace Shm\ShmUtils;
 
 use DateTime;
 use DateTimeZone;

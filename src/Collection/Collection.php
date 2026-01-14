@@ -254,7 +254,7 @@ class Collection
         $schema->addFieldIfNotExists("_id", Shm::ID()->editable(false));
 
         if ($schema->manualSort) {
-            $schema->addFieldIfNotExists("_sortWeight", Shm::int()->editable(false));
+            $schema->addFieldIfNotExists("_sortWeight", Shm::int()->editable(false))->indexed();
         }
 
 
@@ -263,6 +263,7 @@ class Collection
 
         $schema->addFieldIfNotExists("created_at", Shm::int()->editable(false));
         $schema->addFieldIfNotExists("updated_at", Shm::int()->editable(false));
+        $schema->addFieldIfNotExists("deleted_at", Shm::int()->editable(false))->indexed();
 
 
 

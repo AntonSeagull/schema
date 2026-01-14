@@ -190,7 +190,7 @@ class CmdSchedule
                     try {
                         $task['function']();
                     } catch (Exception $exception) {
-                        ShmInit::sendOnError($error);
+                        ShmInit::sendOnError($exception);
                     }
                 }
             }

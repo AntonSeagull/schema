@@ -64,7 +64,7 @@ class IDsType extends BaseType
     {
 
         if ($addDefaultValues && $values === null && $this->defaultIsSet) {
-            return $this->default;
+            return $this->getDefault();
         }
 
 

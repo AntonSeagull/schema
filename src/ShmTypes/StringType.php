@@ -98,7 +98,7 @@ class StringType extends BaseType
     public function normalize(mixed $value, $addDefaultValues = false, string|null $processId = null): mixed
     {
         if ($addDefaultValues && $value === null && $this->defaultIsSet) {
-            return $this->processValue($this->default);
+            return $this->processValue($this->getDefault());
         }
         return $this->processValue((string) $value);
     }

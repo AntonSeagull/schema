@@ -298,7 +298,7 @@ class ShmEmailAuth extends ShmAuthBase
 
                 return [
                     'find' => false,
-                    'isEmail' =>  $this->isEmail($login ?? null),
+                    'isEmail' =>  $this->isEmail($login),
                     'canRegister' => $canRegister,
                 ];
             }

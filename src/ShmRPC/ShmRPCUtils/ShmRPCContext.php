@@ -214,7 +214,7 @@ class ShmRPCContext
 
 
 
-        if ($result && ($schemaMethod['cache'] ?? 0) > 0) {
+        if ($result && ($this->cache ?? 0) > 0) {
             RedisCache::set($this->cachedKey(), json_encode($result), $this->cache);
         }
 

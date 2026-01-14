@@ -831,6 +831,7 @@ class StructureType extends BaseType
 
         if ($addDefaultValues) {
 
+
             /* if (!(is_array($value) || $value instanceof Traversable)) {
                 //$value = [];
                 return null;
@@ -859,6 +860,8 @@ class StructureType extends BaseType
             if (!(is_array($value) || $value instanceof Traversable)) {
                 return null;
             }
+
+
 
             foreach ($this->items as $key => $type) {
 
@@ -1648,6 +1651,8 @@ class StructureType extends BaseType
 
 
         $document = $this->normalize($document, true);
+
+
 
 
 

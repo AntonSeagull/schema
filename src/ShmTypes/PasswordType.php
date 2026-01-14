@@ -20,7 +20,7 @@ class PasswordType extends BaseType
     {
 
         if ($addDefaultValues &&  $value === null && $this->defaultIsSet) {
-            $value = $this->default;
+            $value = $this->getDefault();
         }
 
 

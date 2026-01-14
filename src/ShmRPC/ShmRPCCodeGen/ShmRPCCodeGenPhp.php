@@ -3,7 +3,7 @@
 namespace Shm\ShmRPC\ShmRPCCodeGen;
 
 use Shm\ShmTypes\BaseType;
-use Shm\ShmUtils\Doctor;
+
 use Shm\ShmUtils\ShmInit;
 
 class ShmRPCCodeGenPhp

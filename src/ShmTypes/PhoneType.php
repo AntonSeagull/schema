@@ -18,7 +18,7 @@ class PhoneType extends BaseType
     {
 
         if ($addDefaultValues &&  $value === null && $this->defaultIsSet) {
-            return $this->default;
+            return $this->getDefault();
         }
         if (is_string($value)) {
             $value = preg_replace('/\D/', '', $value);

@@ -8,20 +8,7 @@ use Shm\Shm;
 use Shm\ShmTypes\StructureType;
 use Shm\ShmUtils\Response;
 
-/**
- * Improved Blueprint for RPC mutations with database operations
- * 
- * This class provides a fluent interface for creating RPC mutations
- * that interact with MongoDB collections through the schema system.
- * Part of the Lumus framework for building API endpoints.
- * 
- * Key improvements:
- * - Better separation of concerns
- * - Improved error handling
- * - Type safety
- * - Comprehensive documentation
- * - Cleaner architecture
- */
+
 class ShmBlueprintMutation
 {
     private StructureType $structure;

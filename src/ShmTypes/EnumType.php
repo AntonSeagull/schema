@@ -73,7 +73,7 @@ class EnumType extends BaseType
     public function normalize(mixed $value, $addDefaultValues = false, string|null $processId = null): mixed
     {
         if ($addDefaultValues && $value === null && $this->defaultIsSet) {
-            return $this->default;
+            return $this->getDefault();
         }
 
         if (is_string($value) && isset($this->values[$value])) {

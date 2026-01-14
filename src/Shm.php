@@ -2,8 +2,9 @@
 
 namespace Shm;
 
-use Lumus\Engine\Cmd;
+
 use Shm\ShmAdmin\Types\VisualGroupType;
+use Shm\ShmCmd\Cmd;
 use Shm\ShmTypes\DashboardType;
 use Shm\ShmTypes\StringType;
 use Shm\ShmTypes\ArrayOfType;

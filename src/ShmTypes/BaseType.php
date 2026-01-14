@@ -30,6 +30,8 @@ abstract class BaseType
     public bool $draft = false;
     public int $depth = 0;
 
+    public bool $indexed = false;
+
 
     protected ?BaseType $parent = null;
 
@@ -42,6 +44,13 @@ abstract class BaseType
     {
         return $this->parent;
     }
+
+    public function indexed(bool $indexed = true): static
+    {
+        $this->indexed = $indexed;
+        return $this;
+    }
+
 
     public function getPathArray($path = []): array
     {
@@ -971,13 +980,36 @@ abstract class BaseType
     public bool $defaultIsSet = false;
 
     /**
-     * Set a default value.
+     * Set a default value or function.
+     * Can accept either a value or a callable function (without parameters).
+     * 
+     * @param mixed $value The default value or a callable function
      */
     public function default(mixed $value): static
     {
         $this->defaultIsSet = true;
         $this->default = $value;
         return $this;
+    }
+
+    /**
+     * Get the default value.
+     * If default is a callable function, executes it and returns the result.
+     * Otherwise, returns the stored value.
+     * 
+     * @return mixed The default value or the result of the default function
+     */
+    public function getDefault(): mixed
+    {
+        if (!$this->defaultIsSet) {
+            return null;
+        }
+
+        if (is_callable($this->default)) {
+            return call_user_func($this->default);
+        }
+
+        return $this->default;
     }
 
 
@@ -1069,7 +1101,7 @@ abstract class BaseType
     {
 
         if ($addDefaultValues && $value === null && $this->defaultIsSet) {
-            return $this->default;
+            return $this->getDefault();
         }
 
         return $value;

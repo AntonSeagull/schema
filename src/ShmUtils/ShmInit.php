@@ -5,8 +5,7 @@ namespace Shm\ShmUtils;
 use Shm\ShmAdmin\SchemaCollections\ShmExportCollection;
 use Shm\ShmAuth\AuthSessionRevoke;
 use Shm\ShmCmd\Cmd;
-
-
+use Shm\ShmUtils\ShmDoctor\Doctor;
 use Throwable;
 
 class ShmInit

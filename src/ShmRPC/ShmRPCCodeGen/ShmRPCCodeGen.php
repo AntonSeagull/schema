@@ -3,7 +3,7 @@
 namespace Shm\ShmRPC\ShmRPCCodeGen;
 
 
-use Shm\ShmUtils\Doctor;
+
 use Shm\ShmUtils\ShmInit;
 use Shm\ShmUtils\ShmTwig;
 

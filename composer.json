@@ -19,8 +19,7 @@
     ],
     "autoload": {
         "psr-4": {
-            "Shm\\": "src/",
-            "Lumus\\": "src/Lumus/"
+            "Shm\\": "src/"
         }
     },
     "require": {

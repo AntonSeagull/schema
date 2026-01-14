@@ -65,7 +65,7 @@ class ArrayOfType extends BaseType
         }
 
         if ($addDefaultValues && !$value && $this->defaultIsSet) {
-            return $this->default;
+            return $this->getDefault();
         }
 
         if (!$value) {

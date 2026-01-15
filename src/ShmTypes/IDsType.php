@@ -264,12 +264,6 @@ class IDsType extends BaseType
     }
 
 
-    public function computedReport(StructureType | null $root = null, $path = [], $pipeline = [])
-    {
-
-
-        return null;
-    }
 
     public function getDocument(): StructureType|null
     {

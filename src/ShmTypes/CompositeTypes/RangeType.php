@@ -9,6 +9,9 @@ class RangeType extends StructureType
 {
     public string $type = 'range';
 
+    public bool $compositeType = true;
+
+
 
     public function __construct(BaseType $type)
     {

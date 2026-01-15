@@ -14442,7 +14442,7 @@ class MaterialIcons
             $parts = explode('/', trim($requestUri, '/'));
 
 
-            if (count($parts) === 3 && $parts[0] === 'assets' && $parts[1] === 'icons') {
+            if (count($parts) === 3 && $parts[0] === '_assets' && $parts[1] === 'icons') {
                 $iconName = $parts[2];
 
                 $dir = __DIR__ . '/../../assets/icons/' . $iconName . '.svg';

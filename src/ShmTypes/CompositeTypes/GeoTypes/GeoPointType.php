@@ -18,6 +18,9 @@ class GeoPointType extends StructureType
 
     protected StructureType $fields;
 
+    public bool $compositeType = true;
+
+
 
     public function __construct()
     {

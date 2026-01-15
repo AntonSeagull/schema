@@ -9,6 +9,9 @@ class SocialType extends ArrayOfType
 {
     public string $type = 'social';
 
+    public bool $compositeType = true;
+
+
 
     public function __construct()
     {

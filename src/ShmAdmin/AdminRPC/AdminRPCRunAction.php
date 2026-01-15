@@ -6,6 +6,7 @@ use Shm\Shm;
 use Shm\ShmAdmin\AdminPanel;
 use Shm\ShmAuth\Auth;
 use Shm\ShmRPC\ShmRPC;
+use Shm\ShmTypes\CompositeTypes\ActionType;
 use Shm\ShmUtils\Response;
 
 class AdminRPCRunAction
@@ -17,13 +18,14 @@ class AdminRPCRunAction
 
             return [
                 'type' => Shm::structure([
-                    'payload' => Shm::mixed(),
+                    'payload' => Shm::structure([
+                        'url' => Shm::string(),
+                    ]),
                 ]),
                 'args' => [
-                    '_ids' => Shm::IDs(),
                     'collection' => Shm::nonNull(Shm::string()),
                     'action' => Shm::nonNull(Shm::string()),
-                    '*' => Shm::mixed()
+                    'args' => Shm::mixed(),
                 ],
 
                 'resolve' => function ($root, $args) {
@@ -33,19 +35,26 @@ class AdminRPCRunAction
                     $structure = AdminPanel::fullSchema()->findItemByCollection($args['collection']);
 
                     if (!$structure) {
-                        Response::validation("Данные не доступны");
+                        ShmRPC::error("Данные не доступны");
                     }
 
-                    $buttonAction = $structure->findButtonAction($args['action']);
 
-                    if (!$buttonAction) {
-                        Response::validation("Действие не найдено");
+                    $action = $structure->findItemByKey($args['action']);
+
+
+                    if (!$action || $action->type !== 'action') {
+                        ShmRPC::error("Действие не найдено");
                     }
 
-                    $payload =  $buttonAction->computed($args);
-                    return [
-                        'payload' => $payload
-                    ];
+                    if ($action instanceof ActionType) {
+
+                        $payload =  $action->callResolve($root, $args);
+                        return [
+                            'payload' => $payload
+                        ];
+                    } else {
+                        ShmRPC::error("Действие не найдено");
+                    }
                 }
             ];
         });

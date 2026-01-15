@@ -17,7 +17,7 @@ class FileImageType extends StructureType
 {
     public string $type = 'fileImage';
 
-
+    public bool $compositeType = true;
 
 
     protected StructureType $fields;

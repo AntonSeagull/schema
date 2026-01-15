@@ -19,6 +19,7 @@ class FileDocumentType extends StructureType
 
     protected StructureType $fields;
 
+    public bool $compositeType = true;
 
     public static function items(): array
     {

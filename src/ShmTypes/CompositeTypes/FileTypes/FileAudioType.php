@@ -17,6 +17,8 @@ class FileAudioType extends StructureType
 {
     public string $type = 'fileAudio';
 
+    public bool $compositeType = true;
+
 
 
     public string $accept = 'audio/*';

@@ -17,7 +17,7 @@ class FileVideoType extends StructureType
 {
     public string $type = 'fileVideo';
 
-
+    public bool $compositeType = true;
 
     protected StructureType $fields;
 

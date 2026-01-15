@@ -10,6 +10,8 @@ class GradientType extends StructureType
     public string $type = 'gradient';
 
 
+    public bool $compositeType = true;
+
 
 
     public function __construct()

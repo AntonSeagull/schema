@@ -60,7 +60,8 @@ class BaseStructureType extends StructureType
         "gradient",
         'report',
         'geoRegion',
-        'balance'
+        'balance',
+        'action'
     ];
 
 
@@ -82,20 +83,14 @@ class BaseStructureType extends StructureType
                 "*" => Shm::string()
             ]),
 
-            'buttonActions' => Shm::selfRef(function () use (&$type) {
-                return $type;
-            }),
-
-            'computedArgs' => Shm::selfRef(function () use (&$type) {
+            'args' => Shm::selfRef(function () use (&$type) {
                 return $type;
             }),
 
 
 
-            'computedReturnType' => Shm::selfRef(function () use (&$type) {
-                return $type;
-            }),
 
+            'actionPosition' => Shm::enum(['sidebar', 'inline', 'table']),
 
             'filterType' => Shm::selfRef(function () use (&$type) {
                 return $type;

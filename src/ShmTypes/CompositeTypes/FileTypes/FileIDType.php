@@ -11,6 +11,7 @@ use Shm\ShmUtils\ShmUtils;
 class FileIDType extends IDType
 {
 
+    public bool $compositeType = true;
 
     public function __construct(string $type)
     {

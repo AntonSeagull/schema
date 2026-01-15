@@ -10,6 +10,8 @@ class TimeType extends StructureType
     public string $type = 'time';
 
 
+    public bool $compositeType = true;
+
 
 
     public function __construct()

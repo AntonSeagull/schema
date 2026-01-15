@@ -25,10 +25,9 @@ abstract class BaseType
     public bool $hide = false;
     public bool $unique = false;
     public bool $globalUnique = false;
-    public bool $expanded = false;
+
     public ?string $description = null;
-    public bool $draft = false;
-    public int $depth = 0;
+
 
     public bool $indexed = false;
 
@@ -50,6 +49,9 @@ abstract class BaseType
         $this->indexed = $indexed;
         return $this;
     }
+
+    public bool $compositeType = false;
+
 
 
     public function getPathArray($path = []): array
@@ -121,6 +123,18 @@ abstract class BaseType
         return null;
     }
 
+    public function getRootParent()
+    {
+        if (!$this->parent) {
+            return $this;
+        }
+        if ($this->parent instanceof StructureType && $this->parent->collection) {
+            return $this->parent;
+        } else {
+            return $this->parent->getParentCollection();
+        }
+    }
+
     public ?string $deprecated = null;
 
 
@@ -131,24 +145,6 @@ abstract class BaseType
     }
 
 
-    /**
-     * Set draft status for this type
-     */
-    public function draft(bool $draft = true): static
-    {
-        $this->draft = $draft;
-        return $this;
-    }
-
-
-    /**
-     * Set depth for nested operations
-     */
-    public function depth(int $depth): static
-    {
-        $this->depth = $depth;
-        return $this;
-    }
 
 
     /**
@@ -442,6 +438,32 @@ abstract class BaseType
 
 
 
+    public function findIDTypeByCollection(string $collection): ?array
+    {
+
+        $result = [];
+
+        if (isset($this->items)) {
+            foreach ($this->items as $key => $item) {
+                if ($item instanceof IDType && $item->collection === $collection) {
+                    $result[] = $item;
+                }
+                if ($item instanceof IDsType && $item->collection === $collection) {
+                    $result[] = $item;
+                }
+
+                if ($item instanceof StructureType) {
+                    $result = [...$result, ...$item->findIDTypeByCollection($collection)];
+                }
+
+                if (isset($this->itemType)) {
+                    $result = [...$result, ...$this->itemType->findIDTypeByCollection($collection)];
+                }
+            }
+        }
+
+        return $result;
+    }
 
 
     public function getAllCollections($result = [])
@@ -499,16 +521,6 @@ abstract class BaseType
         return $a === $b;
     }
 
-
-    public function computedReport(StructureType | null $root = null, $path = [], $pipeline = [])
-    {
-
-
-
-
-
-        return   null;
-    }
 
 
     /**

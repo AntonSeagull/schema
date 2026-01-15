@@ -13,8 +13,8 @@ use Shm\ShmAdmin\AdminRPC\AdminRPCInit;
 use Shm\ShmAdmin\AdminRPC\AdminRPCMenu;
 use Shm\ShmAdmin\AdminRPC\AdminRPCDisplayValues;
 use Shm\ShmAdmin\AdminRPC\AdminRPCData;
-use Shm\ShmAdmin\AdminRPC\AdminRPCCollectionRelations;
-use Shm\ShmAdmin\AdminRPC\AdminRPCCollectionMenu;
+
+
 use Shm\ShmAdmin\AdminRPC\AdminRPCCollection;
 use Shm\ShmAdmin\AdminRPC\AdminRPCEmptyData;
 use Shm\ShmAdmin\AdminRPC\AdminRPCDashboard;
@@ -30,14 +30,14 @@ use Shm\ShmAdmin\AdminRPC\AdminRPCApiKeys;
 use Shm\ShmAdmin\AdminRPC\AdminRPCRemoveApiKey;
 use Shm\ShmAdmin\AdminRPC\AdminRPCNewApiKey;
 use Shm\ShmAdmin\AdminRPC\AdminRPCMoveUpdate;
-use Shm\ShmAdmin\AdminRPC\AdminRPCReport;
+
 use Shm\ShmAdmin\AdminRPC\AdminRPCUpdate;
 use Shm\ShmAdmin\AdminRPC\AdminRPCRunAction;
 use Shm\ShmAdmin\AdminRPC\AdminRPCStagesTotal;
-use Shm\ShmAdmin\AdminRPC\AdminRPCDescriptions;
+
 use Shm\ShmAdmin\AdminRPC\AdminRPCGeneratePaymentLink;
 use Shm\ShmAdmin\AdminRPC\AdminRPCLastBalanceOperations;
-use Shm\ShmAdmin\AdminRPC\AdminRPCUpdateDescriptions;
+
 use Shm\ShmAdmin\SchemaCollections\ShmExportCollection;
 use Shm\ShmAdmin\SchemaCollections\SubAccountsSchema;
 use Shm\ShmAdmin\ShmAdminRPC\RPCCompositeTypes;
@@ -249,9 +249,7 @@ class AdminPanel
 
             'menu' => AdminRPCMenu::rpc(),
 
-            'collectionRelations' => AdminRPCCollectionRelations::rpc(),
 
-            'collectionMenu' => AdminRPCCollectionMenu::rpc(),
 
             'displayValues' => AdminRPCDisplayValues::rpc(),
 
@@ -295,7 +293,7 @@ class AdminPanel
 
             'moveUpdate' => AdminRPCMoveUpdate::rpc(),
 
-            'report' => AdminRPCReport::rpc(),
+
 
 
             'update' => AdminRPCUpdate::rpc(),
@@ -305,15 +303,12 @@ class AdminPanel
             'stagesTotal' => AdminRPCStagesTotal::rpc(),
 
 
-            'descriptions' => AdminRPCDescriptions::rpc(),
+
 
             'generatePaymentLink' => AdminRPCGeneratePaymentLink::rpc(),
 
 
             'lastBalanceOperations' => AdminRPCLastBalanceOperations::rpc(),
-
-
-            'updateDescriptions' => AdminRPCUpdateDescriptions::rpc(),
 
 
 

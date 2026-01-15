@@ -178,13 +178,13 @@ class SubAccountsSchema
 
 
 
-                $buttonActionsEnum = [];
+                /*   $buttonActionsEnum = [];
                 if ($item->buttonActions && $item->buttonActions instanceof StructureType) {
                     foreach ($item->buttonActions->items as $buttonAction) {
                         if ($buttonAction->hide) continue;
                         $buttonActionsEnum[$buttonAction->key] = $buttonAction->title;
                     }
-                }
+                }*/
 
 
                 $hideFieldsEnum = [];
@@ -224,7 +224,7 @@ class SubAccountsSchema
 
 
 
-                            'buttonActions' => count($buttonActionsEnum) > 0 ? Shm::arrayOf(Shm::enum($buttonActionsEnum))->title("Действия")->inAdmin()->editable()->cond(Shm::cond()->notEquals($item->collection . '.fullAccess', true)->equals($item->collection . '.canView', true)) : null,
+                            //   'buttonActions' => count($buttonActionsEnum) > 0 ? Shm::arrayOf(Shm::enum($buttonActionsEnum))->title("Действия")->inAdmin()->editable()->cond(Shm::cond()->notEquals($item->collection . '.fullAccess', true)->equals($item->collection . '.canView', true)) : null,
 
 
                             'hideFields' => count($hideFieldsEnum) > 0 ? Shm::arrayOf(Shm::enum($hideFieldsEnum))->title("Скрыть поля")->inAdmin()->editable()->cond(Shm::cond()->notEquals($item->collection . '.fullAccess', true)->equals($item->collection . '.canView', true)) : null,

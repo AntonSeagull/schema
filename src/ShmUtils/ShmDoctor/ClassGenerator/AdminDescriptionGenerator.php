@@ -4,6 +4,7 @@ namespace Shm\ShmUtils\ShmDoctor\ClassGenerator;
 
 use Nette\PhpGenerator\ClassType;
 use Shm\ShmTypes\ArrayOfType;
+use Shm\ShmTypes\CompositeTypes\ActionType;
 use Shm\ShmTypes\StructureType;
 use Shm\ShmUtils\ShmDoctor\Utils\CodeGenerator;
 use Shm\ShmUtils\ShmInit;
@@ -49,6 +50,9 @@ class AdminDescriptionGenerator
         $fields = self::generateFields($structure, $existData);
 
 
+        if (count($fields) === 0) {
+            return;
+        }
 
 
         file_put_contents($dir . $fileName, json_encode($fields, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
@@ -67,6 +71,8 @@ class AdminDescriptionGenerator
                 continue;
             }
 
+
+
             if (!$item->inAdmin) {
                 continue;
             }
@@ -82,11 +88,17 @@ class AdminDescriptionGenerator
 
             if ($item instanceof StructureType) {
 
-                $result[$key]['items'] = self::generateFields($item, $existData[$key]['items'] ?? []);
+                if (!$item->compositeType) {
+
+                    $result[$key]['items'] = self::generateFields($item, $existData[$key]['items'] ?? []);
+                }
             }
 
             if ($item instanceof ArrayOfType && $item->itemType instanceof StructureType) {
-                $result[$key]['items'] = self::generateFields($item->itemType, $existData[$key]['items'] ?? []);
+
+                if (!$item->itemType->compositeType) {
+                    $result[$key]['items'] = self::generateFields($item->itemType, $existData[$key]['items'] ?? []);
+                }
             }
         }
 

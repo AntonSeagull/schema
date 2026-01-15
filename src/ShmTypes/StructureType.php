@@ -23,6 +23,7 @@ use Shm\ShmAdmin\Types\VisualGroupType;
 use Shm\ShmDB\mDBRedis;
 
 use Shm\ShmRPC\ShmRPCCodeGen\TSType;
+use Shm\ShmTypes\CompositeTypes\ActionType;
 use Shm\ShmTypes\SupportTypes\StageType;
 use Shm\ShmTypes\Utils\JsonLogicBuilder;
 
@@ -135,6 +136,14 @@ class StructureType extends BaseType
         return $this;
     }
 
+    public function removeField(string $key): static
+    {
+        if (isset($this->items[$key])) {
+            unset($this->items[$key]);
+        }
+        return $this;
+    }
+
     public function addFieldIfNotExists(string $key, BaseType $type): static
     {
 
@@ -193,8 +202,6 @@ class StructureType extends BaseType
 
     private null | StructureType $stages = null;
 
-    public null | StructureType $buttonActions = null;
-
 
 
     public $publicStages = [];
@@ -205,17 +212,6 @@ class StructureType extends BaseType
     }
 
 
-    public function buttonActions(StructureType $buttonActions): static
-    {
-        foreach ($buttonActions->items as $key => $action) {
-            if (!($action instanceof ComputedType)) {
-                throw new \Exception("Button action '{$key}' must be an instance of ComputedType.");
-            }
-        }
-
-        $this->buttonActions = $buttonActions;
-        return $this;
-    }
 
     public function stages(StructureType $stages): static
     {
@@ -252,14 +248,7 @@ class StructureType extends BaseType
     }
 
 
-    public function findButtonAction(string $key): ?ComputedType
-    {
-        if ($this->buttonActions && isset($this->buttonActions->items[$key])) {
-            return $this->buttonActions->items[$key];
-        }
 
-        return null;
-    }
 
     public function insertValues(array $insertValues): static
     {
@@ -433,300 +422,10 @@ class StructureType extends BaseType
     }
 
 
-    private function reportCollection(StructureType | null $root = null, $path = [], $pipeline = [])
-    {
-        $maxAtDay = time() - 60 * 60 * 24 * 30; // последние 30 дней
-
-        $date = new DateTime('first day of -2 months');
-        if ($date->format('N') != 1) {
-            $date->modify('next monday');
-        }
-        $maxAtWeek = $date->getTimestamp();
-
-        $date = new DateTime('first day of -6 months');
-        $maxAtMonth = $date->getTimestamp();
-
-        $total = $root->aggregate([
-            ...$pipeline,
-            [
-                '$count' => 'total'
-            ]
-        ])->toArray()[0]['total'] ?? 0;
-
-        // === По дням ===
-        $basePipelineDay = [
-            ['$match' => ['created_at' => ['$gte' => $maxAtDay]]],
-            ['$project' => [
-                'label' => [
-                    '$dateToString' => [
-                        'format' => '%d.%m.%Y',
-                        'date' => ['$toDate' => ['$multiply' => ['$created_at', 1000]]],
-                        'timezone' => date_default_timezone_get()
-                    ]
-                ],
-                'created_at' => 1,
-            ]],
-            ['$group' => [
-                '_id' => '$label',
-                'value' => ['$sum' => 1],
-                'name' => ['$first' => '$created_at'],
-            ]],
-            ['$sort' => ['name' => 1]]
-        ];
-
-        $basePipelineWeek = [
-            ['$match' => ['created_at' => ['$gte' => $maxAtWeek]]],
-            ['$project' => [
-                'created_at' => 1,
-                'startOfWeek' => [
-                    '$dateTrunc' => [
-                        'date' => ['$toDate' => ['$multiply' => ['$created_at', 1000]]],
-                        'unit' => 'week',
-                        'timezone' => date_default_timezone_get(),
-                        'binSize' => 1
-                    ]
-                ]
-            ]],
-            ['$group' => [
-                '_id' => '$startOfWeek',
-                'value' => ['$sum' => 1],
-            ]],
-            ['$sort' => ['_id' => 1]]
-        ];
-
-        $basePipelineMonth = [
-            ['$match' => ['created_at' => ['$gte' => $maxAtMonth]]],
-            ['$project' => [
-                'label' => [
-                    '$dateToString' => [
-                        'format' => '%m.%Y',
-                        'date' => ['$toDate' => ['$multiply' => ['$created_at', 1000]]],
-                        'timezone' => date_default_timezone_get()
-                    ]
-                ],
-                'created_at' => 1,
-            ]],
-            ['$group' => [
-                '_id' => '$label',
-                'value' => ['$sum' => 1],
-                'name' => ['$first' => '$created_at'],
-            ]],
-            ['$sort' => ['name' => 1]]
-        ];
-
-        // === Выполнение запросов ===
-        $resultDay = $root->aggregate([...$pipeline, ...$basePipelineDay])->toArray();
-        $resultWeek = $root->aggregate([...$pipeline, ...$basePipelineWeek])->toArray();
-        $resultMonth = $root->aggregate([...$pipeline, ...$basePipelineMonth])->toArray();
-
-        // Приводим name к дате
-        foreach ([$resultDay, $resultMonth] as &$resultGroup) {
-            foreach ($resultGroup as &$item) {
-                $item['name'] = date('d.m.Y', $item['name']);
-            }
-        }
-
-        foreach ($resultWeek as &$item) {
-            $start = new DateTime();
-            $start->setTimestamp($item['_id']->toDateTime()->getTimestamp()); // from MongoDB UTCDateTime
-            $end = clone $start;
-            $end->modify('+6 days');
-
-            $item['name'] = $start->format('d.m.Y') . ' – ' . $end->format('d.m.Y');
-        }
-
-
-        $mainSecond = [];
-
-        if (count($resultDay) > 0) {
-            $mainSecond[] = [
-                'view' => 'bar',
-                'title' => "По дням",
-                'result' => $resultDay,
-            ];
-        }
-        if (count($resultWeek) > 0) {
-            $mainSecond[] = [
-                'view' => 'bar',
-                'title' => "По неделям",
-                'result' => $resultWeek,
-            ];
-        }
-        if (count($resultMonth) > 0) {
-            $mainSecond[] = [
-                'view' => 'bar',
-                'title' => "По месяцам",
-                'result' => $resultMonth,
-            ];
-        }
-
-
-        $heatmap = $root->aggregate([
-            ...$pipeline,
-            [
-                '$addFields' => [
-                    'createdDate' => [
-                        '$toDate' => ['$multiply' => ['$created_at', 1000]]
-                    ]
-                ]
-            ],
-            [
-                '$addFields' => [
-                    'dayOfWeek' => ['$isoDayOfWeek' => '$createdDate'], // 1 = Monday, 7 = Sunday
-                    'hour' => ['$hour' => '$createdDate']
-                ]
-            ],
-            [
-                '$group' => [
-                    '_id' => [
-                        'dayOfWeek' => '$dayOfWeek',
-                        'hour' => '$hour',
-                        'date' => ['$dateToString' => ['format' => '%Y-%m-%d', 'date' => '$createdDate']]
-                    ],
-                    'count' => ['$sum' => 1]
-                ]
-            ],
-            [
-                '$group' => [
-                    '_id' => [
-                        'dayOfWeek' => '$_id.dayOfWeek',
-                        'hour' => '$_id.hour'
-                    ],
-                    'avgCount' => ['$avg' => '$count']
-                ]
-            ],
-            [
-                '$group' => [
-                    '_id' => '$_id.dayOfWeek',
-                    'hours' => [
-                        '$push' => [
-                            'hour' => '$_id.hour',
-                            'avgCount' => ['$round' => ['$avgCount', 2]]
-                        ]
-                    ]
-                ]
-            ],
-            [
-                '$sort' => ['_id' => 1]
-            ]
-
-        ])->toArray();
-
-
-
-        $resultData = [
-            [
-                'type' => $this->type,
-                'title' => $this->title,
-                'main' => [
-                    [
-                        'view' => 'cards',
-
-                        'result' => [
-                            [
-                                'value' => $total,
-                                'name' => "Всего",
-
-                            ]
-                        ]
-                    ]
-                ]
-            ],
-
-        ];
-
-        if (count($mainSecond) > 0) {
-            $resultData[] =
-                [
-                    'type' => $this->type,
-                    'title' => "Создано \"{$this->title}\"",
-                    'main' => $mainSecond,
-
-                ];
-        }
 
 
 
 
-
-
-        $resultData[] = [
-            'type' => $this->type,
-            'title' => "Создано \"{$this->title}\" среднее кол-во по дням недели и часам",
-            'main' => [
-                [
-                    'view' => 'heatmap',
-                    'title' => "Создано \"{$this->title}\"",
-                    'heatmap' =>  $this->formatHeatmap($heatmap)
-                ]
-            ]
-        ];
-
-        return $resultData;
-    }
-
-
-    public function computedReport(StructureType | null $root = null, $path = [], $pipeline = [])
-    {
-
-
-        if (!$this->report) {
-            return null;
-        }
-
-
-        $report = [];
-
-
-        $pipeline = [...$pipeline, ...$this->getPipeline()];
-
-
-
-
-        if (!$this->collection) {
-            $path = [...$path];
-        } else {
-
-            $root = $this;
-
-            $reportItem = $this->reportCollection($root, $path, $pipeline);
-
-            if ($reportItem) {
-                $report = [
-                    ...$report,
-                    ...$reportItem
-                ];
-            }
-        }
-        foreach ($this->items as $key => $item) {
-
-            if ($item->hide || !$item->inAdmin) {
-                continue;
-            }
-
-            Response::startTraceTiming("computedReport-{$item->key}");
-            $reportItem = $item->computedReport($root, [...$path, $key], $pipeline);
-
-            if ($reportItem)
-
-                if (isset($reportItem['type'])) {
-                    Response::endTraceTiming("computedReport-{$item->key}");
-                    $report = [
-                        ...$report,
-                        $reportItem
-                    ];
-                } else {
-                    $report = [
-                        ...$report,
-                        ...$reportItem
-                    ];
-                }
-        }
-
-
-
-        return  $report;
-    }
 
 
 
@@ -842,6 +541,10 @@ class StructureType extends BaseType
                     ProcessLogs::addLog($processId, "Normalizing field '{$name}' in StructureType '{$this->key}'");
                 }
 
+                if ($type instanceof ActionType) {
+                    continue;
+                }
+
                 if ($type instanceof IDType) {
 
                     if (!$type->defaultIsSet && (!isset($value[$name]) || $value[$name] === null)) {
@@ -866,6 +569,9 @@ class StructureType extends BaseType
             foreach ($this->items as $key => $type) {
 
 
+                if ($type instanceof ActionType) {
+                    continue;
+                }
 
                 if (isset($value[$key]) || $type instanceof UUIDType) {
 
@@ -977,11 +683,6 @@ class StructureType extends BaseType
         }
 
         $baseTypePrefix = null;
-        if (!$this->expanded && $this->haveID()) {
-
-
-            $baseTypePrefix = 'Flat';
-        }
 
         return $baseTypePrefix ? $baseTypePrefix . $typeName : $typeName;
     }
@@ -1248,6 +949,12 @@ class StructureType extends BaseType
             if ($item->hide) {
                 continue;
             }
+
+            if ($item instanceof ActionType) {
+                continue;
+            }
+
+
 
             if ($key == "*") {
                 $key = '[key: string]';

@@ -118,7 +118,6 @@ class AdminRPCCollection
                     }
 
                     $relations[] = [
-                        'key' => $field->key,
                         'collection' => $rootParent?->collection,
                         'key' => $field->getPathString(),
 

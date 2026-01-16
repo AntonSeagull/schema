@@ -80,7 +80,7 @@ class ShmRPCCodeGen
 
         $requests = [
             "import { rpcClient } from './rpcClient';",
-            "import { RpcResponse, " . implode(',', $allTypesKeys) . " } from './types';",
+            "import type { RpcResponse, " . implode(',', $allTypesKeys) . " } from './types';",
 
             'export const rpc = {',
             ...$requests,

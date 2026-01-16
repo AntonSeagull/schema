@@ -17,7 +17,6 @@ class AdminRPCData
         return ShmRPC::lazy(function () {
 
             return [
-                'onlyDisplayRelations' => true,
                 'type' => Shm::structure([
                     'data' => Shm::arrayOf(Shm::structure([
                         "_id" => Shm::ID(),

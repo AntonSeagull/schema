@@ -15,7 +15,6 @@ class FileStructure
             "fileType" =>  Shm::string(),
             'name' =>  Shm::string(),
             'url' => Shm::string(),
-            'source' =>  Shm::string(),
             "type" => Shm::string(),
             'created_at' => Shm::string(),
             "_id" => Shm::ID()
@@ -29,7 +28,6 @@ class FileStructure
             "fileType" =>  Shm::string(),
             'name' =>  Shm::string(),
             'url' => Shm::string(),
-            'source' =>  Shm::string(),
             'duration' => Shm::float(),
             "type" => Shm::string(),
             'created_at' => Shm::string(),
@@ -61,7 +59,7 @@ class FileStructure
             "url" => Shm::string(),
             "url_medium" => Shm::string(),
             "url_small" => Shm::string(),
-            "source" => Shm::string(),
+
             "blurhash" => Shm::string(),
             "width" => Shm::float(),
             "height" => Shm::float(),

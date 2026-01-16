@@ -47,10 +47,6 @@ class CollectionEvents
 
         $find = $this->collection->find($filter, $options);
 
-        if ($find) {
-            mDBRedis::updateCacheAfterChange($this->collection->getCollectionName(), $filter);
-        }
-
         return $find;
     }
 
@@ -67,9 +63,7 @@ class CollectionEvents
 
         $findOne = $this->collection->findOne($filter, $options);
 
-        if ($findOne) {
-            mDBRedis::updateCacheAfterChange($this->collection->getCollectionName(), $filter);
-        }
+
 
         return $findOne;
     }
@@ -239,7 +233,6 @@ class CollectionEvents
 
         $result = $this->collection->updateMany($filter, $update, $options);
 
-        mDBRedis::updateCacheAfterChange($this->collection->getCollectionName(), $filter);
 
         return $result;
     }
@@ -267,7 +260,6 @@ class CollectionEvents
 
 
 
-        mDBRedis::updateCacheAfterChange($this->collection->getCollectionName(), $filter);
 
         return $result;
     }
@@ -283,7 +275,6 @@ class CollectionEvents
     {
         $updateOne = $this->updateOne($filter, ['$set' => ['deleted_at' => time()]], $options);
 
-        mDBRedis::updateCacheAfterChange($this->collection->getCollectionName(), $filter);
 
         return $updateOne;
     }
@@ -300,7 +291,6 @@ class CollectionEvents
         // Set deleted_at field for all documents matching the filter
         $updateMany = $this->updateMany($filter, ['$set' => ['deleted_at' => time()]], $options);
 
-        mDBRedis::updateCacheAfterChange($this->collection->getCollectionName(), $filter);
 
         return $updateMany;
     }
@@ -433,7 +423,6 @@ class CollectionEvents
         $result = $this->collection->insertOne($document, $options);
 
 
-        mDBRedis::updateCacheAfterChange($this->collection->getCollectionName(), ['_id' => $result->getInsertedId()]);
 
         return $result;
     }
@@ -478,7 +467,6 @@ class CollectionEvents
         }
         $result = $this->collection->insertMany($documents, $options);
 
-        mDBRedis::updateCacheAfterChange($this->collection->getCollectionName(), ['_id' => ['$in' => $result->getInsertedIds()]]);
 
 
         return $result;

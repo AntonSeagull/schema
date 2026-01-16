@@ -126,65 +126,6 @@ class ShmRPC
     }
 
 
-    private  static  function shift_encrypt(string $text, string $key): string
-    {
-        $min = 32;
-        $max = 126;
-        $range = $max - $min + 1;
-        $keyLen = strlen($key);
-
-        $result = '';
-        for ($i = 0; $i < strlen($text); $i++) {
-            $code = ord($text[$i]);
-            $keyShift = ord($key[$i % $keyLen]);
-            $shifted = ($code - $min + $i + $keyShift) % $range + $min;
-            $result .= chr($shifted);
-        }
-        return $result;
-    }
-
-    private  static  function shift_decrypt(string $text, string $key): string
-    {
-        $min = 32;
-        $max = 126;
-        $range = $max - $min + 1;
-        $keyLen = strlen($key);
-
-        $result = '';
-        for ($i = 0; $i < strlen($text); $i++) {
-            $code = ord($text[$i]);
-            $keyShift = ord($key[$i % $keyLen]);
-            $shifted = ($code - $min - $i - $keyShift + $range * 2) % $range + $min;
-            $result .= chr($shifted);
-        }
-        return $result;
-    }
-
-
-    private  static function xor_encrypt(string $text, string $key): string
-    {
-        $keyLen = strlen($key);
-        $output = '';
-
-        for ($i = 0, $len = strlen($text); $i < $len; $i++) {
-            $output .= $text[$i] ^ $key[$i % $keyLen];
-        }
-
-        return base64_encode($output);
-    }
-
-    private  static function xor_decrypt(string $encodedText, string $key): string
-    {
-        $text = base64_decode($encodedText);
-        $keyLen = strlen($key);
-        $output = '';
-
-        for ($i = 0, $len = strlen($text); $i < $len; $i++) {
-            $output .= $text[$i] ^ $key[$i % $keyLen];
-        }
-
-        return $output;
-    }
 
 
 

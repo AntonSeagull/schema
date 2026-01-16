@@ -5,6 +5,7 @@ namespace Shm\ShmTypes\CompositeTypes\FileTypes;
 use Shm\Shm;
 use Shm\ShmDB\mDB;
 use Shm\ShmDB\mDBRedis;
+use Shm\ShmRPC\ShmRPCCodeGen\TSType;
 use Shm\ShmTypes\IDType;
 use Shm\ShmUtils\ShmUtils;
 
@@ -94,6 +95,11 @@ class FileIDType extends IDType
         }
     }
 
+
+    public function tsType(): TSType
+    {
+        return $this->getDocument()->tsType();
+    }
 
 
 

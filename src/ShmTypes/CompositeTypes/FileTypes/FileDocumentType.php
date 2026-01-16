@@ -28,7 +28,6 @@ class FileDocumentType extends StructureType
             "fileType" =>  Shm::string(),
             'name' =>  Shm::string(),
             'url' => Shm::string(),
-            'source' =>  Shm::string(),
             "type" => Shm::string(),
             'created_at' => Shm::string(),
         ];

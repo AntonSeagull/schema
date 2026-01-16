@@ -52,22 +52,110 @@ abstract class BaseType
 
     public bool $compositeType = false;
 
+    //Поиск элементов функции условия
+    public function findItemsByCondition(callable $condition): array
+    {
+        $result = [];
 
 
-    public function getPathArray($path = []): array
+
+
+
+        if ($condition($this)) {
+
+
+            $result[] = $this;
+        }
+
+        if (isset($this->items)) {
+            foreach ($this->items as $key => $item) {
+
+
+
+                $found = $item->findItemsByCondition($condition);
+
+
+
+                foreach ($found as $foundItem) {
+
+                    $result[] = $foundItem;
+                }
+            }
+        }
+
+        if (isset($this->itemType)) {
+            $result = [...$result, ...$this->itemType->findItemsByCondition($condition)];
+        }
+
+        return $result;
+    }
+
+
+
+    public function getPathArrayToRoot($path = [], bool $withArray = false): array
     {
 
 
+
         if ($this instanceof ArrayOfType) {
-            throw new \Exception("ArrayOfType does not have a unic path");
+            if (!$withArray) {
+                throw new \Exception("ArrayOfType does not have a unic path");
+            } else {
+
+                $path = ['[]', ...$path];
+            }
+        }
+        if (!$this->parent) {
+            return [...$path];
         }
 
+        if ($this->parent) {
+
+            if ($this->parent instanceof ArrayOfType) {
+                $path = [...$path];
+            } else {
+                $path = [$this->key, ...$path];
+            }
+
+
+            return $this->parent->getPathArrayToRoot($path, $withArray);
+        }
+
+        return [$this->key, ...$path];
+    }
+
+
+    public function getPathArray($path = [], bool $withArray = false): array
+    {
+
+
+
+        if ($this instanceof ArrayOfType) {
+            if (!$withArray) {
+                throw new \Exception("ArrayOfType does not have a unic path");
+            } else {
+
+
+
+                return [...$path];
+            }
+        }
         if ($this instanceof StructureType && $this->collection) {
             return [...$path];
         }
 
         if ($this->parent) {
-            return $this->parent->getPathArray([$this->key, ...$path]);
+
+            if ($this->parent instanceof ArrayOfType) {
+                if (!$withArray) {
+                    throw new \Exception("ArrayOfType does not have a unic path");
+                } else {
+
+                    return $this->parent->getPathArray([$this->key, '[]', ...$path], $withArray);
+                }
+            }
+
+            return $this->parent->getPathArray([$this->key, ...$path], $withArray);
         }
 
         return [$this->key, ...$path];
@@ -94,9 +182,9 @@ abstract class BaseType
         return null;
     }
 
-    public function getPathString($path = []): string
+    public function getPathString($path = [], bool $withArray = false): string
     {
-        $path = $this->getPathArray($path);
+        $path = $this->getPathArray($path, $withArray);
 
         if (!$path) {
             throw new \Exception("Path is not set for " . $this->type . " " . $this->key);

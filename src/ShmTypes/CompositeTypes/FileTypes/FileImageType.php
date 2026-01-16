@@ -58,7 +58,6 @@ class FileImageType extends StructureType
             "url" => Shm::string(),
             "url_medium" => Shm::string(),
             "url_small" => Shm::string(),
-            "source" => Shm::string(),
             "blurhash" => Shm::string(),
             "width" => Shm::float(),
             "height" => Shm::float(),

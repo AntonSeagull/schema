@@ -5,6 +5,7 @@ namespace Shm\ShmRPC\ShmRPCUtils;
 use Shm\Shm;
 use Shm\ShmDB\mDB;
 use Shm\ShmTypes\BaseType;
+use Shm\ShmTypes\CompositeTypes\FileTypes\Utils\FileIDResolver;
 use Shm\ShmTypes\StructureType;
 use Shm\ShmUtils\RedisCache;
 use Shm\ShmUtils\Response;
@@ -29,7 +30,6 @@ class ShmRPCContext
 
     public $context = null;
 
-    public $onlyDisplayRelations = false;
 
 
     private   function xor_encrypt(string $text, string $key): string
@@ -75,7 +75,6 @@ class ShmRPCContext
         $this->cache = $schemaMethod['cache'] ?? null;
         $this->type = $schemaMethod['type'] ?? null;
         $this->args = $schemaMethod['args'] ?? null;
-        $this->onlyDisplayRelations = $schemaMethod['onlyDisplayRelations'] ?? false;
 
         $this->resolve = $schemaMethod['resolve'] ?? null;
 
@@ -194,7 +193,9 @@ class ShmRPCContext
 
 
 
-        $onlyDisplayRelations = $this->onlyDisplayRelations;
+
+        $fileIDResolver = new FileIDResolver($this->type, $result);
+        $result = $fileIDResolver->resolve();
 
 
 
@@ -208,7 +209,7 @@ class ShmRPCContext
 
 
 
-        $end = microtime(true);
+
 
 
 

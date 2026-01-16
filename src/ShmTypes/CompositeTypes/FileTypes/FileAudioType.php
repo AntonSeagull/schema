@@ -36,7 +36,6 @@ class FileAudioType extends StructureType
             "fileType" =>  Shm::string(),
             'name' =>  Shm::string(),
             'url' => Shm::string(),
-            'source' =>  Shm::string(),
             'duration' => Shm::float(),
             "type" => Shm::string(),
             'created_at' => Shm::string(),

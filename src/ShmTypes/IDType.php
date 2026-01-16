@@ -61,6 +61,7 @@ class IDType extends BaseType
         }
     }
 
+
     public function getDocument(): StructureType|null
     {
 

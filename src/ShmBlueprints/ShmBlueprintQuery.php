@@ -200,26 +200,13 @@ class ShmBlueprintQuery
             $dataType = Shm::structure([
                 'data' => Shm::arrayOf($this->structure),
                 'limit' => Shm::int(),
-                'dateDistinct' => Shm::arrayOf(Shm::structure([
-                    'format' => Shm::string(),
-                    'count' => Shm::int(),
-                    'from' => Shm::int(),
-                    'to' => Shm::int()
-                ])->staticBaseTypeName("DateDistinct")),
+
                 'offset' => Shm::int(),
                 'hash' => Shm::string(),
                 'total' => Shm::int(),
             ])->key($this->structure->key . 'Data');
         }
 
-        $dateDistinctKeys = [];
-
-        foreach ($this->structure->items as $key => $item) {
-
-            if (!$item->hide && ($item instanceof UnixDateType || $item instanceof UnixDateTimeType)) {
-                $dateDistinctKeys[] = $item->key;
-            }
-        }
 
 
 
@@ -233,7 +220,6 @@ class ShmBlueprintQuery
 
             'limit' => Shm::int()->default(30),
             'sample' => Shm::boolean(),
-            'dateDistinct' => count($dateDistinctKeys) > 0 ? Shm::enum($dateDistinctKeys) : null,
             'offset' =>  Shm::int()->default(0),
             'all' => Shm::boolean()->default(false),
             'search' => Shm::string()->default(''),
@@ -267,6 +253,9 @@ class ShmBlueprintQuery
             'type' => $dataType,
             'args' =>  $argsStructure,
             'resolve' => function ($root, $args) use ($_this, $structure, $withoutData, $argsStructure) {
+
+
+
 
                 $_this->callPrepareArgs($args);
 
@@ -363,67 +352,9 @@ class ShmBlueprintQuery
                     ])->toArray()[0]['total'] ?? 0;
                 }
 
-                $dateDistinctField = $args['dateDistinct'] ?? null;
-
-                $dateDistinctData = [];
-                if (!$withoutData && !$onlyHash && $dateDistinctField) {
-
-
-                    $dateDistinctFieldItem = $structure->items[$dateDistinctField] ?? null;
-
-                    if ($dateDistinctFieldItem->type == 'unixdatetime' || $dateDistinctFieldItem->type == 'unixdate') {
 
 
 
-                        $dateDistinctData =  $structure->aggregate([
-                            ...$pipeline,
-                            [
-                                '$project' => [
-                                    $dateDistinctField => 1
-                                ]
-                            ],
-                            [
-                                '$match' => [
-                                    $dateDistinctField => ['$gt' => 0]
-                                ]
-                            ],
-
-
-                            [
-                                '$addFields' => [
-                                    'dateToString' => [
-                                        '$dateToString' => [
-                                            'format' => '%d.%m.%Y',
-                                            'date' => ['$toDate' => ['$multiply' => ['$' . $dateDistinctField, 1000]]],
-                                            'timezone' => date_default_timezone_get()
-                                        ]
-                                    ]
-
-                                ]
-                            ],
-
-
-                            [
-                                '$group' => [
-                                    '_id' => '$dateToString',
-                                    'format' => ['$first' => '$dateToString'],
-                                    'from' => ['$min' => '$' . $dateDistinctField],
-                                    'to' => ['$max' => '$' . $dateDistinctField],
-                                    'count' => ['$sum' => 1],
-
-                                ]
-                            ],
-                            [
-                                '$sort' => [
-                                    'from' => -1
-                                ]
-                            ],
-
-
-
-                        ])->toArray() ?? [];
-                    }
-                }
 
                 $_limit = $args['limit'] ?? null;
 
@@ -433,7 +364,7 @@ class ShmBlueprintQuery
                         'data' => [],
                         'limit' => 0,
                         'offset' => 0,
-                        'dateDistinct' => $dateDistinctData,
+
                         'total' => $total,
                     ];
                 }
@@ -511,6 +442,9 @@ class ShmBlueprintQuery
 
 
 
+
+
+
                 $result = $structure->aggregate(
                     $pipeline,
 
@@ -547,7 +481,6 @@ class ShmBlueprintQuery
                         'data' => $result,
                         'limit' => $args['limit'] ?? 20,
                         'offset' => $args['offset'] ?? 0,
-                        'dateDistinct' => $dateDistinctData,
                         'hash' =>  mDB::hashDocuments($result),
                         'total' => $total,
                     ];

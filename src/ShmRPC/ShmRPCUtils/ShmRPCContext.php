@@ -7,6 +7,7 @@ use Shm\ShmDB\mDB;
 use Shm\ShmTypes\BaseType;
 use Shm\ShmTypes\CompositeTypes\FileTypes\Utils\FileIDResolver;
 use Shm\ShmTypes\StructureType;
+use Shm\ShmTypes\Utils\ExtensionsResolver;
 use Shm\ShmUtils\RedisCache;
 use Shm\ShmUtils\Response;
 use Shm\ShmUtils\ShmUtils;
@@ -57,13 +58,17 @@ class ShmRPCContext
         return $output;
     }
 
+    public ?array $extensions = null;
 
-    public function __construct(string $method, mixed $schemaMethod, $request)
+    public function __construct(string $method, mixed $schemaMethod, $request, ?array $extensions = null)
     {
 
         if (is_object($schemaMethod) && method_exists($schemaMethod, 'make')) {
             $schemaMethod = $schemaMethod->make();
         }
+
+
+        $this->extensions = $extensions;
 
 
 
@@ -194,8 +199,6 @@ class ShmRPCContext
 
 
 
-        $fileIDResolver = new FileIDResolver($this->type, $result);
-        $result = $fileIDResolver->resolve();
 
 
 
@@ -204,39 +207,59 @@ class ShmRPCContext
 
 
 
-        if ($result)
+
+        if ($result) {
+
+
+            echo json_encode($this->type->devPathJSON());
+            exit;
+
+
+
+            $fileIDResolver = new FileIDResolver($this->type, $result);
+            $result = $fileIDResolver->resolve();
             $result = mDB::replaceObjectIdsToString($result);
 
 
+            $extensionsResult = null;
+            if ($this->extensions) {
+                $extensionsResolver = new ExtensionsResolver($this->type, $result, $this->extensions);
+                $extensionsResult = $extensionsResolver->resolve();
+            }
 
 
 
 
 
-
-
-        if ($result && ($this->cache ?? 0) > 0) {
-            RedisCache::set($this->cachedKey(), json_encode($result), $this->cache);
+            if (($this->cache ?? 0) > 0) {
+                RedisCache::set($this->cachedKey(), json_encode($result), $this->cache);
+            }
         }
-
-
 
         if ($this->context) {
             $result = json_encode($result);
             $result = $this->xor_encrypt($result, $this->context);
+
+            if ($extensionsResult) {
+                $extensionsResult = json_encode($extensionsResult);
+                $extensionsResult = $this->xor_encrypt($extensionsResult, $this->context);
+            }
         }
 
 
 
 
-        Response::success($result);
+
+
+
+        Response::success($result, $extensionsResult);
     }
 
 
     public function setType(BaseType $type)
     {
         $this->type = $type;
-        $this->type->updateKeys("type");
+        $this->type->updateKeys();
     }
 
     public function getType(): BaseType

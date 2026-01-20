@@ -200,14 +200,14 @@ class StringType extends BaseType
 
         $pipeline = [];
 
-        if ($startsWith !== null) {
+        if (!!$startsWith) {
             $pipeline[] = [
                 '$match' => [
                     $path => ['$regex' => '^' . $startsWith, '$options' => 'i']
                 ]
             ];
         }
-        if ($endsWith !== null) {
+        if (!!$endsWith) {
             $pipeline[] = [
                 '$match' => [
                     $path => ['$regex' => $endsWith . '$', '$options' => 'i']
@@ -215,14 +215,14 @@ class StringType extends BaseType
             ];
         }
 
-        if ($contains !== null) {
+        if (!!$contains) {
             $pipeline[] = [
                 '$match' => [
                     $path => ['$regex' => $contains, '$options' => 'i']
                 ]
             ];
         }
-        if ($notContains !== null) {
+        if (!!$notContains) {
             $pipeline[] = [
                 '$match' => [
                     $path => ['$regex' => '^(?!' . $notContains . ').*$', '$options' => 'i']

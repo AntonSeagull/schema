@@ -15,13 +15,17 @@ class FileIDResolver
 
 
 
-    public StructureType | ArrayOfType | null $structure = null;
-    public ?array $data = null;
+    public BaseType | null $structure = null;
+    public mixed $data = null;
 
-    public function __construct(StructureType | ArrayOfType $structure, mixed $data)
+    public function __construct($structure, mixed $data)
     {
+
+
+
+
         $this->structure = $structure;
-        $this->data = (array) $data;
+        $this->data = $data;
     }
 
     private function getPathValues(array $path, mixed $value): array
@@ -56,10 +60,14 @@ class FileIDResolver
 
 
             if (is_object($value) || is_array($value) || $value instanceof \Traversable) {
-                foreach ($value as $item) {
+                foreach ($value as $key => $item) {
+
 
 
                     $vals = $this->getPathValues($path, $item);
+
+
+
                     $result = [...$result, ...$vals];
                 }
             }
@@ -154,13 +162,22 @@ class FileIDResolver
     public function resolve()
     {
 
-        Response::startTraceTiming("fileResolver");
+
+
+        if (!$this->structure || !$this->data) {
+            return $this->data;
+        }
+
 
 
 
         if (!($this->structure instanceof StructureType || $this->structure instanceof ArrayOfType)) {
-            throw new \Exception("Structure must be a StructureType or ArrayOfType");
+            return $this->data;
         }
+
+
+
+        Response::startTraceTiming("fileResolver");
 
 
         if ($this->structure instanceof ArrayOfType) {
@@ -180,6 +197,8 @@ class FileIDResolver
 
 
 
+
+
         $fileIds = [];
 
 
@@ -189,12 +208,18 @@ class FileIDResolver
         foreach ($fileItems as $fileItem) {
 
 
+
             $path = $fileItem->getPathArrayToRoot([], true);
 
 
 
 
+
+
             $fileIdsFromPath = $this->getPathValues($path, $this->data);
+
+
+
 
             $fileIdsFromPathResult = [];
             foreach ($fileIdsFromPath as $fileId) {

@@ -29,6 +29,9 @@ use Shm\ShmUtils\RedisCache;
 class ShmRPC
 {
 
+
+
+
     public static $init = false;
 
 
@@ -232,9 +235,10 @@ class ShmRPC
         }
 
 
+        $extensions = $request['extensions'] ?? null;
 
 
-        $methodContext = new ShmRPCContext($method, $schemaMethod, $request);
+        $methodContext = new ShmRPCContext($method, $schemaMethod, $request, $extensions);
 
 
 

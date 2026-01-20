@@ -20,9 +20,6 @@ class ShmRPCCodeGen
 
 
 
-
-
-
         $requestsData = [];
 
         $linkRequest = [];
@@ -45,26 +42,14 @@ class ShmRPCCodeGen
                 continue;
             }
 
-            //     $keysGraph[$key . 'type'] = $field['type']->getKeysGraph();
 
-            //   if (isset($field['args'])) {
-            //       $keysGraph[$key . 'args'] = $field['args']->getKeysGraph();
-            //  }
-            //         exit;
 
             $requestsData[$key] = (new ShmRPCRequestCode($field['type'], $field['args'] ?? null, $key, $field['formData'] ?? null))->initialize();
 
             $linkRequest[$key] = "export const " . $key . " = rpc." . $key . ";";
         }
 
-        //echo json_encode($keysGraph);
-        // exit;
 
-
-
-
-
-        //Сортируем  ksort(TSType::$tsTypes);
         ksort(TSType::$tsTypes);
         ksort($requestsData);
 
@@ -79,7 +64,6 @@ class ShmRPCCodeGen
 
 
         $requests = [
-            "import { rpcClient } from './rpcClient';",
             "import type { RpcResponse, " . implode(',', $allTypesKeys) . " } from './types';",
 
             'export const rpc = {',
@@ -87,6 +71,14 @@ class ShmRPCCodeGen
             '};',
             ...$linkRequest,
         ];
+
+        // Загружаем код rpcClient из отдельного файла
+        $rpcClientPath = __DIR__ . '/rpcClient.ts';
+        $rpcClientCode = file_get_contents($rpcClientPath);
+        $requests[] = $rpcClientCode;
+
+
+
 
         $requests = implode("\n", $requests);
 
@@ -136,9 +128,10 @@ class ShmRPCCodeGen
   code?: number;
 }
 
-export interface RpcResponse<T = unknown> {
+export interface RpcResponse<T = unknown, Extensions = unknown> {
   success: boolean;
   result: T | null;
+  extensions: Extensions | null;
   error: RpcError | null;
 }" . "\n\n" . $types;
 

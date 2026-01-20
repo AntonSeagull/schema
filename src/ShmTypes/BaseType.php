@@ -9,6 +9,7 @@ use Shm\Shm;
 use Shm\ShmRPC\ShmRPCCodeGen\TSType;
 use Shm\ShmTypes\CompositeTypes\BalanceTypes\BalanceType;
 use Shm\ShmTypes\Utils\JsonLogicBuilder;
+use Shm\ShmUtils\AutoPostfix;
 use Shm\ShmUtils\MaterialIcons;
 use Shm\ShmUtils\ShmInit;
 use Shm\ShmUtils\ShmUtils;
@@ -91,6 +92,55 @@ abstract class BaseType
     }
 
 
+    public function extensionsType(): TSType
+    {
+
+        $extensionsCollection = $this->extensionsCollection();
+
+        $tsTypeValue = [];
+
+        foreach ($extensionsCollection as $key) {
+            $tsTypeValue[] = '"' . $key . '"';
+        }
+        $TSType = new TSType('Extensions' . AutoPostfix::get($extensionsCollection),  implode('|', $tsTypeValue), false);
+
+
+
+        return $TSType;
+    }
+
+    public function extensionsStructure(): array
+    {
+
+        $result = [];
+
+        if ($this->hide) {
+            return $result;
+        }
+
+        if (isset($this->items)) {
+            foreach ($this->items as $key => $item) {
+                $result = [...$result, ...$item->extensionsStructure()];
+            }
+        }
+
+        if (isset($this->itemType)) {
+            $result = [...$result, ...$this->itemType->extensionsStructure()];
+        }
+
+        if ($this instanceof IDsType || $this instanceof IDType) {
+            if ($this->collection) {
+                $document = $this->getDocument();
+                if ($document) {
+                    $result[$this->collection] =  $document;
+                }
+            }
+        }
+
+        return $result;
+    }
+
+
 
     public function getPathArrayToRoot($path = [], bool $withArray = false): array
     {
@@ -106,7 +156,13 @@ abstract class BaseType
             }
         }
         if (!$this->parent) {
-            return [...$path];
+
+
+            if ($this instanceof ArrayOfType && $this->key) {
+                return [$this->key, ...$path];
+            } else {
+                return [...$path];
+            }
         }
 
         if ($this->parent) {
@@ -116,6 +172,7 @@ abstract class BaseType
             } else {
                 $path = [$this->key, ...$path];
             }
+
 
 
             return $this->parent->getPathArrayToRoot($path, $withArray);
@@ -1488,51 +1545,9 @@ abstract class BaseType
     }
 
 
-    public function getGlobalUniquePath(array $path): array
-    {
 
-        if (count($path) > 0 && $this->globalUnique) {
-            return [...$path, $this->key];
-        }
 
-        $findPaths = [];
 
-        if (isset($this->items)) {
-            foreach ($this->items as $key => $item) {
-
-                $findPaths = [...$findPaths, ...$item->getUniquePath([...$path, $key])];
-            }
-        }
-
-        if (isset($this->itemType)) {
-            $findPaths =   [...$findPaths, ...$this->itemType->getUniquePath([...$path])];
-        }
-
-        return  $findPaths;
-    }
-
-    public function getUniquePath(array $path): array
-    {
-
-        if (count($path) > 0 && $this->unique) {
-            return [...$path, $this->key];
-        }
-
-        $findPaths = [];
-
-        if (isset($this->items)) {
-            foreach ($this->items as $key => $item) {
-
-                $findPaths = [...$findPaths, ...$item->getUniquePath([...$path, $key])];
-            }
-        }
-
-        if (isset($this->itemType)) {
-            $findPaths =   [...$findPaths, ...$this->itemType->getUniquePath([...$path])];
-        }
-
-        return  $findPaths;
-    }
 
     public function haveID(): bool
     {
@@ -2021,6 +2036,29 @@ abstract class BaseType
         return $data;
     }
 
+
+    public function devPathJSON(): array
+    {
+
+        $result = [];
+
+
+        if (isset($this->items)) {
+            foreach ($this->items as $key => $item) {
+                $result = [...$result, ...$item->devPathJSON()];
+            }
+        }
+
+        if (isset($this->itemType)) {
+            $result = [...$result, ...$this->itemType->devPathJSON()];
+        }
+
+        $result[$this->key ?? "NOKEY"] = $this->getPathArrayToRoot([], true);
+
+
+
+        return $result;
+    }
 
 
     public function json()

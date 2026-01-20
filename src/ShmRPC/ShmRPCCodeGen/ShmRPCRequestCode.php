@@ -80,11 +80,65 @@ class ShmRPCRequestCode
              },";
         } else {
 
-            return "{$this->functionName()}: ({$this->paramsForFunction()}) => {
-            return rpcClient.call<{$this->paramsType()}, {$this->type->tsType()->getTsTypeName()} | null>(
+            $extensionsStructure = $this->type->extensionsStructure();
+
+            $extensionsCollection = array_keys($extensionsStructure);
+
+            $extensionsType = "";
+
+            $extensionsGenericType = 'null';
+
+            $useExtensions = false;
+
+            if (count($extensionsCollection) > 0) {
+
+                $extensionsType = '"' . implode('" | "', $extensionsCollection) . '"';
+
+                $extensionsType = 'extensions?: Array<' . $extensionsType . '>';
+
+                $extensionsGenericType = [];
+                foreach ($extensionsStructure as $key => $val) {
+                    $extensionsGenericType[] = $key . '?: ' . $val->tsType()->getTsTypeName() . '[] | null ';
+                }
+
+
+                $extensionsGenericType = '{' . implode(', ', $extensionsGenericType) . '}';
+
+                $useExtensions = true;
+            }
+
+
+
+            $params = [];
+
+            $paramsForFunction = $this->paramsForFunction();
+            if ($paramsForFunction) {
+                $params[] = $paramsForFunction;
+            }
+
+            if ($useExtensions) {
+                $params[] = $extensionsType;
+            }
+
+            $params = implode(', ', $params);
+
+
+
+            if ($useExtensions) {
+
+
+                return "{$this->functionName()}: ( $params) => {
+            return rpcClient.call<{$this->paramsType()}, {$this->type->tsType()->getTsTypeName()} | null, {$extensionsGenericType}>(
+               '{$this->key}'{$this->paramsForRequest()}, extensions
+            );
+             },";
+            } else {
+                return "{$this->functionName()}: ( $params) => {
+            return rpcClient.call<{$this->paramsType()}, {$this->type->tsType()->getTsTypeName()} | null, null>(
                '{$this->key}'{$this->paramsForRequest()}
             );
              },";
+            }
         }
     }
 }

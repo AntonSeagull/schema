@@ -438,7 +438,6 @@ class ShmRPCCodeGenPhp
 
         self::ApiClient($mainClassFields);
 
-        //  var_dump($mainClassFields);
 
         exit;
     }

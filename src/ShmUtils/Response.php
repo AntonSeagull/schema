@@ -104,6 +104,7 @@ class Response
     private static array $baseResponse = [
         'success' => false,
         'result' => null,
+        'extensions' => null,
         'error' => null,
         'executionTime' => 0,
     ];
@@ -114,8 +115,10 @@ class Response
      * @param mixed $result Результат выполнения запроса
      * @return never
      */
-    public static function success(mixed $result): never
+    public static function success(mixed $result, mixed $extensionsResult = null): never
     {
+
+
 
         header('Content-Type: application/json; charset=utf-8');
 
@@ -148,6 +151,7 @@ class Response
             ...self::$baseResponse,
             'success' => true,
             'result' => $result,
+            'extensions' => $extensionsResult,
             'method' => self::$method,
             'executionTime' => $executionTime,
             'traceTimings' => self::$traceTimingsResult,

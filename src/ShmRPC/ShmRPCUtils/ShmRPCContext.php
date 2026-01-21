@@ -206,7 +206,7 @@ class ShmRPCContext
 
 
 
-
+        $extensionsResult = null;
 
         if ($result) {
 
@@ -220,7 +220,7 @@ class ShmRPCContext
             $result = mDB::replaceObjectIdsToString($result);
 
 
-            $extensionsResult = null;
+
             if ($this->extensions) {
                 $extensionsResolver = new ExtensionsResolver($this->type, $result, $this->extensions);
                 $extensionsResult = $extensionsResolver->resolve();

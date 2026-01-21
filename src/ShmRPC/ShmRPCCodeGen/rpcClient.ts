@@ -1,3 +1,43 @@
+
+const uuidv4 = (): string => {
+   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+      const r = crypto.getRandomValues(new Uint8Array(1))[0] & 15;
+      const v = c === 'x' ? r : (r & 0x3) | 0x8;
+      return v.toString(16);
+   });
+}
+
+const xorEncrypt = (text: string, key: string) => {
+   const textBytes = new TextEncoder().encode(text);
+   const keyBytes = new TextEncoder().encode(key);
+
+   const result = new Uint8Array(textBytes.length);
+   for (let i = 0; i < textBytes.length; i++) {
+      result[i] = textBytes[i] ^ keyBytes[i % keyBytes.length];
+   }
+
+
+   return btoa(String.fromCharCode(...Array.from(result)));
+}
+
+const xorDecrypt = (encodedText: string, key: string) => {
+   const binaryString = atob(encodedText);
+   const textBytes = new Uint8Array(binaryString.length);
+   for (let i = 0; i < binaryString.length; i++) {
+      textBytes[i] = binaryString.charCodeAt(i);
+   }
+
+   const keyBytes = new TextEncoder().encode(key);
+   const result = new Uint8Array(textBytes.length);
+
+   for (let i = 0; i < textBytes.length; i++) {
+      result[i] = textBytes[i] ^ keyBytes[i % keyBytes.length];
+   }
+
+   return new TextDecoder().decode(result);
+}
+
+
 export class rpcClient {
    private static endpoints: string[] = [];
    private static readonly ENDPOINT_INDEX_KEY = 'rpcClient_endpointIndex';
@@ -11,6 +51,12 @@ export class rpcClient {
 
    public static setStorage(storage: { save: (key: string, value: string) => Promise<void>; get: (key: string) => Promise<string | null> }): void {
       this.storage = storage;
+   }
+
+   private static useEncrypt: boolean = false;
+
+   public static setUseEncrypt(useEncrypt: boolean): void {
+      this.useEncrypt = useEncrypt;
    }
 
    public static async init(): Promise<void> {
@@ -121,11 +167,31 @@ export class rpcClient {
 
       formData.append('method', method);
       formData.append('token', this.getToken());
+
+      const context = this.useEncrypt ? uuidv4() : undefined;
+
+      if (this.useEncrypt) {
+         formData.append('context', context);
+      }
+
+
       const headers = { ...this.headers };
       delete headers['Content-Type'];
       return fetch(endpoint, { method: 'POST', headers, body: formData })
          .then(res => res.json())
          .then((json: RpcResponse<R>) => {
+
+            if (this.useEncrypt && context) {
+
+               if (json.result) {
+                  json.result = JSON.parse(xorDecrypt(json.result as string, context));
+               }
+               if (json.extensions) {
+                  json.extensions = JSON.parse(xorDecrypt(json.extensions as string, context));
+               }
+            }
+
+
             if (json?.error) {
                this.handleError(json.error);
                throw json.error;
@@ -145,7 +211,14 @@ export class rpcClient {
       await this.waitForEndpoints();
       const endpoint = this.getCurrentEndpoint();
 
-      const body = { method, extensions, token: this.getToken(), params, id: Date.now().toString() };
+
+      const context = this.useEncrypt ? uuidv4() : undefined;
+
+      const body = {
+         method, extensions, context: context, token: this.getToken(),
+         params: params ? context ? xorEncrypt(JSON.stringify(params ?? {}), context) : params : undefined,
+         id: Date.now().toString()
+      };
 
       console.log('🚀🚀🚀 method: ', method, ' RPC Endpoint: ', endpoint);
       console.log('🚀🚀🚀 method: ', method, ' RPC Body: ', JSON.stringify(body));
@@ -154,6 +227,16 @@ export class rpcClient {
       return fetch(endpoint, { method: 'POST', headers: this.headers, body: JSON.stringify(body) })
          .then(res => res.json())
          .then((json: RpcResponse<R>) => {
+
+            if (this.useEncrypt && context) {
+
+               if (json.result) {
+                  json.result = JSON.parse(xorDecrypt(json.result as string, context));
+               }
+               if (json.extensions) {
+                  json.extensions = JSON.parse(xorDecrypt(json.extensions as string, context));
+               }
+            }
 
             console.log('🍪🍪🍪 method: ', method, ' RPC Response: ', JSON.stringify(json));
             if (json?.error) {

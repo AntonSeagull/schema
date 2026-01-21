@@ -36,7 +36,7 @@ class FileIDResolver
 
             if ($firstSegment === '[]') {
                 if ($value) {
-                    return [$value];
+                    return $value;
                 } else {
                     return [];
                 }
@@ -95,6 +95,7 @@ class FileIDResolver
             if ($firstSegment == '[]') {
 
                 if (is_object($value) || is_array($value) || $value instanceof \Traversable) {
+                    $newValue = [];
                     foreach ($value as $item) {
 
 
@@ -103,11 +104,11 @@ class FileIDResolver
                             $item = $fileItem->getDocument()->removeOtherItems($item);
                         }
 
-                        $value[] = $item;
+                        $newValue[] = $item;
                     }
                 }
 
-                return $value;
+                return $newValue;
             }
 
 
@@ -216,7 +217,6 @@ class FileIDResolver
 
 
             $fileIdsFromPath = $this->getPathValues($path, $this->data);
-
 
 
 

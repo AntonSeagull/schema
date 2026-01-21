@@ -115,6 +115,16 @@ export class rpcClient {
       return this.endpoints[this.currentEndpointIndex];
    }
 
+   public static getCurrentEndpointDomain(): string {
+
+      let http = this.getCurrentEndpoint().split('://')[0];
+      let path = this.getCurrentEndpoint().split('://')[1];
+
+      let firstPart = path.split('/')[0];
+
+      return `${http}://${firstPart}`;
+   }
+
    private static isNetworkError(error: any): boolean {
       return (
          error.name === 'AbortError' ||

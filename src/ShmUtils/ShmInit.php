@@ -153,6 +153,9 @@ class ShmInit
 
         self::fatFree404();
 
+
+        RedirectRoute::init();
+
         if (php_sapi_name() !== 'cli') {
 
             header("Access-Control-Allow-Origin: *");

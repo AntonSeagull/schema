@@ -43,9 +43,10 @@ export class rpcClient {
    private static readonly ENDPOINT_INDEX_KEY = 'rpcClient_endpointIndex';
    private static currentEndpointIndex: number = 0;
    private static initialized: boolean = false;
-   private static headers: Record<string, string> = { 'Content-Type': 'application/json' };
+   private static headers: Record<string, string> = {};
    private static tokenGetter: (() => string | null) | null = null;
    private static unauthorizedHandler: (() => void) | null = null;
+   private static networkErrorHandler: (() => void) | null = null;
    private static toastHandler: ((message: string) => void) | null = null;
    private static storage: { save: (key: string, value: string) => Promise<void>; get: (key: string) => Promise<string | null> } | null = null;
 
@@ -57,6 +58,10 @@ export class rpcClient {
 
    public static setUseEncrypt(useEncrypt: boolean): void {
       this.useEncrypt = useEncrypt;
+   }
+
+   public static setNetworkErrorHandler(handler: () => void): void {
+      this.networkErrorHandler = handler;
    }
 
    public static async init(): Promise<void> {
@@ -166,11 +171,17 @@ export class rpcClient {
       const endpoint = this.getCurrentEndpoint();
 
       formData.append('method', method);
-      formData.append('token', this.getToken());
+
+      let _token = this.getToken();
+      if (_token) {
+         formData.append('token', _token);
+      }
+
+      formData.append('timezone', Intl.DateTimeFormat().resolvedOptions().timeZone);
 
       const context = this.useEncrypt ? uuidv4() : undefined;
 
-      if (this.useEncrypt) {
+      if (this.useEncrypt && context) {
          formData.append('context', context);
       }
 
@@ -201,6 +212,11 @@ export class rpcClient {
          })
          .catch(err => {
             if (this.isNetworkError(err)) {
+
+               if (this.networkErrorHandler) {
+                  this.networkErrorHandler();
+               }
+
                this.switchToNextEndpoint();
             }
             throw err;
@@ -224,7 +240,13 @@ export class rpcClient {
       console.log('🚀🚀🚀 method: ', method, ' RPC Body: ', JSON.stringify(body));
 
 
-      return fetch(endpoint, { method: 'POST', headers: this.headers, body: JSON.stringify(body) })
+      return fetch(endpoint, {
+         method: 'POST', headers: {
+            'Content-Type': 'application/json',
+            'timezone': Intl.DateTimeFormat().resolvedOptions().timeZone,
+            ...this.headers
+         }, body: JSON.stringify(body)
+      })
          .then(res => res.json())
          .then((json: RpcResponse<R>) => {
 
@@ -253,6 +275,9 @@ export class rpcClient {
          })
          .catch(err => {
             if (this.isNetworkError(err)) {
+               if (this.networkErrorHandler) {
+                  this.networkErrorHandler();
+               }
                this.switchToNextEndpoint();
             }
             console.log('🛑🛑🛑 RPC Error: ', JSON.stringify(body));

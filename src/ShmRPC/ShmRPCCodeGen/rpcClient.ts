@@ -146,14 +146,26 @@ export class rpcClient {
       const endpoint = this.getCurrentEndpoint();
 
       const body = { method, extensions, token: this.getToken(), params, id: Date.now().toString() };
+
+      console.log('🚀🚀🚀 method: ', method, ' RPC Endpoint: ', endpoint);
+      console.log('🚀🚀🚀 method: ', method, ' RPC Body: ', JSON.stringify(body));
+
+
       return fetch(endpoint, { method: 'POST', headers: this.headers, body: JSON.stringify(body) })
          .then(res => res.json())
          .then((json: RpcResponse<R>) => {
+
+            console.log('🍪🍪🍪 method: ', method, ' RPC Response: ', JSON.stringify(json));
             if (json?.error) {
                this.handleError(json.error);
                throw json.error;
             }
             this.saveEndpointIndex();
+
+            if (json?.extensions) {
+               ExtensionsStore.addToStore(json.extensions);
+            }
+
             return json as RpcResponse<R, E>;
          })
          .catch(err => {

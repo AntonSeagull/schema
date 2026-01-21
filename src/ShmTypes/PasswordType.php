@@ -68,15 +68,4 @@ class PasswordType extends BaseType
 
         return $TSType;
     }
-
-    public function getSearchPaths(): array
-    {
-
-
-        return [
-            [
-                'path' => $this->path,
-            ]
-        ];
-    }
 }

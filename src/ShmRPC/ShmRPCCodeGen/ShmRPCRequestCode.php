@@ -55,15 +55,6 @@ class ShmRPCRequestCode
     }
 
 
-    private function paramsForRequest(): string
-    {
-        if (isset($this->args)) {
-
-            return ', params';
-        }
-        return "";
-    }
-
 
 
 
@@ -98,6 +89,7 @@ class ShmRPCRequestCode
 
                 $extensionsGenericType = [];
                 foreach ($extensionsStructure as $key => $val) {
+                    ShmRPCCodeGenExtensionsStore::addExtension($key, $val);
                     $extensionsGenericType[] = $key . '?: ' . $val->tsType()->getTsTypeName() . '[] | null ';
                 }
 
@@ -110,17 +102,25 @@ class ShmRPCRequestCode
 
 
             $params = [];
+            $rpcFunctionParams = [];
 
             $paramsForFunction = $this->paramsForFunction();
             if ($paramsForFunction) {
                 $params[] = $paramsForFunction;
+                $rpcFunctionParams[] = 'params';
+            } else {
+                $rpcFunctionParams[] = '{}';
             }
 
             if ($useExtensions) {
                 $params[] = $extensionsType;
+                $rpcFunctionParams[] = 'extensions';
+            } else {
+                $rpcFunctionParams[] = '[]';
             }
 
             $params = implode(', ', $params);
+            $rpcFunctionParams = implode(', ', $rpcFunctionParams);
 
 
 
@@ -129,13 +129,13 @@ class ShmRPCRequestCode
 
                 return "{$this->functionName()}: ( $params) => {
             return rpcClient.call<{$this->paramsType()}, {$this->type->tsType()->getTsTypeName()} | null, {$extensionsGenericType}>(
-               '{$this->key}'{$this->paramsForRequest()}, extensions
+               '{$this->key}',{$rpcFunctionParams}
             );
              },";
             } else {
                 return "{$this->functionName()}: ( $params) => {
             return rpcClient.call<{$this->paramsType()}, {$this->type->tsType()->getTsTypeName()} | null, null>(
-               '{$this->key}'{$this->paramsForRequest()}
+               '{$this->key}',{$rpcFunctionParams}
             );
              },";
             }

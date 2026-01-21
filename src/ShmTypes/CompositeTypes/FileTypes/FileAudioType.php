@@ -86,11 +86,4 @@ class FileAudioType extends StructureType
     {
         return null;
     }
-
-
-
-    public function getSearchPaths(): array
-    {
-        return [];
-    }
 }

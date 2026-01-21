@@ -30,9 +30,4 @@ class GradientType extends StructureType
 
         ]);
     }
-
-    public function getSearchPaths(): array
-    {
-        return [];
-    }
 }

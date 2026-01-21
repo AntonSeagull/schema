@@ -234,15 +234,7 @@ class IDType extends BaseType
     }
 
 
-    public function updatePath(array | null $path = null): void
-    {
-        if ($this->key === null) {
-            throw new \LogicException('Key must be set before updating path.');
-        }
 
-        $newPath = [...$path, $this->key];
-        $this->path = $newPath;
-    }
 
     public function haveID(): bool
     {

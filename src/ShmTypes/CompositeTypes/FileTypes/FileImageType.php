@@ -113,11 +113,4 @@ class FileImageType extends StructureType
     {
         return  ShmUtils::onlyLetters($this->type) . 'File';
     }
-
-
-
-    public function getSearchPaths(): array
-    {
-        return [];
-    }
 }

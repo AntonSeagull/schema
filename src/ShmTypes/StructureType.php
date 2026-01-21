@@ -1433,28 +1433,7 @@ class StructureType extends BaseType
 
 
 
-    public function updatePath(array | null $path = null): void
-    {
 
-        if ($this->key === null) {
-            throw new \LogicException('Key must be set before updating path.');
-        }
-
-
-
-        if ($this->collection) {
-            $this->path = [...($path ?? [])];
-        } else {
-            $this->path = [...($path ?? []), $this->key];
-        }
-
-        if (isset($this->items)) {
-            foreach ($this->items as $key => $item) {
-
-                $item->updatePath([...$this->path]);
-            }
-        }
-    }
 
 
 

@@ -118,6 +118,7 @@ class ExtensionsResolver
 
 
 
+
         $this->extensions = array_intersect($this->extensions, $enabledExtensions);
 
 
@@ -128,11 +129,11 @@ class ExtensionsResolver
         if ($this->structure instanceof ArrayOfType) {
 
             $this->structure->itemType->updateKeys();
-            $this->structure->itemType->updatePath();
         } else {
             $this->structure->updateKeys();
-            $this->structure->updatePath();
         }
+
+        $this->structure->updatePath();
 
 
         $extensionItems = $this->structure->findItemsByCondition(function ($item) {
@@ -163,7 +164,7 @@ class ExtensionsResolver
         foreach ($extensionItems as $extensionItem) {
 
 
-            $path = $extensionItem->getPathArrayToRoot([], true);
+            $path = $extensionItem->path;
 
 
             if ($extensionItem instanceof IDsType) {

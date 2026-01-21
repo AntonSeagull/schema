@@ -82,13 +82,4 @@ class MongoPolygonType extends StructureType
     {
         return  ShmUtils::onlyLetters($this->type);
     }
-
-
-
-
-
-    public function getSearchPaths(): array
-    {
-        return [];
-    }
 }

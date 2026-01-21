@@ -213,7 +213,7 @@ class EnumType extends BaseType
     private function getEnumTypeName(): string
     {
         if (!$this->key) {
-            throw new \Exception("getEnumTypeName -> Key is not set for EnumType" . ' ' . print_r($this->path) . ' ' .  print_r($this->values, true));
+            throw new \Exception("getEnumTypeName -> Key is not set for EnumType" . ' ' .  print_r($this->values, true));
         }
 
         return ShmUtils::onlyLetters($this->key) . AutoPostfix::get(array_keys($this->values), true) . 'Enum';

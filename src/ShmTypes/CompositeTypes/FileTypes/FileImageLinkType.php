@@ -30,10 +30,7 @@ class FileImageLinkType extends StringType
         return $this;
     }
 
-    public function getSearchPaths(): array
-    {
-        return [];
-    }
+
 
 
     public function exportRow(mixed $value): string | array | null

@@ -79,6 +79,8 @@ class ShmRPCCodeGen
 
 
 
+        $requests[] = ShmRPCCodeGenExtensionsStore::tsClass();
+
 
         $requests = implode("\n", $requests);
 

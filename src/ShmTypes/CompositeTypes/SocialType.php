@@ -29,9 +29,4 @@ class SocialType extends ArrayOfType
             )
         );
     }
-
-    public function getSearchPaths(): array
-    {
-        return [];
-    }
 }

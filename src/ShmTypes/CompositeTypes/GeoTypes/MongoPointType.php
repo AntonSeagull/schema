@@ -61,10 +61,6 @@ class MongoPointType extends StructureType
 
 
 
-    public function getSearchPaths(): array
-    {
-        return [];
-    }
 
     public function filterType($safeMode = false): ?BaseType
     {

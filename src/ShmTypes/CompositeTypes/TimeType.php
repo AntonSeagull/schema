@@ -22,9 +22,4 @@ class TimeType extends StructureType
             'm' => Shm::int()->min(0)->max(59)->default(0),
         ];
     }
-
-    public function getSearchPaths(): array
-    {
-        return [];
-    }
 }

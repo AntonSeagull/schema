@@ -27,9 +27,10 @@ class SearchStringUpdate
         echo 'Updating search index for ' . $structure->collection . PHP_EOL;
 
 
+        /*
 
+        //TODO: Переписать
         $structure->updateKeys();
-        $structure->updatePath();
 
         $SearchPaths =   $structure->getSearchPaths();
 
@@ -107,7 +108,7 @@ class SearchStringUpdate
         if (count($bulkUpdate) > 0) {
             echo 'Executing bulk update for ' . count($bulkUpdate) . ' items in collection ' . $structure->collection . PHP_EOL;
             mDB::_collection($structure->collection)->bulkWrite($bulkUpdate);
-        }
+        }*/
     }
 
     public static function cmdInit()

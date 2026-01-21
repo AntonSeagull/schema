@@ -31,10 +31,4 @@ class RangeType extends StructureType
     {
         return $this->fullRequired($isRequired);
     }
-
-
-    public function getSearchPaths(): array
-    {
-        return [];
-    }
 }

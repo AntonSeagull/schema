@@ -211,8 +211,7 @@ class ShmRPCContext
         if ($result) {
 
 
-            echo json_encode($this->type->devPathJSON());
-            exit;
+
 
 
 

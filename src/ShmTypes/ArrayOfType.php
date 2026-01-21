@@ -34,7 +34,7 @@ class ArrayOfType extends BaseType
 
 
         $itemType->setParent($this);
-        $this->itemType = $itemType;
+        $this->itemType =  $itemType;
     }
 
     /**

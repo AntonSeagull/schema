@@ -22,8 +22,6 @@ class FileIDResolver
     {
 
 
-
-
         $this->structure = $structure;
         $this->data = $data;
     }
@@ -183,11 +181,11 @@ class FileIDResolver
         if ($this->structure instanceof ArrayOfType) {
 
             $this->structure->itemType->updateKeys();
-            $this->structure->itemType->updatePath();
         } else {
             $this->structure->updateKeys();
-            $this->structure->updatePath();
         }
+
+        $this->structure->updatePath();
 
 
         $fileItems = $this->structure->findItemsByCondition(function ($item) {
@@ -209,7 +207,8 @@ class FileIDResolver
 
 
 
-            $path = $fileItem->getPathArrayToRoot([], true);
+            $path = $fileItem->path;
+
 
 
 
@@ -257,7 +256,7 @@ class FileIDResolver
 
 
         foreach ($fileItems as $fileItem) {
-            $path = $fileItem->getPathArrayToRoot([], true);
+            $path = $fileItem->path;
             $resolvedData = $this->setPathValues($path, $resolvedData, $filesById, $fileItem);
         }
 

@@ -130,15 +130,7 @@ class IntType extends BaseType
         return $TSType;
     }
 
-    public function getSearchPaths(): array
-    {
 
-        return [
-            [
-                'path' => $this->path,
-            ]
-        ];
-    }
 
     public function exportRow(mixed $value): string | array | null
     {

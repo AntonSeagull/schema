@@ -29,6 +29,29 @@ abstract class BaseType
 
     public ?string $description = null;
 
+    public $path = [];
+
+
+    /**
+     * Call only from root element!
+     */
+    public function updatePath(array | null $prevPath = null)
+    {
+
+        $this->path = $prevPath ?? [];
+
+        if (isset($this->items)) {
+            foreach ($this->items as $key => $item) {
+
+                $item->updatePath([...$this->path, $key]);
+            }
+        }
+
+        if (isset($this->itemType)) {
+            $this->itemType->updatePath([...$this->path, '[]']);
+        }
+    }
+
 
     public bool $indexed = false;
 
@@ -92,22 +115,6 @@ abstract class BaseType
     }
 
 
-    public function extensionsType(): TSType
-    {
-
-        $extensionsCollection = $this->extensionsCollection();
-
-        $tsTypeValue = [];
-
-        foreach ($extensionsCollection as $key) {
-            $tsTypeValue[] = '"' . $key . '"';
-        }
-        $TSType = new TSType('Extensions' . AutoPostfix::get($extensionsCollection),  implode('|', $tsTypeValue), false);
-
-
-
-        return $TSType;
-    }
 
     public function extensionsStructure(): array
     {
@@ -142,44 +149,6 @@ abstract class BaseType
 
 
 
-    public function getPathArrayToRoot($path = [], bool $withArray = false): array
-    {
-
-
-
-        if ($this instanceof ArrayOfType) {
-            if (!$withArray) {
-                throw new \Exception("ArrayOfType does not have a unic path");
-            } else {
-
-                $path = ['[]', ...$path];
-            }
-        }
-        if (!$this->parent) {
-
-
-            if ($this instanceof ArrayOfType && $this->key) {
-                return [$this->key, ...$path];
-            } else {
-                return [...$path];
-            }
-        }
-
-        if ($this->parent) {
-
-            if ($this->parent instanceof ArrayOfType) {
-                $path = [...$path];
-            } else {
-                $path = [$this->key, ...$path];
-            }
-
-
-
-            return $this->parent->getPathArrayToRoot($path, $withArray);
-        }
-
-        return [$this->key, ...$path];
-    }
 
 
     public function getPathArray($path = [], bool $withArray = false): array
@@ -513,7 +482,7 @@ abstract class BaseType
 
     public  $key = null;
 
-    public $path = null;
+
 
     public  $min = null;
     public  $max = null;
@@ -1527,22 +1496,6 @@ abstract class BaseType
 
 
 
-    public function updatePath(array | null $path = null): void
-    {
-
-        if ($this->key === null) {
-            throw new \LogicException('Key must be set before updating path.');
-        }
-
-        $this->path = [...($path ?? []), $this->key];
-
-
-
-        if (isset($this->itemType)) {
-
-            $this->itemType->updatePath([...$this->path, "[]"]);
-        }
-    }
 
 
 
@@ -1579,26 +1532,6 @@ abstract class BaseType
 
 
 
-    public function getSearchPaths(): array
-    {
-
-
-        $findPaths = [];
-
-        if (isset($this->items)) {
-            foreach ($this->items as $key => $item) {
-
-                $findPaths = [...$findPaths, ...$item->getSearchPaths()];
-            }
-        }
-
-        if (isset($this->itemType)) {
-            $findPaths =   [...$findPaths, ...$this->itemType->getSearchPaths()];
-        }
-
-
-        return  $findPaths;
-    }
 
 
 
@@ -2016,17 +1949,37 @@ abstract class BaseType
         return $result;
     }
 
-    private  function removeNullValues($data)
+    private  function removeNullValues($data, array $onlyKeys = [])
     {
 
         foreach ($data as $key => $val) {
+
+            if ($onlyKeys && !in_array($key, $onlyKeys)) {
+
+
+                if (is_array($val)) {
+
+                    $valKeys = array_keys($val);
+
+
+                    if (!array_intersect($valKeys, $onlyKeys)) {
+
+                        unset($data[$key]);
+                        continue;
+                    }
+                } else {
+                    unset($data[$key]);
+                    continue;
+                }
+            }
+
 
             if ($val === null || $val === false || $val == [] || $val == '' || $val == 0) {
                 unset($data[$key]);
                 continue;
             }
             if (is_array($val) || is_object($val)) {
-                $data[$key] = $this->removeNullValues($val);
+                $data[$key] = $this->removeNullValues($val, $onlyKeys);
                 if ($val === null || $val === false) {
                     unset($data[$key]);
                 }
@@ -2037,28 +1990,6 @@ abstract class BaseType
     }
 
 
-    public function devPathJSON(): array
-    {
-
-        $result = [];
-
-
-        if (isset($this->items)) {
-            foreach ($this->items as $key => $item) {
-                $result = [...$result, ...$item->devPathJSON()];
-            }
-        }
-
-        if (isset($this->itemType)) {
-            $result = [...$result, ...$this->itemType->devPathJSON()];
-        }
-
-        $result[$this->key ?? "NOKEY"] = $this->getPathArrayToRoot([], true);
-
-
-
-        return $result;
-    }
 
 
     public function json()
@@ -2072,6 +2003,31 @@ abstract class BaseType
         $data = $this->removeNullValues($data);
 
         return $data;
+    }
+
+    public function devJson()
+    {
+
+
+        $item = [
+            'path' => $this->path,
+            'items' => null,
+            'itemValue' => null,
+        ];
+
+
+        if (isset($this->items)) {
+
+            foreach ($this->items as $key => $val) {
+                $item['items'][$key] =  $val->devJson();
+            }
+        }
+        if (isset($this->itemType) && $this->itemType instanceof BaseType) {
+            $item['itemValue'] =    $this->itemType->devJson();
+        }
+
+
+        return $item;
     }
 
 

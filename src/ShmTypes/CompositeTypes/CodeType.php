@@ -17,10 +17,4 @@ class CodeType extends StringType
         $this->codeLang = $language;
         return $this;
     }
-
-
-    public function getSearchPaths(): array
-    {
-        return [];
-    }
 }

@@ -100,12 +100,4 @@ class FileIDType extends IDType
     {
         return $this->getDocument()->tsType();
     }
-
-
-
-
-    public function getSearchPaths(): array
-    {
-        return [];
-    }
 }

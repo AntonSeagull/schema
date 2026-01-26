@@ -75,6 +75,9 @@ class ShmRPCRequestCode
 
             $extensionsCollection = array_keys($extensionsStructure);
 
+
+
+
             $extensionsType = "";
 
             $extensionsGenericType = 'null';

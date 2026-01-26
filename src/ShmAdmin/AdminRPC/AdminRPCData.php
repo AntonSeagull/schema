@@ -44,7 +44,8 @@ class AdminRPCData
                         'field' => Shm::string(),
                     ]),
                     'filter' => Shm::mixed(),
-                    'stage' => Shm::string()
+                    'pipeline' => Shm::mixed(),
+
                 ]),
                 'resolve' => function ($root, $args) {
 
@@ -110,17 +111,7 @@ class AdminRPCData
 
 
 
-                    if (isset($args['stage'])) {
 
-                        $stage = $structure->findStage($args['stage']);
-
-                        if ($stage) {
-                            $pipeline = [
-                                ...$pipeline,
-                                ...$stage->getPipeline(),
-                            ];
-                        }
-                    }
 
 
 
@@ -184,7 +175,13 @@ class AdminRPCData
                         }
                     };
 
+                    if (isset($args['pipeline'])) {
 
+                        $pipeline = [
+                            ...$pipeline,
+                            ...$args['pipeline'],
+                        ];
+                    }
 
 
                     if (isset($args['search'])) {

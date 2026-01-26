@@ -2,9 +2,11 @@
 
 namespace Shm\ShmUtils\ShmDoctor\ClassGenerator;
 
+use Aws\Arn\Arn;
 use Nette\PhpGenerator\ClassType;
 use Shm\ShmTypes\ArrayOfType;
 use Shm\ShmTypes\CompositeTypes\ActionType;
+use Shm\ShmTypes\EnumType;
 use Shm\ShmTypes\StructureType;
 use Shm\ShmUtils\ShmDoctor\Utils\CodeGenerator;
 use Shm\ShmUtils\ShmInit;
@@ -83,6 +85,23 @@ class AdminDescriptionGenerator
                 'titleEN' => $existData[$key]['titleEN'] ?? "",
                 'titleRU' => $item->title ?? "",
             ];
+
+            if ($item instanceof EnumType || ($item instanceof ArrayOfType && $item->itemType instanceof EnumType)) {
+
+                $values = $item instanceof EnumType ? $item->values : $item->itemType->values;
+                $descValues = [];
+
+                foreach ($values as $valKey => $value) {
+                    $descValues[$valKey] = [
+                        'titleRU' => $value,
+                        'titleEN' => $existData[$key]['values'][$valKey]['titleEN'] ?? "",
+                        'descriptionEN' => $existData[$key]['values'][$valKey]['descriptionEN'] ?? "",
+                        'descriptionRU' => $existData[$key]['values'][$valKey]['descriptionRU'] ?? "",
+                    ];
+                }
+
+                $result[$key]['values'] = $descValues;
+            }
 
 
 

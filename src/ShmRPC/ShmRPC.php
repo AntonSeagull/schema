@@ -101,13 +101,16 @@ class ShmRPC
             if (is_object($field) && method_exists($field, 'make')) {
 
                 continue;
+            } else {
+
+                throw new \Exception("Schema field '{$key}' must have a make method.");
             }
 
 
 
-            if (!isset($field['type']) || !($field['type'] instanceof \Shm\ShmTypes\BaseType)) {
-                throw new \Exception("Schema field '{$key}' must have a 'type' of BaseType.");
-            }
+            // if (!isset($field['type']) || !($field['type'] instanceof \Shm\ShmTypes\BaseType)) {
+            //     throw new \Exception("Schema field '{$key}' must have a 'type' of BaseType.");
+            // }
         }
     }
 

@@ -79,9 +79,14 @@ class BaseStructureType extends StructureType
 
             'codeLang' => Shm::string(), //for CodeType
             'manualSort' => Shm::bool(),
-            'publicStages' => Shm::structure([
-                "*" => Shm::string()
-            ]),
+
+            'filterPresets' => Shm::arrayOf(Shm::structure([
+                "key" => Shm::string(),
+                "title" => Shm::string(),
+                "filter" => Shm::mixed(),
+            ])),
+
+
 
             'args' => Shm::selfRef(function () use (&$type) {
                 return $type;

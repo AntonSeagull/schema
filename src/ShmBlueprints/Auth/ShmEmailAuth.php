@@ -5,6 +5,7 @@ namespace Shm\ShmBlueprints\Auth;
 use Shm\ShmDB\mDB;
 use Shm\Shm;
 use Shm\ShmAuth\Auth;
+use Shm\ShmRPC\ShmRPC;
 use Shm\ShmUtils\Config;
 use Shm\ShmUtils\Response;
 
@@ -235,73 +236,76 @@ class ShmEmailAuth extends ShmAuthBase
         ];
     }
 
-    public function prepare(): array
+    public function prepare()
     {
 
-        return [
-            'type' => Shm::structure([
-                'find' => Shm::boolean(),
-                'isEmail' => Shm::boolean(),
-                'canRegister' => Shm::boolean(),
-            ]),
-            'description' => 'Подготовка к авторизации через Email (или логин)',
-            'args' => Shm::structure([
+        $_this = $this;
+        return ShmRPC::lazy(function () use ($_this) {
+            return [
+                'type' => Shm::structure([
+                    'find' => Shm::boolean(),
+                    'isEmail' => Shm::boolean(),
+                    'canRegister' => Shm::boolean(),
+                ]),
+                'description' => 'Подготовка к авторизации через Email (или логин)',
+                'args' => Shm::structure([
 
-                "login" => Shm::nonNull(Shm::string()),
-            ]),
-            'resolve' => function ($root, $args) {
+                    "login" => Shm::nonNull(Shm::string()),
+                ]),
+                'resolve' => function ($root, $args) use ($_this) {
 
 
-                $login = trim($args['login'] ?? '');
+                    $login = trim($args['login'] ?? '');
 
-                $login = mb_strtolower($login);
+                    $login = mb_strtolower($login);
 
-                $canRegister =  isset($this->_regStructures[0]) ? true : false;
+                    $canRegister =  isset($_this->_regStructures[0]) ? true : false;
 
-                if (!$login) {
+                    if (!$login) {
+                        return [
+                            'find' => false,
+                            'isEmail' => false,
+                            'canRegister' => $canRegister,
+                        ];
+                    }
+
+                    $_this->forceProtect($login);
+
+
+                    $authUserAndStructureEmail =  $_this->findAuthUserAndStructure(Shm::email(),  $login, []);
+
+                    if ($authUserAndStructureEmail) {
+                        return [
+                            'find' => true,
+                            'isEmail' => true,
+                        ];
+                    }
+
+                    $authUserAndStructureLogin =  $_this->findAuthUserAndStructure(Shm::login(),  $login, []);
+
+                    if ($authUserAndStructureLogin) {
+
+
+
+
+                        return [
+                            'find' => true,
+                            'isEmail' => false,
+                            'canRegister' => $canRegister
+                        ];
+                    }
+
+
+
+
+
                     return [
                         'find' => false,
-                        'isEmail' => false,
+                        'isEmail' =>  $_this->isEmail($login),
                         'canRegister' => $canRegister,
                     ];
                 }
-
-                $this->forceProtect($login);
-
-
-                $authUserAndStructureEmail =  $this->findAuthUserAndStructure(Shm::email(),  $login, []);
-
-                if ($authUserAndStructureEmail) {
-                    return [
-                        'find' => true,
-                        'isEmail' => true,
-                    ];
-                }
-
-                $authUserAndStructureLogin =  $this->findAuthUserAndStructure(Shm::login(),  $login, []);
-
-                if ($authUserAndStructureLogin) {
-
-
-
-
-                    return [
-                        'find' => true,
-                        'isEmail' => false,
-                        'canRegister' => $canRegister
-                    ];
-                }
-
-
-
-
-
-                return [
-                    'find' => false,
-                    'isEmail' =>  $this->isEmail($login),
-                    'canRegister' => $canRegister,
-                ];
-            }
-        ];
+            ];
+        });
     }
 }

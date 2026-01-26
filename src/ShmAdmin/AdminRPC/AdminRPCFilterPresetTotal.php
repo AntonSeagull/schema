@@ -6,10 +6,10 @@ use Shm\Shm;
 use Shm\ShmAdmin\AdminPanel;
 use Shm\ShmAuth\Auth;
 use Shm\ShmRPC\ShmRPC;
-use Shm\ShmTypes\SupportTypes\StageType;
+
 use Shm\ShmUtils\Response;
 
-class AdminRPCStagesTotal
+class AdminRPCFilterPresetTotal
 {
     public static function rpc()
     {
@@ -51,9 +51,9 @@ class AdminRPCStagesTotal
                     $pipeline = $structure->getPipeline();
 
 
-                    $stages = $structure->getStages();
+                    $filterPresets = $structure->filterPresets;
 
-                    if (!$stages) {
+                    if (!$filterPresets) {
                         return [];
                     }
 
@@ -90,29 +90,28 @@ class AdminRPCStagesTotal
 
                     $facet = [];
 
-                    foreach ($stages->items as $stage) {
-                        if ($stage instanceof StageType) {
-                            $facet[$stage->key] = [
-                                ...$stage->getPipeline(),
-                                [
-                                    '$group' => [
-                                        '_id' => null,
-                                        'count' => ['$sum' => 1],
-                                    ]
+                    foreach ($filterPresets as $key =>  $filterPreset) {
+
+                        $facet[$key] = [
+                            ...$filterPreset['filter'],
+                            [
+                                '$group' => [
+                                    '_id' => null,
+                                    'count' => ['$sum' => 1],
                                 ]
-                            ];
-                        }
+                            ]
+                        ];
                     }
 
-                    $stagesCounts = $structure->aggregate([
+                    $filterPresetsCounts = $structure->aggregate([
                         ...$pipeline,
                         ['$facet' => $facet]
                     ])->toArray()[0] ?? [];
 
                     $result = [];
 
-                    foreach ($stages->items as $stage) {
-                        $result[$stage->key] = $stagesCounts[$stage->key][0]['count'] ?? 0;
+                    foreach ($filterPresets as $key => $filterPreset) {
+                        $result[$key] = $filterPresetsCounts[$key][0]['count'] ?? 0;
                     }
 
                     return $result;

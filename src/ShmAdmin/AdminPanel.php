@@ -7,6 +7,7 @@ use GuzzleHttp\Client;
 use GuzzleHttp\Psr7\Request;
 use Shm\ShmDB\mDB;
 use Shm\Shm;
+use Shm\ShmAdmin\AdminRPC\AdminRPCAnalytics;
 use Shm\ShmAdmin\AdminRPC\AdminRPCProfile;
 use Shm\ShmAdmin\AdminRPC\AdminRPCUpdateProfile;
 use Shm\ShmAdmin\AdminRPC\AdminRPCInit;
@@ -33,7 +34,7 @@ use Shm\ShmAdmin\AdminRPC\AdminRPCMoveUpdate;
 
 use Shm\ShmAdmin\AdminRPC\AdminRPCUpdate;
 use Shm\ShmAdmin\AdminRPC\AdminRPCRunAction;
-use Shm\ShmAdmin\AdminRPC\AdminRPCStagesTotal;
+use Shm\ShmAdmin\AdminRPC\AdminRPCFilterPresetTotal;
 
 use Shm\ShmAdmin\AdminRPC\AdminRPCGeneratePaymentLink;
 use Shm\ShmAdmin\AdminRPC\AdminRPCLastBalanceOperations;
@@ -54,7 +55,7 @@ use Shm\ShmSupport\ShmSupport;
 use Shm\ShmTypes\CompositeTypes\BalanceTypes\BalanceUtils;
 use Shm\ShmTypes\DashboardType;
 use Shm\ShmTypes\StructureType;
-use Shm\ShmTypes\SupportTypes\StageType;
+
 use Shm\ShmUtils\Config;
 use Shm\ShmUtils\DisplayValuePrepare;
 use Shm\ShmUtils\Inflect;
@@ -212,17 +213,21 @@ class AdminPanel
 
         ShmRPC::init([
 
-            'compositeTypes' => [
-                'type' => Shm::structure([
-                    'geoPoint' => Shm::geoPoint(),
-                    'geoRegion' => Shm::geoRegion(),
-                    'gradient' => Shm::gradient(),
+            'compositeTypes' => ShmRPC::lazy(function () {
+                return [
+                    'type' => Shm::structure([
+                        'geoPoint' => Shm::geoPoint(),
+                        'geoRegion' => Shm::geoRegion(),
+                        'gradient' => Shm::gradient(),
 
 
-                ]),
-            ],
+                    ]),
+                ];
+            }),
 
-            'geolocation' => ShmRPC::IPGeolocation(),
+            'geolocation' => ShmRPC::lazy(function () {
+                return ShmRPC::IPGeolocation();
+            }),
 
             'imageUpload' => ShmRPC::fileUpload()->image(),
             'videoUpload' => ShmRPC::fileUpload()->video(),
@@ -243,6 +248,8 @@ class AdminPanel
             'init' => AdminRPCInit::rpc(),
 
 
+
+            'allCollections' => AdminRPCAnalytics::allCollectionsRpc(),
 
 
 
@@ -300,7 +307,7 @@ class AdminPanel
 
             'runAction' => AdminRPCRunAction::rpc(),
 
-            'stagesTotal' => AdminRPCStagesTotal::rpc(),
+            'stagesTotal' => AdminRPCFilterPresetTotal::rpc(),
 
 
 

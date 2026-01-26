@@ -14,6 +14,8 @@ class ShmRPCCodeGen
 
 
 
+
+
     public static function html(array $schema, $json = false)
     {
 
@@ -131,6 +133,7 @@ class ShmRPCCodeGen
 }
 
 export interface RpcResponse<T = unknown, Extensions = unknown> {
+  datetime: number;
   success: boolean;
   result: T | null;
   extensions: Extensions | null;

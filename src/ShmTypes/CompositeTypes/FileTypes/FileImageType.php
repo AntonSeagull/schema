@@ -8,6 +8,7 @@ use Shm\CachedType\CachedInputObjectType;
 use Shm\CachedType\CachedObjectType;
 use Shm\Shm;
 use Shm\ShmDB\mDB;
+use Shm\ShmRPC\ShmRPCCodeGen\TSType;
 use Shm\ShmTypes\BaseType;
 use Shm\ShmTypes\StructureType;
 use Shm\ShmUtils\ShmUtils;
@@ -96,6 +97,12 @@ class FileImageType extends StructureType
     public function normalize(mixed $value, $addDefaultValues = false, string | null $processId = null): mixed
     {
 
+
+        if (is_string($value)) {
+            $value = mDB::collection("_files")->findOne(['_id' => mDB::id($value)]);
+        }
+
+
         if ((is_array($value) || $value instanceof Traversable)) {
 
             if (!isset($value['url']) || !$value['url']) {
@@ -105,8 +112,12 @@ class FileImageType extends StructureType
             }
         }
 
+
+
         return parent::normalize($value, $addDefaultValues, $processId);
     }
+
+
 
 
     public function baseTypeName()

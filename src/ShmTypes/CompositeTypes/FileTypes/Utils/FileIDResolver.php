@@ -93,9 +93,9 @@ class FileIDResolver
         if (count($path) == 0) {
 
             if ($firstSegment == '[]') {
+                $newValue = [];
 
                 if (is_object($value) || is_array($value) || $value instanceof \Traversable) {
-                    $newValue = [];
                     foreach ($value as $item) {
 
 

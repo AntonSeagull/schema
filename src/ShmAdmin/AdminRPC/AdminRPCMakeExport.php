@@ -25,7 +25,8 @@ class AdminRPCMakeExport
                     'title' => Shm::string(),
                     "collection" => Shm::nonNull(Shm::string()),
                     'filter' => Shm::mixed(),
-                    'stage' => Shm::string()
+                    'pipeline' => Shm::mixed(),
+
                 ]),
                 'resolve' => function ($root, $args) {
 
@@ -98,17 +99,7 @@ class AdminRPCMakeExport
                         ];
                     }
 
-                    if (isset($args['stage'])) {
 
-                        $stage = $structure->findStage($args['stage']);
-
-                        if ($stage) {
-                            $pipeline = [
-                                ...$pipeline,
-                                ...$stage->getPipeline(),
-                            ];
-                        }
-                    }
 
 
 
@@ -129,6 +120,13 @@ class AdminRPCMakeExport
                             ];
                         }
                     };
+
+                    if (isset($args['pipeline'])) {
+                        $pipeline = [
+                            ...$pipeline,
+                            ...$args['pipeline'],
+                        ];
+                    }
 
 
 

@@ -24,7 +24,7 @@ use Shm\ShmDB\mDBRedis;
 
 use Shm\ShmRPC\ShmRPCCodeGen\TSType;
 use Shm\ShmTypes\CompositeTypes\ActionType;
-use Shm\ShmTypes\SupportTypes\StageType;
+
 use Shm\ShmTypes\Utils\JsonLogicBuilder;
 
 use Shm\ShmUtils\AutoPostfix;
@@ -199,53 +199,25 @@ class StructureType extends BaseType
         return $this;
     }
 
+    public array $filterPresets = [];
 
-    private null | StructureType $stages = null;
-
-
-
-    public $publicStages = [];
-
-    public function getStages(): ?StructureType
+    public function addFilterPreset(string $key, string $title, array $filter): static
     {
-        return $this->stages;
-    }
-
-
-
-    public function stages(StructureType $stages): static
-    {
-
-        foreach ($stages->items as $key => $stage) {
-            if (!($stage instanceof StageType)) {
-                throw new \Exception("Stage '{$key}' must be an instance of StageType.");
-            }
-
-            $this->publicStages[$key] = $stage->title ?? $stage->key;
-        }
-
-        $this->stages = $stages;
+        $this->filterPresets[$key] = [
+            'key' => $key,
+            'title' => $title,
+            'filter' => $filter,
+        ];
         return $this;
     }
 
-    public function removeKeyInStages(string $key): static
-    {
-        if ($this->stages && isset($this->stages->items[$key])) {
-            unset($this->stages->items[$key]);
-            unset($this->publicStages[$key]);
-        }
 
-        return $this;
-    }
 
-    public function findStage(string $key): ?StageType
-    {
-        if ($this->stages && isset($this->stages->items[$key])) {
-            return $this->stages->items[$key];
-        }
 
-        return null;
-    }
+
+
+
+
 
 
 

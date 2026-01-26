@@ -14476,7 +14476,7 @@ class MaterialIcons
                 exit;
             }
 
-            if (count($parts) === 2 && $parts[0] === 'assets' && $parts[1] === 'icons') {
+            if (count($parts) === 2 && $parts[0] === '_assets' && $parts[1] === 'icons') {
 
 
                 header('Content-Type: text/html; charset=utf-8');
@@ -14514,6 +14514,7 @@ class MaterialIcons
                 }
 
                 echo '</div></div></body></html>';
+                exit;
             }
         }
     }

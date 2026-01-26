@@ -81,14 +81,7 @@ class SubAccountsSchema
             ]);
         }
 
-        $hideStages = $collectionItem['hideStages'] ?? false;
-        $hideStagesKeys =  (array) ($collectionItem['hideStagesKeys'] ?? []);
-        if ($hideStages) {
 
-            foreach ($hideStagesKeys as $key) {
-                $structure->removeKeyInStages($key);
-            }
-        }
         return $structure;
     }
 
@@ -196,17 +189,6 @@ class SubAccountsSchema
                     }
                 }
 
-                $stages = $item->getStages();
-
-
-                $hideStageEnum = [];
-                if ($stages) {
-                    foreach ($stages->items as $key => $stage) {
-
-                        $hideStageEnum[$key] = $stage->title;
-                    }
-                }
-
 
                 $result = [
                     ...$result,
@@ -249,18 +231,7 @@ class SubAccountsSchema
                                 ),
 
 
-                            'hideStages' => count($hideStageEnum) > 0 ? Shm::bool()->title("Скрыть группы в таблице")->default(false)->inAdmin()->editable()->setCol(12)
-                                ->cond(
-                                    Shm::cond()
-                                        ->equals($item->collection . '.canView', true)
-                                ) : null,
 
-                            'hideStagesKeys' => count($hideStageEnum) > 0 ? Shm::arrayOf(Shm::enum($hideStageEnum))->title("Скрыть группы в таблице")->inAdmin()->editable()
-                                ->cond(
-                                    Shm::cond()
-                                        ->equals($item->collection . '.hideStages', true)
-                                        ->equals($item->collection . '.canView', true)
-                                ) : null,
 
                         ])->title($item->title)->inAdmin()->editable(),
 
@@ -284,7 +255,7 @@ class SubAccountsSchema
             'created_at' => Shm::timestamp(),
             'updated_at' => Shm::timestamp(),
 
-            'photo' => Shm::fileImage()->title('Фото')->inAdmin()->editable()->inTable(),
+            'photo' => Shm::fileIDImage()->title('Фото')->inAdmin()->editable()->inTable(),
             'active' => Shm::bool()->title('Разрешить доступ')->default(true)->inAdmin(!Auth::subAccountAuth())->editable()->inTable(),
             'name' => Shm::string()->title('Имя')->setCol(12)->inAdmin()->editable()->inTable(),
             'surname' => Shm::string()->title('Фамилия')->setCol(12)->inAdmin()->editable()->inTable(),

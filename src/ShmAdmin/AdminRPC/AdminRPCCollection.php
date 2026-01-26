@@ -151,6 +151,14 @@ class AdminRPCCollection
                     'descriptionRU' => Shm::string(),
                     'titleEN' => Shm::string(),
                     'titleRU' => Shm::string(),
+                    'values' => Shm::structure([
+                        '*' => Shm::structure([
+                            'titleRU' => Shm::string(),
+                            'titleEN' => Shm::string(),
+                            'descriptionEN' => Shm::string(),
+                            'descriptionRU' => Shm::string(),
+                        ])
+                    ]),
                     'items' => Shm::selfRef(function () use (&$type) {
                         return $type;
                     })

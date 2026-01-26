@@ -32,7 +32,8 @@ class AdminRPCHash
                         'field' => Shm::string(),
                     ]),
                     'filter' => Shm::mixed(),
-                    'stage' => Shm::string()
+                    'pipeline' => Shm::mixed(),
+
                 ]),
 
                 'resolve' => function ($root, $args) {
@@ -59,17 +60,6 @@ class AdminRPCHash
                     $pipeline = $structure->getPipeline();
 
 
-                    if (isset($args['stage'])) {
-
-                        $stage = $structure->findStage($args['stage']);
-
-                        if ($stage) {
-                            $pipeline = [
-                                ...$pipeline,
-                                ...$stage->getPipeline(),
-                            ];
-                        }
-                    }
 
 
                     if (isset($args['filter'])) {
@@ -87,6 +77,12 @@ class AdminRPCHash
                         }
                     };
 
+                    if (isset($args['pipeline'])) {
+                        $pipeline = [
+                            ...$pipeline,
+                            ...$args['pipeline'],
+                        ];
+                    }
 
 
 

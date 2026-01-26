@@ -20,6 +20,17 @@ class Collection
 {
 
 
+    final public function tabs() {}
+    final public function schemaGroups() {}
+    final public function title() {}
+    final public function access() {}
+    final public function beforeSave() {}
+    final public function afterSave() {}
+    final public function expect() {}
+    final public function isHide() {}
+
+
+
 
     private static $target = false;
 
@@ -224,9 +235,16 @@ class Collection
 
 
 
-        $schema =   $this->schema()
-            ->key($this->collection)
-            ->collection($this->collection);
+        $schema =   $this->schema();
+
+
+        if (!$schema instanceof StructureType) {
+
+            throw new Error("Schema must be an instance of StructureType but got " . ($schema ? get_class($schema) : 'null'));
+        }
+
+        $schema->key($this->collection);
+        $schema->collection($this->collection);
 
         $schema->addUUIDInArray();
 

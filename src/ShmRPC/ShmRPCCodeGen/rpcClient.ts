@@ -50,6 +50,19 @@ export class rpcClient {
    private static toastHandler: ((message: string) => void) | null = null;
    private static storage: { save: (key: string, value: string) => Promise<void>; get: (key: string) => Promise<string | null> } | null = null;
 
+
+   private static defaultExtensions: DefaultExtensionsType = [];
+
+   public static setDefaultExtensions(extensions: DefaultExtensionsType): void {
+      this.defaultExtensions = extensions;
+   }
+
+   private static abortControllerTimeout: number = 30000;
+
+   public static setAbortControllerTimeout(timeout: number): void {
+      this.abortControllerTimeout = timeout;
+   }
+
    public static setStorage(storage: { save: (key: string, value: string) => Promise<void>; get: (key: string) => Promise<string | null> }): void {
       this.storage = storage;
    }
@@ -198,9 +211,16 @@ export class rpcClient {
 
       const headers = { ...this.headers };
       delete headers['Content-Type'];
-      return fetch(endpoint, { method: 'POST', headers, body: formData })
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+         controller.abort();
+      }, this.abortControllerTimeout);
+
+      return fetch(endpoint, { method: 'POST', headers, body: formData, signal: controller.signal })
          .then(res => res.json())
          .then((json: RpcResponse<R>) => {
+            clearTimeout(timeoutId);
 
             if (this.useEncrypt && context) {
 
@@ -221,6 +241,7 @@ export class rpcClient {
             return json.result as R;
          })
          .catch(err => {
+            clearTimeout(timeoutId);
             if (this.isNetworkError(err)) {
 
                if (this.networkErrorHandler) {
@@ -240,8 +261,12 @@ export class rpcClient {
 
       const context = this.useEncrypt ? uuidv4() : undefined;
 
+
+      let _extensions = extensions != undefined ? extensions : this.defaultExtensions;
+
+
       const body = {
-         method, extensions, context: context, token: this.getToken(),
+         method, extensions: _extensions, context: context, token: this.getToken(),
          params: params ? context ? xorEncrypt(JSON.stringify(params ?? {}), context) : params : undefined,
          id: Date.now().toString()
       };
@@ -250,15 +275,22 @@ export class rpcClient {
       console.log('🚀🚀🚀 method: ', method, ' RPC Body: ', JSON.stringify(body));
 
 
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+         controller.abort();
+      }, this.abortControllerTimeout);
+
       return fetch(endpoint, {
          method: 'POST', headers: {
             'Content-Type': 'application/json',
             'timezone': Intl.DateTimeFormat().resolvedOptions().timeZone,
             ...this.headers
-         }, body: JSON.stringify(body)
+         }, body: JSON.stringify(body),
+         signal: controller.signal
       })
          .then(res => res.json())
          .then((json: RpcResponse<R>) => {
+            clearTimeout(timeoutId);
 
             if (this.useEncrypt && context) {
 
@@ -284,6 +316,7 @@ export class rpcClient {
             return json as RpcResponse<R, E>;
          })
          .catch(err => {
+            clearTimeout(timeoutId);
             if (this.isNetworkError(err)) {
                if (this.networkErrorHandler) {
                   this.networkErrorHandler();

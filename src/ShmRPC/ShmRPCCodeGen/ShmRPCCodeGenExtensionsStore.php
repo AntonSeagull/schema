@@ -48,19 +48,30 @@ class ShmRPCCodeGenExtensionsStore
 
             if(this.store.' . $key . '?.[id]){
                 return this.store.' . $key . '[id];
-            }
+            }else{
+               console.info("📕 Extension ' . $key . ' not found by ID: " + id);
+             }
 
             return null;
             }';
 
-            $getByIDsFunctionsCode[] = 'public static ' . $key . 'ByIDs(ids: string[]): ' . $extension->tsType()->getTsTypeName() . '[] {
+            $getByIDsFunctionsCode[] = 'public static ' . $key . 'ByIDs(ids?: string[] | null): ' . $extension->tsType()->getTsTypeName() . '[] {
             
+            if(!ids){
+                return [];
+            }
+
             const result = [];
             for(const id of ids){
                 if(this.store.' . $key . '[id]){
                     result.push(this.store.' . $key . '[id]);
                 }
             }
+
+            if(result.length === 0){
+                console.info("📕 Extensions ' . $key . ' not found by IDs: " + ids.join(", "));
+            }
+
             return result;
 
             }';
@@ -85,8 +96,12 @@ class ShmRPCCodeGenExtensionsStore
 
         $getByIDsFunctionsCode = implode('\n', $getByIDsFunctionsCode);
 
+        $allExtensionsKeys = '("' . implode('" | "', array_keys(self::$extensions)) . '")[]';
+
         $code = '
         
+
+        type DefaultExtensionsType = ' . $allExtensionsKeys . ';
         
         type ExtensionsStoreType = {' . implode(', ', $storeType) . '};
         

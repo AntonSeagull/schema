@@ -46,7 +46,7 @@ use Shm\ShmTypes\PhoneType;
 use Shm\ShmTypes\SelfRefType;
 use Shm\ShmTypes\StaticType;
 
-use Shm\ShmTypes\SupportTypes\StageType;
+
 use Shm\ShmTypes\UnixDateTimeType;
 use Shm\ShmTypes\Utils\JsonLogicBuilder;
 use Shm\ShmTypes\UUIDType;
@@ -349,10 +349,7 @@ class Shm
         return new GradientType();
     }
 
-    public static function stage(): StageType
-    {
-        return new StageType();
-    }
+
 
 
     public static function static(mixed $staticValue): StaticType

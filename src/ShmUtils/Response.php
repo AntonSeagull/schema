@@ -156,6 +156,7 @@ class Response
             'executionTime' => $executionTime,
             'traceTimings' => self::$traceTimingsResult,
             'cache' => self::$cache,
+            'datetime' => time(),
             'memoryUsage' => [
                 'used' => memory_get_usage(),
                 'peak' => memory_get_peak_usage(),
@@ -262,6 +263,7 @@ class Response
 
         echo json_encode([
             ...self::$baseResponse,
+            'datetime' => time(),
             'error' => $error,
 
             'executionTime' => self::$startTime ? round((microtime(true) - self::$startTime) * 1000) : null,

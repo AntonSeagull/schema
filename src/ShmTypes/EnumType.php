@@ -216,9 +216,20 @@ class EnumType extends BaseType
             throw new \Exception("getEnumTypeName -> Key is not set for EnumType" . ' ' .  print_r($this->values, true));
         }
 
+        if ($this->staticBaseTypeName) {
+            return $this->staticBaseTypeName . 'Enum';
+        }
+
         return ShmUtils::onlyLetters($this->key) . AutoPostfix::get(array_keys($this->values), true) . 'Enum';
     }
 
+
+    private string $staticBaseTypeName = '';
+    public function staticBaseTypeName(string $name): static
+    {
+        $this->staticBaseTypeName = ShmUtils::translitIfCyrillic(ShmUtils::onlyLetters($name));
+        return $this;
+    }
 
 
 

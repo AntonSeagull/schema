@@ -640,7 +640,13 @@ class StructureType extends BaseType
         $typeName = '';
 
         if ($this->collection) {
-            $typeName = Inflect::singularize(ShmUtils::onlyLetters($this->collection));
+
+            $_collection = $this->collection;
+            $_collection = explode('_', $_collection);
+            $_collection = array_map(fn($item) => ucfirst($item), $_collection);
+            $_collection = implode('', $_collection);
+
+            $typeName = Inflect::singularize(ShmUtils::onlyLetters($_collection));
         } else {
 
             if (!$this->key) {

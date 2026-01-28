@@ -5,7 +5,7 @@ namespace Shm;
 
 use Shm\ShmAdmin\Types\VisualGroupType;
 use Shm\ShmCmd\Cmd;
-use Shm\ShmTypes\DashboardType;
+
 use Shm\ShmTypes\StringType;
 use Shm\ShmTypes\ArrayOfType;
 use Shm\ShmTypes\IntType;
@@ -376,10 +376,6 @@ class Shm
     }
 
 
-    public static function dashboard(array $fields = []): DashboardType
-    {
-        return new DashboardType($fields);
-    }
 
     public static function balance(string $currency): BalanceType
     {

@@ -23,3 +23,9 @@ CODE_QUALITY_METRICS.md
 /docs/
 /examples/
 /IMPROVEMENTS.md
+
+# Go
+services/go/go-service
+services/go/*.exe
+services/go/*.test
+services/go/*.prof

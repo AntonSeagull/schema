@@ -28,6 +28,7 @@ use Shm\ShmAdmin\AdminRPC\AdminRPCMakeStatementExport;
 use Shm\ShmAdmin\AdminRPC\AdminRPCListExport;
 use Shm\ShmAdmin\AdminRPC\AdminRPCFilter;
 use Shm\ShmAdmin\AdminRPC\AdminRPCApiKeys;
+use Shm\ShmAdmin\AdminRPC\AdminRPCBI\AdminRPCBI;
 use Shm\ShmAdmin\AdminRPC\AdminRPCRemoveApiKey;
 use Shm\ShmAdmin\AdminRPC\AdminRPCNewApiKey;
 use Shm\ShmAdmin\AdminRPC\AdminRPCMoveUpdate;
@@ -53,7 +54,7 @@ use Shm\ShmRPC\ShmRPC;
 use Shm\ShmRPC\ShmRPCClient\ShmRPCClient;
 use Shm\ShmSupport\ShmSupport;
 use Shm\ShmTypes\CompositeTypes\BalanceTypes\BalanceUtils;
-use Shm\ShmTypes\DashboardType;
+
 use Shm\ShmTypes\StructureType;
 
 use Shm\ShmUtils\Config;
@@ -249,8 +250,14 @@ class AdminPanel
 
 
 
-            'allCollections' => AdminRPCAnalytics::allCollectionsRpc(),
+            'allCollections' => AdminRPCBI::allCollectionsRpc(),
 
+            'addBiBoard' => AdminRPCBI::addBiBoardRpc(),
+            'updateBiBoard' => AdminRPCBI::updateBiBoardRpc(),
+            'deleteBiBoard' => AdminRPCBI::deleteBiBoardRpc(),
+            'biBoards' => AdminRPCBI::getBiBoardsRpc(),
+
+            'calculateBiBlock' => AdminRPCBI::calculateBiBlockRpc(),
 
 
 
@@ -264,7 +271,6 @@ class AdminPanel
             'collection' => AdminRPCCollection::rpc(),
             'emptyData' => AdminRPCEmptyData::rpc(),
 
-            'dashboard' => AdminRPCDashboard::rpc(),
 
 
             'geocode' => AdminRPCGeocode::rpc(),

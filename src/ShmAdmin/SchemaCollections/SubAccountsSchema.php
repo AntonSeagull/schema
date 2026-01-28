@@ -5,7 +5,7 @@ namespace Shm\ShmAdmin\SchemaCollections;
 
 use Shm\Shm;
 use Shm\ShmAuth\Auth;
-use Shm\ShmTypes\DashboardType;
+
 use Shm\ShmTypes\StructureType;
 use Shm\ShmUtils\MaterialIcons;
 
@@ -140,7 +140,7 @@ class SubAccountsSchema
                 $result = [...$result, ...self::subAccountsSchema($item)];
             }
 
-            if ($item->type == 'dashboard' && $item instanceof DashboardType) {
+            /*    if ($item->type == 'dashboard' && $item instanceof DashboardType) {
 
 
 
@@ -153,7 +153,7 @@ class SubAccountsSchema
 
 
                 ];
-            }
+            }*/
             if ($item->type == 'structure' && $item instanceof StructureType) {
 
                 $enumItems = [];

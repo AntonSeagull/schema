@@ -20,12 +20,12 @@ class Collection
 {
 
 
-    final public function tabs() {}
-    final public function schemaGroups() {}
+    //final public function tabs() {}
+    //final public function schemaGroups() {}
     final public function title() {}
     final public function access() {}
-    final public function beforeSave() {}
-    final public function afterSave() {}
+    //  final public function beforeSave() {}
+    //  final public function afterSave() {}
     final public function expect() {}
     final public function isHide() {}
 

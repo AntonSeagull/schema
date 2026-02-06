@@ -45,6 +45,7 @@ export class rpcClient {
    private static initialized: boolean = false;
    private static headers: Record<string, string> = {};
    private static tokenGetter: (() => string | null) | null = null;
+   private static tokenGetterAsync: (() => Promise<string | null>) | null = null;
    private static unauthorizedHandler: (() => void) | null = null;
    private static networkErrorHandler: (() => void) | null = null;
    private static toastHandler: ((message: string) => void) | null = null;
@@ -153,6 +154,10 @@ export class rpcClient {
       this.tokenGetter = getter;
    }
 
+   public static setTokenAsync(getter: () => Promise<string | null>): void {
+      this.tokenGetterAsync = getter;
+   }
+
    public static setUnauthorizedHandler(handler: () => void): void {
       this.unauthorizedHandler = handler;
    }
@@ -169,6 +174,18 @@ export class rpcClient {
 
    public static getToken(): string | null {
       if (this.tokenGetter) return this.tokenGetter();
+      return null;
+   }
+
+   public static async getTokenAsync(): Promise<string | null> {
+      // Приоритет у синхронной функции
+      if (this.tokenGetter) {
+         return this.tokenGetter();
+      }
+      // Если синхронной нет, используем асинхронную
+      if (this.tokenGetterAsync) {
+         return await this.tokenGetterAsync();
+      }
       return null;
    }
 
@@ -195,7 +212,7 @@ export class rpcClient {
 
       formData.append('method', method);
 
-      let _token = this.getToken();
+      let _token = await this.getTokenAsync();
       if (_token) {
          formData.append('token', _token);
       }
@@ -265,8 +282,9 @@ export class rpcClient {
       let _extensions = extensions != undefined ? extensions : this.defaultExtensions;
 
 
+      const token = await this.getTokenAsync();
       const body = {
-         method, extensions: _extensions, context: context, token: this.getToken(),
+         method, extensions: _extensions, context: context, token: token,
          params: params ? context ? xorEncrypt(JSON.stringify(params ?? {}), context) : params : undefined,
          id: Date.now().toString()
       };

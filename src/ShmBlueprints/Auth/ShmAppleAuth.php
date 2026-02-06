@@ -83,6 +83,9 @@ class ShmAppleAuth extends ShmAuthBase
                     '*' => Shm::mixed(),
                 ])),
 
+                'unset' => Shm::bool(),
+                'set' => Shm::bool(),
+
                 "key" => Shm::string(),
                 "deviceInfo" => $this->deviceInfoStructure()
 
@@ -90,6 +93,28 @@ class ShmAppleAuth extends ShmAuthBase
             ],
 
             'resolve' => function ($root, $args) {
+
+
+
+                if (isset($args['unset']) && $args['unset']) {
+
+                    Auth::authenticateOrThrow();
+
+
+                    $authModel = $this->currentStructure();
+
+
+
+                    $user = $authModel->updateOne([
+                        "_id" => Auth::getAuthID(),
+                    ], [
+                        '$unset' => [
+                            $this->appleField => 1
+                        ]
+                    ]);
+
+                    return null;
+                }
 
 
 
@@ -108,6 +133,22 @@ class ShmAppleAuth extends ShmAuthBase
 
                 if (!$appleSignInPayload->verifyUser($apple['user'])) {
                     Shm::error('Ошибка авторизации');
+                }
+
+                if (isset($args['set']) && $args['set'] == true) {
+                    Auth::authenticateOrThrow();
+
+                    $authModel = $this->currentStructure();
+
+                    $authModel->updateOne([
+                        "_id" => Auth::getAuthID(),
+                    ], [
+                        '$set' => [
+                            $this->appleField => $appleSignInPayload->getUser()
+                        ]
+                    ]);
+
+                    return null;
                 }
 
 
